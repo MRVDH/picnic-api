@@ -1,3 +1,7 @@
+[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE)
+[![Buy me an Affligem blond](https://img.shields.io/badge/buy%20me%20an-affligem%20blond-orange?style=flat-square)](https://www.buymeacoffee.com/MRVDH)
+
 # Picnic-API
 Unofficial (unaffiliated) Node.js npm package for the API of the online supermarket Picnic.
 
@@ -48,7 +52,7 @@ picnicClient.search("Affligem blond").then(searchResults => {
 });
 ```
 
-Exmaple of a `POST` request:
+Example of a `POST` request:
 ```js
 await picnicClient.addProductToShoppingCart(11295810, 2);
 

@@ -1,6 +1,6 @@
 {
     "name": "picnic-api",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Unofficial API for the online supermarket Picnic",
     "keywords": [
         "picnic",
@@ -22,7 +22,7 @@
         "index.js"
     ],
     "main": "index.js",
-    "repository": "MRVDH/picnic-api",
+    "repository": "github:MRVDH/picnic-api",
     "dependencies": {
         "axios": "^0.21.1",
         "crypto-js": "^4.0.0"
