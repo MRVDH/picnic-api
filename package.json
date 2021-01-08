@@ -1,0 +1,34 @@
+{
+    "name": "picnic-api",
+    "version": "1.0.0",
+    "description": "Unofficial API for the online supermarket Picnic",
+    "keywords": [
+        "picnic",
+        "api",
+        "online",
+        "supermarket"
+    ],
+    "homepage": "https://github.com/MRVDH/picnic-api",
+    "bugs": {
+        "url": "https://github.com/MRVDH/picnic-api/issues"
+    },
+    "license": "MIT",
+    "author": "Maarten van den Hoven <info@maartenvandenhoven.com> (https://maartenvandenhoven.com)",
+    "funding": [
+        "https://www.buymeacoffee.com/MRVDH",
+        "https://github.com/sponsors/MRVDH"
+    ],
+    "files": [
+        "index.js"
+    ],
+    "main": "index.js",
+    "repository": "MRVDH/picnic-api",
+    "dependencies": {
+        "axios": "^0.21.1",
+        "crypto-js": "^4.0.0"
+    },
+    "engines": {
+        "node": ">=14.15.0"
+    },
+    "type": "module"
+}
