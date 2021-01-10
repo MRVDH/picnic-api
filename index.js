@@ -128,7 +128,7 @@ class PicnicClient {
 
     /**
      * Returns the catgories.
-     * @param {Number} depth The depth of cagetories to retrieve.
+     * @param {Number} [depth=0] The cagetory depth of items to retrieve.
      */
     getCategories (depth = 0) {
         return this.sendRequest(HttpMethods.GET, `/my_store?depth=${depth}`);
@@ -241,18 +241,28 @@ class PicnicClient {
 
     /**
      * Returns all the lists and sublists.
+     * @param {Number} [depth=0] The cagetory depth of items to retrieve.
      */
-    getLists () {
-        return this.sendRequest(HttpMethods.GET, `/lists`);
+    getLists (depth = 0) {
+        return this.sendRequest(HttpMethods.GET, `/lists?depth=${depth}`);
     }
 
     /**
      * Returns the list and its sublists, or a specific sublist if the id is given.
      * @param {String} listId The id of the list to get.
      * @param {String} [subListId] The id of the sub list to get.
+     * @param {Number} [depth=0] The cagetory depth of items to retrieve.
      */
-    getList (listId, subListId) {
-        return this.sendRequest(HttpMethods.GET, `/lists/${listId}${subListId ? `?sublist=${subListId}` : ``}`);
+    getList (listId, subListId, depth = 0) {
+        let path = `/lists/${listId}`;
+
+        if (subListId) {
+            path += `?sublist=${subListId}`;
+        }
+
+        path += (subListId ? '&' : '?') + `depth=${depth}`;
+
+        return this.sendRequest(HttpMethods.GET, path);
     }
 
     /**
