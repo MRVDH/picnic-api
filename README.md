@@ -11,9 +11,9 @@ Using `npm`:
 npm install picnic-api
 ```
 
-Then import the package into your project. `PicnicClient` is the default export. `CountryCodes` can be included when you want to make requests for the German version of Picnic for example. `HttpMethods` can be used when you want to make custom requests. More on that below.
+Then import the package into your project. `PicnicClient` is the default export. `CountryCodes` can be included when you want to make requests for the German version of Picnic for example. `ImageSizes` can be used for retreiving images. `HttpMethods` can be used when you want to make custom requests. More on that below.
 ```js
-import PicnicClient, { CountryCodes, HttpMethods } from "picnic-api";
+import PicnicClient, { CountryCodes, ImageSizes, HttpMethods } from "picnic-api";
 ```
 
 Now initialize the Picnic client with an optional options object.
@@ -23,9 +23,10 @@ const picnicClient = new PicnicClient();
 // or
 
 const picnicClient = new PicnicClient({
-    countryCode: CountryCodes.NL // The country code for the requests.
-    apiVersion: "1000" // default 1000. The api version for the requests. Does not seem to do anything yet.
-    authKey: "long string here" // default null. The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
+    countryCode: CountryCodes.NL, // The country code for the requests.
+    apiVersion: "15", // default 15 as this is what the app currently uses. The api version for the requests. Does not seem to do anything yet.
+    authKey: "long string here", // default null. The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
+    url: "url here" // default https://storefront-prod.nl.picnicinternational.com/api/15. The url to send requests to.
 });
 ```
 
@@ -108,8 +109,15 @@ getSuggestions (query)
 getProduct (productId)
 
 /**
+ * Retreives product images from the server.
+ * @param {String} imageId The image id to retreive.
+ * @param {String} size The size of the image to return.
+ */
+getImage (imageId, size)
+
+/**
  * Returns the catgories.
- * @param {Number} depth The depth of cagetories to retrieve.
+ * @param {Number} [depth=0] The cagetory depth of items to retrieve.
  */
 getCategories (depth = 0)
 
@@ -194,15 +202,17 @@ getOrderStatus (orderId)
 
 /**
  * Returns all the lists and sublists.
+ * @param {Number} [depth=0] The cagetory depth of items to retrieve.
  */
-getLists ()
+getLists (depth = 0)
 
 /**
  * Returns the list and its sublists, or a specific sublist if the id is given.
  * @param {String} listId The id of the list to get.
  * @param {String} [subListId] The id of the sub list to get.
+ * @param {Number} [depth=0] The cagetory depth of items to retrieve.
  */
-getList (listId, subListId)
+getList (listId, subListId, depth = 0)
 
 /**
  * Returns the MGM details. This are the friends discount data. 
@@ -235,15 +245,16 @@ sendRequest (method, path, data = null)
 getKnownApiRoutes ()
 
 /**
- * Country codes
+ * Country codes for the Picnic requests.
  */
 const CountryCodes = {
     NL: "NL",
     DE: "DE"
 }
 
+
 /**
- * HTTP methods
+ * HTTP Methods to be used for custom requests.
  */
 const HttpMethods = {
     GET: "get",
@@ -255,5 +266,16 @@ const HttpMethods = {
     OPTIONS: "options",
     TRACE: "trace",
     PATCH: "patch"
+}
+
+/**
+ * Image sizes for retreiving product images.
+ */
+export const ImageSizes = {
+    TINY: "tiny",
+    SMALL: "small",
+    MEDIUM: "medium",
+    LARGE: "large",
+    EXTRA_LARGE: "extra-large"
 }
 ```

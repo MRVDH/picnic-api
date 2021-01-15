@@ -13,6 +13,9 @@ export const CountryCodes = {
     DE: "DE"
 }
 
+/**
+ * HTTP Methods to be used for custom requests.
+ */
 export const HttpMethods = {
     GET: "get",
     HEAD: "head",
@@ -25,6 +28,17 @@ export const HttpMethods = {
     PATCH: "patch"
 }
 
+/**
+ * Image sizes for retreiving product images.
+ */
+export const ImageSizes = {
+    TINY: "tiny",
+    SMALL: "small",
+    MEDIUM: "medium",
+    LARGE: "large",
+    EXTRA_LARGE: "extra-large"
+}
+
 class PicnicClient {
     /**
      * Builds the client that sends the requests.
@@ -32,13 +46,14 @@ class PicnicClient {
      * @param {String} [options.countryCode=NL] The country code for the requests.
      * @param {String} [options.apiVersion=15] The api version for the requests. Does not seem to do anything yet.
      * @param {String} [options.authKey=null] The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
+     * @param {String} [options.url] Custom defined endpoint.
      */
     constructor(options = { }) {
         this.countryCode = options.countryCode || CountryCodes.NL;
-        this.apiVersion = options.apiVersion || "1000";
+        this.apiVersion = options.apiVersion || "15";
         this.authKey = options.authKey || null;
 
-        this.url = `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
+        this.url = options.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
 
         this._configureHttpInstance();
     }
@@ -124,6 +139,17 @@ class PicnicClient {
      */
     getProduct (productId) {
         return this.sendRequest(HttpMethods.GET, `/product/${productId}`);
+    }
+
+    /**
+     * Retreives product images from the server.
+     * @param {String} imageId The image id to retreive.
+     * @param {String} size The size of the image to return.
+     */
+    getImage (imageId, size) {
+        let alternateRoute = this.url.split("/api/")[0];
+
+        return this.sendRequest(HttpMethods.GET, `${alternateRoute}/static/images/${imageId}/${size}.png`);
     }
 
     /**
@@ -298,7 +324,7 @@ class PicnicClient {
         return new Promise((resolve, reject) => {
             const options = {
                 method,
-                url: path,
+                url: path
             };
     
             if (data) {
