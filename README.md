@@ -1,6 +1,4 @@
-[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE)
-[![Buy me an Affligem blond](https://img.shields.io/badge/buy%20me%20an-affligem%20blond-orange?style=flat-square)](https://www.buymeacoffee.com/MRVDH)
+[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE) [![Buy me an Affligem blond](https://img.shields.io/badge/buy%20me%20an-affligem%20blond-orange?style=flat-square)](https://www.buymeacoffee.com/MRVDH) [![MAAR3267](https://img.shields.io/badge/picnic%20discount-MAAR3267-E1171E?style=flat-square)](https://picnic.app/nl/vriendenkorting/MAAR3267)
 
 # Picnic-API
 Unofficial (unaffiliated) Node.js npm package for the API of the online supermarket Picnic.
@@ -63,6 +61,7 @@ picnicClient.addProductToShoppingCart(11295810, 2).then(shoppingCart => {
     
 });
 ```
+If you like this library then consider using my discount code [MAAR3267](https://picnic.app/nl/vriendenkorting/MAAR3267) so that we both get a 5 euro discount on our orders. 😄
 
 ## API Routes
 Most API routes have been implemented as methods in the `PicnicClient` class. However, to get a list of all known API routes the method `getKnownApiRoutes` can be used. These routes are extracted from the Picnic android app. Latest extraction done for version `1.15.71`.
