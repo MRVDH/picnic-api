@@ -12,6 +12,11 @@ npm install picnic-api
 Then import the package into your project. `PicnicClient` is the default export. `CountryCodes` can be included when you want to make requests for the German version of Picnic for example. `ImageSizes` can be used for retreiving images. `HttpMethods` can be used when you want to make custom requests. More on that below.
 ```js
 import PicnicClient, { CountryCodes, ImageSizes, HttpMethods } from "picnic-api";
+
+// or
+
+const PicnicClient = require("picnic-api");
+const { CountryCodes, ImageSizes, HttpMethods } = PicnicClient;
 ```
 
 Now initialize the Picnic client with an optional options object.
@@ -270,7 +275,7 @@ const HttpMethods = {
 /**
  * Image sizes for retreiving product images.
  */
-export const ImageSizes = {
+const ImageSizes = {
     TINY: "tiny",
     SMALL: "small",
     MEDIUM: "medium",

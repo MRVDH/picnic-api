@@ -1,4 +1,4 @@
-export default `
+module.exports = `
         USER:
 
         @POST("/api/{api_version}/user")

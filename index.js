@@ -1,14 +1,14 @@
-import axios from "axios";
-import md5 from "crypto-js/md5.js";
-import utf8 from "crypto-js/enc-utf8.js";
-import hex from "crypto-js/enc-hex.js";
+const axios = require("axios");
+const md5 = require("crypto-js/md5.js");
+const utf8 = require("crypto-js/enc-utf8.js");
+const hex = require("crypto-js/enc-hex.js");
 
-import routes from "./routes.js";
+const routes = require("./routes.js");
 
 /**
  * Country codes for the Picnic requests.
  */
-export const CountryCodes = {
+const CountryCodes = {
     NL: "NL",
     DE: "DE"
 }
@@ -16,7 +16,7 @@ export const CountryCodes = {
 /**
  * HTTP Methods to be used for custom requests.
  */
-export const HttpMethods = {
+const HttpMethods = {
     GET: "get",
     HEAD: "head",
     POST: "post",
@@ -31,7 +31,7 @@ export const HttpMethods = {
 /**
  * Image sizes for retreiving product images.
  */
-export const ImageSizes = {
+const ImageSizes = {
     TINY: "tiny",
     SMALL: "small",
     MEDIUM: "medium",
@@ -347,4 +347,7 @@ class PicnicClient {
     }
 }
 
-export default PicnicClient;
+module.exports = PicnicClient;
+module.exports.CountryCodes = CountryCodes;
+module.exports.HttpMethods = HttpMethods;
+module.exports.ImageSizes = ImageSizes;
