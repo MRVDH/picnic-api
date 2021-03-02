@@ -50,7 +50,7 @@ class PicnicClient {
      */
     constructor(options = { }) {
         this.countryCode = options.countryCode || CountryCodes.NL;
-        this.apiVersion = options.apiVersion || "15";
+        this.apiVersion = options.apiVersion || "17";
         this.authKey = options.authKey || null;
 
         this.url = options.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
@@ -66,8 +66,12 @@ class PicnicClient {
         this.httpInstance = axios.create({
             baseURL: this.url,
             headers: {
-                "User-Agent": "okhttp/3.9.0",
-                "Content-Type": "application/json; charset=UTF-8"
+                "User-Agent": "okhttp/3.12.2",
+                "Content-Type": "application/json; charset=UTF-8",
+                "Accept-Language": "en",
+                "x-picnic-agent": "30100;1.15.77-10293",
+                "x-picnic-did": "3C417201548B2E3B",
+                "picnic-country": this.countryCode
             }
         });
 
@@ -225,11 +229,19 @@ class PicnicClient {
     }
 
     /**
-     * Get the position of one specific delivery. Only works on deliveries on the way.
+     * Get the position data of one specific delivery. For the route and delivery information, use the scenario call.
      * @param {String} deliveryId The id of the delivery to look up.
      */
     getDeliveryPosition (deliveryId) {
         return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/position`);
+    }
+
+    /**
+     * Get the driver and route information of the delivery.
+     * @param {String} deliveryId The id of the delivery to look up.
+     */
+    getDeliveryScenario (deliveryId) {
+        return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/scenario`);
     }
 
     /**
@@ -312,6 +324,20 @@ class PicnicClient {
      */
     setConsentSettings (consentDeclarations) {
         return this.sendRequest(HttpMethods.PUT, `/consents`, { consent_declarations: consentDeclarations });
+    }
+    
+    /**
+     * Returns the popup messages in the app. For example, the message after a delivery, asking if the delivery was satisfactory.
+     */
+    getMessages () {
+        return this.sendRequest(HttpMethods.GET, `/messages`);
+    }
+    
+    /**
+     * Returns the reminders.
+     */
+    getReminders () {
+        return this.sendRequest(HttpMethods.GET, `/reminders`);
     }
 
     /**

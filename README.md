@@ -180,6 +180,12 @@ getDelivery (deliveryId)
 getDeliveryPosition (deliveryId)
 
 /**
+ * Get the driver and route information of the delivery.
+ * @param {String} deliveryId The id of the delivery to look up.
+ */
+getDeliveryScenario (deliveryId)
+
+/**
  * Cancels the order with the given delivery id.
  * @param {String} deliveryId 
  */
@@ -234,6 +240,16 @@ getConsentSettings (general = false)
  * @param {{consent_request_text_id: String, consent_request_locale: String, agreement: Boolean}[]} consentDeclarations An array of objects of consent items. Example: [ { consent_request_text_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', consent_request_locale: 'nl_NL', agreement: false } ]
  */
 setConsentSettings (consentDeclarations)
+
+/**
+ * Returns the popup messages in the app. For example, the message after a delivery, asking if the delivery was satisfactory.
+ */
+getMessages ()
+
+/**
+ * Returns the reminders.
+ */
+getReminders ()
 
 /**
  * Can be used to send custom requests that are not implemented but do need authentication for it.
