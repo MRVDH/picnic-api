@@ -62,28 +62,9 @@ class PicnicClient {
      * Builds the axios instance that is used to send the requests.
      */
     _configureHttpInstance () {
-        // Creates the http client and adds the necessary headers.
+        // Creates the http client.
         this.httpInstance = axios.create({
-            baseURL: this.url,
-            headers: {
-                "User-Agent": "okhttp/3.12.2",
-                "Content-Type": "application/json; charset=UTF-8",
-                "Accept-Language": "en",
-                "x-picnic-agent": "30100;1.15.77-10293",
-                "x-picnic-did": "3C417201548B2E3B",
-                "picnic-country": this.countryCode
-            }
-        });
-
-        // Adds the auth key to every requests.
-        this.httpInstance.interceptors.request.use((config) => {
-            if (this.authKey) {
-                config.headers["x-picnic-auth"] = this.authKey;
-            }
-
-            return config;
-        }, (error) => {
-            return Promise.reject(error);
+            baseURL: this.url
         });
     }
 
@@ -233,7 +214,7 @@ class PicnicClient {
      * @param {String} deliveryId The id of the delivery to look up.
      */
     getDeliveryPosition (deliveryId) {
-        return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/position`);
+        return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/position`, null, true);
     }
 
     /**
@@ -241,7 +222,7 @@ class PicnicClient {
      * @param {String} deliveryId The id of the delivery to look up.
      */
     getDeliveryScenario (deliveryId) {
-        return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/scenario`);
+        return this.sendRequest(HttpMethods.GET, `/deliveries/${deliveryId}/scenario`, null, true);
     }
 
     /**
@@ -330,14 +311,14 @@ class PicnicClient {
      * Returns the popup messages in the app. For example, the message after a delivery, asking if the delivery was satisfactory.
      */
     getMessages () {
-        return this.sendRequest(HttpMethods.GET, `/messages`);
+        return this.sendRequest(HttpMethods.GET, `/messages`, null, true);
     }
     
     /**
      * Returns the reminders.
      */
     getReminders () {
-        return this.sendRequest(HttpMethods.GET, `/reminders`);
+        return this.sendRequest(HttpMethods.GET, `/reminders`, null, true);
     }
 
     /**
@@ -345,16 +326,32 @@ class PicnicClient {
      * @param {String} method The HTTP method to use, such as GET, POST, PUT and DELETE.
      * @param {String} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
      * @param {Object|Array} data The request body, usually in case of a POST or PUT request.
+     * @param {Boolean} includePicnicHeaders If it should include x-picnic-agent and x-picnic-did headers
      */
-    sendRequest (method, path, data = null) {
+    sendRequest (method, path, data = null, includePicnicHeaders = false) {
         return new Promise((resolve, reject) => {
             const options = {
                 method,
-                url: path
+                url: path,
+                headers: {
+                    "User-Agent": "okhttp/3.12.2",
+                    "Content-Type": "application/json; charset=UTF-8",
+                    //"Accept-Language": "en",
+                    //"picnic-country": this.countryCode
+                }
             };
+
+            if (this.authKey) {
+                options.headers["x-picnic-auth"] = this.authKey;
+            }
     
             if (data) {
                 options.data = data;
+            }
+
+            if (includePicnicHeaders) {
+                options.headers["x-picnic-agent"] = "30100;1.15.77-10293";
+                options.headers["x-picnic-did"] = "3C417201548B2E3B";
             }
     
             this.httpInstance.request(options).then(res => {

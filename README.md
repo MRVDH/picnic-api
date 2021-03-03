@@ -256,8 +256,9 @@ getReminders ()
  * @param {String} method The HTTP method to use, such as GET, POST, PUT and DELETE.
  * @param {String} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
  * @param {Object|Array} data The request body, usually in case of a POST or PUT request.
+ * @param {Boolean} includePicnicHeaders If it should include x-picnic-agent and x-picnic-did headers
  */
-sendRequest (method, path, data = null)
+sendRequest (method, path, data = null, includePicnicHeaders = false)
 
 /**
  * Returns list (string) of all known API routes.
