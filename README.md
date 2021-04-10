@@ -27,9 +27,9 @@ const picnicClient = new PicnicClient();
 
 const picnicClient = new PicnicClient({
     countryCode: CountryCodes.NL, // The country code for the requests.
-    apiVersion: "15", // default 15 as this is what the app currently uses. The api version for the requests. Does not seem to do anything yet.
+    apiVersion: "17", // default 17 as this is what the app currently uses. The api version for the requests. Does not seem to do anything yet.
     authKey: "long string here", // default null. The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
-    url: "url here" // default https://storefront-prod.nl.picnicinternational.com/api/15. The url to send requests to.
+    url: "url here" // default https://storefront-prod.nl.picnicinternational.com/api/17. The url to send requests to.
 });
 ```
 
@@ -69,7 +69,7 @@ picnicClient.addProductToShoppingCart(11295810, 2).then(shoppingCart => {
 If you like this library then consider using my discount code [MAAR3267](https://picnic.app/nl/vriendenkorting/MAAR3267) so that we both get a 5 euro discount on our orders. 😄
 
 ## API Routes
-Most API routes have been implemented as methods in the `PicnicClient` class. However, to get a list of all known API routes the method `getKnownApiRoutes` can be used. These routes are extracted from the Picnic android app. Latest extraction done for version `1.15.71`.
+Most API routes have been implemented as methods in the `PicnicClient` class. However, to get a list of all known API routes the method `getKnownApiRoutes` can be used. These routes are extracted from the Picnic android app. Latest extraction done for version `1.15.77`.
 
 Examples of a custom (unimplemented) request:
 ```js
@@ -113,11 +113,18 @@ getSuggestions (query)
 getProduct (productId)
 
 /**
- * Retreives product images from the server.
+ * Retreives product images from the server as an arrayBuffer.
  * @param {String} imageId The image id to retreive.
  * @param {String} size The size of the image to return.
  */
 getImage (imageId, size)
+
+/**
+ * Retreives product images from the server ad a DataUri.
+ * @param {String} imageId The image id to retreive.
+ * @param {String} size The size of the image to return.
+ */
+getImageAsDataUri (imageId, size)
 
 /**
  * Returns the catgories.
@@ -255,10 +262,11 @@ getReminders ()
  * Can be used to send custom requests that are not implemented but do need authentication for it.
  * @param {String} method The HTTP method to use, such as GET, POST, PUT and DELETE.
  * @param {String} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
- * @param {Object|Array} data The request body, usually in case of a POST or PUT request.
- * @param {Boolean} includePicnicHeaders If it should include x-picnic-agent and x-picnic-did headers
+ * @param {Object|Array} [data=null] The request body, usually in case of a POST or PUT request.
+ * @param {Boolean} [includePicnicHeaders=false] If it should include x-picnic-agent and x-picnic-did headers.
+ * @param {Boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
  */
-sendRequest (method, path, data = null, includePicnicHeaders = false)
+sendRequest (method, path, data = null, includePicnicHeaders = false, isImageRequest = false)
 
 /**
  * Returns list (string) of all known API routes.

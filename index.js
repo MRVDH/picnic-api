@@ -44,7 +44,7 @@ class PicnicClient {
      * Builds the client that sends the requests.
      * @param {Object} options To configure the client.
      * @param {String} [options.countryCode=NL] The country code for the requests.
-     * @param {String} [options.apiVersion=15] The api version for the requests. Does not seem to do anything yet.
+     * @param {String} [options.apiVersion=17] The api version for the requests. Does not seem to do anything yet.
      * @param {String} [options.authKey=null] The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
      * @param {String} [options.url] Custom defined endpoint.
      */
@@ -127,14 +127,27 @@ class PicnicClient {
     }
 
     /**
-     * Retreives product images from the server.
+     * Retreives product images from the server as an arrayBuffer.
      * @param {String} imageId The image id to retreive.
      * @param {String} size The size of the image to return.
      */
     getImage (imageId, size) {
         let alternateRoute = this.url.split("/api/")[0];
 
-        return this.sendRequest(HttpMethods.GET, `${alternateRoute}/static/images/${imageId}/${size}.png`);
+        return this.sendRequest(HttpMethods.GET, `${alternateRoute}/static/images/${imageId}/${size}.png`, null, false, true);
+    }
+
+    /**
+     * Retreives product images from the server ad a DataUri.
+     * @param {String} imageId The image id to retreive.
+     * @param {String} size The size of the image to return.
+     */
+    async getImageAsDataUri (imageId, size) {
+        let arrayBuffer = await this.getImage(imageId, size);
+
+        let dataUri = "data:image/png;base64," + Buffer.from(arrayBuffer, 'binary').toString('base64');
+
+        return dataUri;
     }
 
     /**
@@ -325,19 +338,18 @@ class PicnicClient {
      * Can be used to send custom requests that are not implemented but do need authentication for it.
      * @param {String} method The HTTP method to use, such as GET, POST, PUT and DELETE.
      * @param {String} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
-     * @param {Object|Array} data The request body, usually in case of a POST or PUT request.
-     * @param {Boolean} includePicnicHeaders If it should include x-picnic-agent and x-picnic-did headers
+     * @param {Object|Array} [data=null] The request body, usually in case of a POST or PUT request.
+     * @param {Boolean} [includePicnicHeaders=false] If it should include x-picnic-agent and x-picnic-did headers.
+     * @param {Boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
      */
-    sendRequest (method, path, data = null, includePicnicHeaders = false) {
+    sendRequest (method, path, data = null, includePicnicHeaders = false, isImageRequest = false) {
         return new Promise((resolve, reject) => {
             const options = {
                 method,
                 url: path,
                 headers: {
                     "User-Agent": "okhttp/3.12.2",
-                    "Content-Type": "application/json; charset=UTF-8",
-                    //"Accept-Language": "en",
-                    //"picnic-country": this.countryCode
+                    "Content-Type": "application/json; charset=UTF-8"
                 }
             };
 
@@ -352,6 +364,10 @@ class PicnicClient {
             if (includePicnicHeaders) {
                 options.headers["x-picnic-agent"] = "30100;1.15.77-10293";
                 options.headers["x-picnic-did"] = "3C417201548B2E3B";
+            }
+
+            if (isImageRequest) {
+                options.responseType = 'arraybuffer';
             }
     
             this.httpInstance.request(options).then(res => {
