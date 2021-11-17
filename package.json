@@ -1,6 +1,6 @@
 {
     "name": "picnic-api",
-    "version": "1.4.2",
+    "version": "2.0.0",
     "description": "Unofficial API for the online supermarket Picnic",
     "keywords": [
         "picnic",
@@ -19,16 +19,31 @@
         "https://github.com/sponsors/MRVDH"
     ],
     "files": [
-        "index.js",
-        "routes.js"
+        "./lib/**"
     ],
-    "main": "index.js",
+    "main": "./lib/main.js",
+    "types": "./lib/main.d.ts",
+    "scripts": {
+        "build": "tsc && copyfiles -f src/static/*.js lib/",
+        "test": "jest"
+    },
     "repository": "github:MRVDH/picnic-api",
     "dependencies": {
-        "axios": "^0.21.1",
-        "crypto-js": "^4.0.0"
+        "axios": "^0.22.0",
+        "crypto-js": "^4.1.1"
+    },
+    "devDependencies": {
+        "@types/crypto-js": "^4.0.2",
+        "@types/jest": "^27.0.2",
+        "@types/node": "^16.10.3",
+        "copyfiles": "^2.4.1",
+        "jest": "^27.2.4",
+        "ts-jest": "^27.0.5",
+        "ts-node": "^10.2.1",
+        "tslint": "^6.1.3",
+        "typescript": "^4.4.3"
     },
     "engines": {
-        "node": ">=14.15.0"
+        "node": ">=16.10.0"
     }
 }
