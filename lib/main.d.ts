@@ -1,6 +1,5 @@
 import { AxiosInstance, AxiosResponse, Method } from "axios";
-import { ApiConfig, CountryCode, ImageSize } from "./types/main";
-import { Category, ConsentSetting, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic";
+import { ApiConfig, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
 declare const _default: {
     new (options?: ApiConfig | undefined): {
         countryCode: CountryCode;

@@ -5,8 +5,7 @@ import hex from "crypto-js/enc-hex";
 
 // @ts-ignore
 import routes from "../lib/routes.js";
-import { ApiConfig, CountryCode, ImageSize } from "./types/main";
-import { AddProductInput, Category, ConsentSetting, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, LoginInput, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SetDeliverySlotInput, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic";
+import { AddProductInput, ApiConfig, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginInput, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SetDeliverySlotInput, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
 
 export = class PicnicClient {
     countryCode: CountryCode;

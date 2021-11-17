@@ -1,3 +1,11 @@
+export declare type ApiConfig = {
+    countryCode?: CountryCode;
+    apiVersion?: string;
+    authKey?: string;
+    url?: string;
+};
+export declare type CountryCode = "NL" | "DE";
+export declare type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
 export declare type LoginInput = {
     key: string;
     secret: string;
@@ -600,4 +608,4 @@ export declare type SetConsentSettingsInput = {
 export declare type SetConsentSettingsResult = {
     consent_request_text_ids: string[];
 };
-//# sourceMappingURL=picnic.d.ts.map
+//# sourceMappingURL=picnic-api.d.ts.map
