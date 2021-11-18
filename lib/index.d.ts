@@ -170,4 +170,4 @@ declare const _default: {
     };
 };
 export = _default;
-//# sourceMappingURL=main.d.ts.map
+//# sourceMappingURL=index.d.ts.map

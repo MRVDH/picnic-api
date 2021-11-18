@@ -21,10 +21,9 @@
     "files": [
         "./lib/**"
     ],
-    "main": "./lib/main.js",
-    "types": "./lib/main.d.ts",
+    "main": "./lib/index.js",
     "scripts": {
-        "build": "tsc && copyfiles -f src/static/*.js lib/",
+        "build": "tsc && copyfiles -f src/static/*.js lib/static/",
         "test": "jest"
     },
     "repository": "github:MRVDH/picnic-api",
