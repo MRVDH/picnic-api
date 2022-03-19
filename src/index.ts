@@ -179,11 +179,10 @@ export = class PicnicClient {
 
     /**
      * Returns all past and current deliveries of the user. 
-     * @param {boolean} [summary=false] Return a summary (less data).
      * @param {DeliveryStatus[]} [filter=[]] An array with the statusses of the deliveries to filter on.
      */
-    getDeliveries(summary: boolean = false, filter: DeliveryStatus[] = []): Promise<Delivery[]> {
-        return this.sendRequest<any, Delivery[]>("POST", `/deliveries${summary ? `/summary` : ``}`, filter);
+    getDeliveries(filter: DeliveryStatus[] = []): Promise<Delivery[]> {
+        return this.sendRequest<any, Delivery[]>("POST", `/deliveries/summary`, filter);
     }
 
     /**
