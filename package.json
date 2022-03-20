@@ -1,6 +1,6 @@
 {
     "name": "picnic-api",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "Unofficial API for the online supermarket Picnic",
     "keywords": [
         "picnic",
@@ -19,7 +19,7 @@
         "https://github.com/sponsors/MRVDH"
     ],
     "files": [
-        "./lib/**"
+        "lib/**"
     ],
     "main": "./lib/index.js",
     "scripts": {
