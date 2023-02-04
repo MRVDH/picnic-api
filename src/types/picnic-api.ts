@@ -109,6 +109,12 @@ export type PriceDecorator = {
     [x: string]: any;
 };
 
+type QuantityDecorator = {
+    type: "QUANTITY";
+    quantity: number
+    [x: string]: any;
+}
+
 export type BackgroundImageDecorator = {
     type: "BACKGROUND_IMAGE";
     image_ids: string[];
@@ -221,7 +227,7 @@ export type ImmutableDecorator = {
     [x: string]: any;
 };
 
-export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | any;
+export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | any;
 
 export type SingleArticle = {
     type: "SINGLE_ARTICLE";
@@ -439,6 +445,7 @@ export type OrderLine = {
     items: OrderArticle[];
     display_price: number;
     price: number;
+    decorators: Decorator[];
     [x: string]: any;
 };
 
