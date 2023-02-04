@@ -474,13 +474,15 @@ export type TrackingAttributes = {
     [x: string]: any;
 };
 
-export type Icon = {
+export type PML<Component> = {
     pml_version: string;
-    component: ImageComponent;
-    images: IconImages;
+    component: Component;
+    images?: IconImages;
     tracking_attributes: TrackingAttributes;
     [x: string]: any;
 };
+
+export type Icon = PML<ImageComponent>;
 
 export type DeliverySlot = {
     slot_id: string;
@@ -694,3 +696,86 @@ export type SetConsentSettingsInput = {
 export type SetConsentSettingsResult = {
     consent_request_text_ids: string[];
 }
+
+export type NutritionalTable = {
+    type: "NUTRITIONAL_TABLE";
+    nutritional_table: {
+        default_unit: string;
+        values: NutritionalValue[];
+    };
+};
+
+export type PriceInfo = {
+    price: number;
+    price_color: string | null;
+    original_price: number | null;
+    deposit: number | null;
+    base_price_text: string | null;
+};
+
+export type Tagged<Type, Obj> = { type: Type } & Obj;
+
+export type ArticleMiscHeader = {
+    icon: string;
+    text: string;
+};
+
+export type ArticleMiscBody =
+    | NutritionalTable
+    | Tagged< "PML", { pml_content: PML<Component>; } >
+    | any;
+
+export type ArticleMisc = {
+    header: ArticleMiscHeader;
+    body: ArticleMiscBody;
+};
+
+export type ArticleHighlight = {
+    icon: string;
+    text: string;
+    action: any | null, // haven't seen this yet
+    [x: string]: any;
+};
+
+export type AllergyContains = {
+    name: string;
+    color: string;
+};
+
+export type Allergies = {
+    allergy_contains: AllergyContains[];
+    allergy_may_contain: string[];
+    allergy_text: string | null;
+};
+
+export type ArticleLabels = {
+    brand_tier: any | null;
+    status: any[];
+    characteristics: any[];
+    size: any | null;
+    promo: { text: string } | null;
+};
+
+export type ArticleDescription = {
+    main: string;
+    extension: string | null;
+};
+
+export type Article = {
+    type: "ARTICLE_DETAILS";
+    id: string;
+    name: string;
+    description: ArticleDescription;
+    images: { image_id: string }[];
+    labels: ArticleLabels;
+    price_info: PriceInfo;
+    unit_quantity: string;
+    max_order_quantity: number;
+    category_link: string;
+    allergies: Allergies;
+    highlights: ArticleHighlight[];
+    mood_gallery: (Tagged<"Image", { image_id: string }> | any)[];
+    decorators?: Decorator[];
+    misc: ArticleMisc[];
+    [x: string]: any;
+};
