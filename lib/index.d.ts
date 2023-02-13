@@ -1,7 +1,7 @@
 import { AxiosInstance, AxiosResponse, Method } from "axios";
-import { ApiConfig, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
+import { ApiConfig, Article, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
 declare const _default: {
-    new (options?: ApiConfig | undefined): {
+    new (options?: ApiConfig): {
         countryCode: CountryCode;
         apiVersion: string;
         authKey: string | null;
@@ -28,10 +28,16 @@ declare const _default: {
          */
         getSuggestions(query: string): Promise<SuggestionResult[]>;
         /**
-         * Returns the detials of a specific product.
+         * Returns the details of a specific product.
+         * @deprecated no longer in the API, use getArticle
          * @param {string} productId The id of the product to get.
          */
         getProduct(productId: string): Promise<ProductResult>;
+        /**
+         * Returns the details of a specific product.
+         * @param {string} productId The id of the product to get.
+         */
+        getArticle(productId: string): Promise<Article>;
         /**
          * Retreives product images from the server as an arrayBuffer.
          * @param {string} imageId The image id to retreive.
@@ -130,7 +136,7 @@ declare const _default: {
          * @param {string} [subListId] The id of the sub list to get.
          * @param {number} [depth=0] The category depth of items to retrieve.
          */
-        getList(listId: string, subListId?: string | undefined, depth?: number): Promise<SubCategory[] | SingleArticle[]>;
+        getList(listId: string, subListId?: string, depth?: number): Promise<SubCategory[] | SingleArticle[]>;
         /**
          * Returns the MGM details. This are the friends discount data.
          */
