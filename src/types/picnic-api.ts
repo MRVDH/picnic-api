@@ -192,18 +192,11 @@ export type Explanation = {
 
 export type Replacement = {
     type: "REPLACEMENT";
-    id: string;
-    decorators: Decorator[];
-    name: string;
     display_price: number;
-    price: number;
     image_id: string;
-    max_count: number;
-    unit_quantity: string;
-    tags: any[];
     replacement_type: string;
     [x: string]: any;
-};
+} & ArticleMixin;
 
 export type UnavailableDecorator = {
     type: "UNAVAILABLE";
@@ -231,18 +224,10 @@ export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorato
 
 export type SingleArticle = {
     type: "SINGLE_ARTICLE";
-    id: string;
-    decorators: Decorator[];
-    name: string;
     display_price: number;
-    price: number;
     image_id: string;
-    max_count: number;
-    unit_quantity: string;
-    unit_quantity_sub: string;
-    tags: any[];
     [x: string]: any;
-};
+} & ArticleMixin;
 
 export type ItemSuggestionCatalog = {
     type: "ITEM_SUGGESTION_DIALOG";
@@ -355,20 +340,23 @@ export type MyStore = {
     [x: string]: any;
 };
 
-export type OrderArticle = {
-    type: "ORDER_ARTICLE";
+export type ArticleMixin = {
     id: string;
     name: string;
-    image_ids: string[];
     unit_quantity: string;
+    unit_quantity_sub?: string;
     price: number;
-    max_count: number;
-    perishable: boolean;
     tags: any[];
     decorators: Decorator[];
-    unit_quantity_sub?: string;
-    [x: string]: any;
+    max_count: number;
 };
+
+export type OrderArticle = {
+    type: "ORDER_ARTICLE";
+    image_ids: string[];
+    perishable: boolean;
+    [x: string]: any;
+} & ArticleMixin;
 
 export type OrderLine = {
     type: "ORDER_LINE";
