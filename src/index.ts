@@ -5,7 +5,7 @@ import hex from "crypto-js/enc-hex";
 
 // @ts-ignore
 import routes from "./static/routes";
-import { AddProductInput, ApiConfig, Article, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginInput, LoginResult, MgmDetails, MyStore, Order, OrderStatus, ProductResult, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SetDeliverySlotInput, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
+import { AddProductInput, ApiConfig, Article, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginInput, LoginResult, MgmDetails, MyStore, Order, OrderStatus, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SetDeliverySlotInput, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
 
 export = class PicnicClient {
     countryCode: CountryCode;
@@ -88,15 +88,6 @@ export = class PicnicClient {
      */
     getSuggestions(query: string): Promise<SuggestionResult[]> {
         return this.sendRequest<any, SuggestionResult[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
-    }
-
-    /**
-     * Returns the details of a specific product.
-     * @deprecated no longer in the API, use getArticle
-     * @param {string} productId The id of the product to get. 
-     */
-    getProduct(productId: string): Promise<ProductResult> {
-        return this.sendRequest<any, ProductResult>("GET", `/product/${productId}`);
     }
 
     /**

@@ -314,7 +314,7 @@ module.exports = `
 
         PRODUCTS:
         
-        @GET("/api/{api_version}/product/{product_id}")
+        @GET("/api/{api_version}/articles/{product_id}")
         w<ProductDetailsWrapper> a(@Path("product_id") String paramString);
         
         @GET("/api/{api_version}/promotion/{promotionId}/category")

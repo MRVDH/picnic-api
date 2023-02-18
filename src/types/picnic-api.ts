@@ -274,12 +274,6 @@ export type SearchSuggestion = {
 
 export type SuggestionResult = SearchSuggestion | any;
 
-export type FreshLabel = {
-    unit: string;
-    number: number;
-    [x: string]: any;
-};
-
 export type NutritionalSubValue = {
     name: string;
     value: string;
@@ -292,69 +286,6 @@ export type NutritionalValue = {
     value: string;
     gda_percentage: string;
     sub_values: NutritionalSubValue[];
-    [x: string]: any;
-};
-
-export type DetailPageSubSection = {
-    type: string;
-    id: string;
-    title: string;
-    text: string;
-    [x: string]: any;
-};
-
-export type DetailPageSection = {
-    type: string;
-    id: string;
-    title: string;
-    items: DetailPageSubSection[];
-    [x: string]: any;
-};
-
-export type SingleArticleDetailsItem = DetailPageSection | any;
-
-export type SingleArticleDetails = SingleArticle & {
-    type: "SINGLE_ARTICLE_DETAILS";
-    product_id: string;
-    description: string;
-    canonical_name: string | null;
-    image_ids: string[];
-    fresh_label: FreshLabel;
-    nutritional_values: NutritionalValue[];
-    ingredients_blob: string;
-    additional_info: string;
-    label_holder: string;
-    original_price: number;
-    items: SingleArticleDetailsItem[];
-    nutritional_info_unit: string;
-    [x: string]: any;
-};
-
-export type PromoLabel = {
-    label: string;
-    valid_until: string;
-    [x: string]: any;
-};
-
-export type ProductSummary = {
-    current_count: number;
-    max_count: number;
-    price: number;
-    original_price: number;
-    promo_label: PromoLabel;
-    name: string;
-    fresh_label: FreshLabel;
-    unit_quantity: string;
-    unit_quantity_sub: string;
-    image_id: string;
-    deposit: number;
-    product_id: string;
-    [x: string]: any;
-};
-
-export type ProductResult = {
-    product_details: SingleArticleDetails;
-    products: any[];
     [x: string]: any;
 };
 
