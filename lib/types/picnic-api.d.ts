@@ -22,13 +22,11 @@ export type Address = {
     postcode: string;
     street: string;
     city: string;
-    [x: string]: any;
 };
 export type Subscription = {
     list_id: string;
     subscribed: boolean;
     name: string;
-    [x: string]: any;
 };
 export type HouseholdDetails = {
     adults: number;
@@ -37,7 +35,6 @@ export type HouseholdDetails = {
     dogs: number;
     author: string;
     last_edit_ts: number;
-    [x: string]: any;
 };
 export type ConsentDecisions = {
     MISC_COMMERCIAL_ADS: boolean;
@@ -47,7 +44,6 @@ export type ConsentDecisions = {
     PERSONALIZED_RANKING_CONSENT: boolean;
     MISC_COMMERCIAL_MESSAGES: boolean;
     WEEKLY_COMMERCIAL_EMAILS: boolean;
-    [x: string]: any;
 };
 export type User = {
     user_id: string;
@@ -67,48 +63,39 @@ export type User = {
     total_deliveries: number;
     completed_deliveries: number;
     consent_decisions: ConsentDecisions;
-    [x: string]: any;
 };
 export type Link = {
     type: string;
     href: string;
-    [x: string]: any;
 };
 export type BasePriceDecorator = {
     type: "BASE_PRICE";
     base_price_text: string;
-    [x: string]: any;
 };
 export type FreshLabelDecorator = {
     type: "FRESH_LABEL";
     period: string;
-    [x: string]: any;
 };
 export type LabelDecorator = {
     type: "LABEL";
     text: string;
-    [x: string]: any;
 };
 export type PriceDecorator = {
     type: "PRICE";
     display_price: number;
-    [x: string]: any;
 };
 type QuantityDecorator = {
     type: "QUANTITY";
     quantity: number;
-    [x: string]: any;
 };
 export type BackgroundImageDecorator = {
     type: "BACKGROUND_IMAGE";
     image_ids: string[];
     height_percent: number;
-    [x: string]: any;
 };
 export type DeeplinkReference = {
     type: "DEEPLINK";
     target: string;
-    [x: string]: any;
 };
 export type SubBanner = {
     banner_id: string;
@@ -117,74 +104,56 @@ export type SubBanner = {
     description: string;
     reference: DeeplinkReference;
     position: string;
-    [x: string]: any;
 };
 export type BannersDecorator = {
     type: "BANNERS";
     height_percentage: number;
     banners: SubBanner[];
-    [x: string]: any;
 };
 export type UnitQuantityDecorator = {
     type: "UNIT_QUANTITY";
     unit_quantity_text: string;
-    [x: string]: any;
 };
 export type ValidityLabelDecorator = {
     type: "VALIDITY_LABEL";
     valid_until: string;
-    [x: string]: any;
 };
 export type Position = {
     start_index: number;
     length: number;
-    [x: string]: any;
 };
 export type Style = {
     position: Position;
     color: string;
     style: string;
-    [x: string]: any;
 };
 export type TitleStyleDecorator = {
     type: "TITLE_STYLE";
     styles: Style[];
-    [x: string]: any;
 };
 export type MoreButtonDecorator = {
     type: "MORE_BUTTON";
     link: Link;
     images: string[];
     sellable_item_count: number;
-    [x: string]: any;
 };
 export type Explanation = {
     short_explanation: string;
     long_explanation: string;
-    [x: string]: any;
 };
 export type Replacement = {
     type: "REPLACEMENT";
-    id: string;
-    decorators: Decorator[];
-    name: string;
     display_price: number;
-    price: number;
     image_id: string;
-    max_count: number;
-    unit_quantity: string;
-    tags: any[];
     replacement_type: string;
-    [x: string]: any;
-};
+} & ArticleMixin;
 export type UnavailableDecorator = {
     type: "UNAVAILABLE";
     reason: string;
     replacements: Replacement[];
     explanation: Explanation;
-    [x: string]: any;
 };
-export type FailureReason = "PRODUCT_ABSENT" | "PRODUCT_LOW_QUALITY" | "PRODUCT_NOT_SHIPPED" | string;
+export type FailureReason = "PRODUCT_ABSENT" | "PRODUCT_LOW_QUALITY" | "PRODUCT_NOT_SHIPPED";
 export type ArticleDeliveryFailureDecorator = {
     type: "ARTICLE_DELIVERY_FAILURES";
     failures: {
@@ -193,33 +162,21 @@ export type ArticleDeliveryFailureDecorator = {
     prices: {
         [x: string]: number;
     };
-    [x: string]: any;
 };
 export type ImmutableDecorator = {
     type: "IMMUTABLE";
-    [x: string]: any;
 };
-export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | any;
+export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator;
 export type SingleArticle = {
     type: "SINGLE_ARTICLE";
-    id: string;
-    decorators: Decorator[];
-    name: string;
     display_price: number;
-    price: number;
     image_id: string;
-    max_count: number;
-    unit_quantity: string;
-    unit_quantity_sub: string;
-    tags: any[];
-    [x: string]: any;
-};
+} & ArticleMixin;
 export type ItemSuggestionCatalog = {
     type: "ITEM_SUGGESTION_DIALOG";
     id: string;
-    [x: string]: any;
 };
-export type SearchResultItem = SingleArticle | ItemSuggestionCatalog | any;
+export type SearchResultItem = SingleArticle | ItemSuggestionCatalog;
 export type SearchResult = {
     type: string;
     id: string;
@@ -229,89 +186,24 @@ export type SearchResult = {
     level: number;
     is_included_in_category_tree: boolean;
     hidden: boolean;
-    [x: string]: any;
 };
 export type SearchSuggestion = {
     type: "SEARCH_SUGGESTION";
     id: string;
     links: Link[];
     suggestion: string;
-    [x: string]: any;
 };
-export type SuggestionResult = SearchSuggestion | any;
-export type FreshLabel = {
-    unit: string;
-    number: number;
-    [x: string]: any;
-};
+export type SuggestionResult = SearchSuggestion;
 export type NutritionalSubValue = {
     name: string;
     value: string;
     gda_percentage: string;
-    [x: string]: any;
 };
 export type NutritionalValue = {
     name: string;
     value: string;
     gda_percentage: string;
     sub_values: NutritionalSubValue[];
-    [x: string]: any;
-};
-export type DetailPageSubSection = {
-    type: string;
-    id: string;
-    title: string;
-    text: string;
-    [x: string]: any;
-};
-export type DetailPageSection = {
-    type: string;
-    id: string;
-    title: string;
-    items: DetailPageSubSection[];
-    [x: string]: any;
-};
-export type SingleArticleDetailsItem = DetailPageSection | any;
-export type SingleArticleDetails = SingleArticle & {
-    type: "SINGLE_ARTICLE_DETAILS";
-    product_id: string;
-    description: string;
-    canonical_name: string | null;
-    image_ids: string[];
-    fresh_label: FreshLabel;
-    nutritional_values: NutritionalValue[];
-    ingredients_blob: string;
-    additional_info: string;
-    label_holder: string;
-    original_price: number;
-    items: SingleArticleDetailsItem[];
-    nutritional_info_unit: string;
-    [x: string]: any;
-};
-export type PromoLabel = {
-    label: string;
-    valid_until: string;
-    [x: string]: any;
-};
-export type ProductSummary = {
-    current_count: number;
-    max_count: number;
-    price: number;
-    original_price: number;
-    promo_label: PromoLabel;
-    name: string;
-    fresh_label: FreshLabel;
-    unit_quantity: string;
-    unit_quantity_sub: string;
-    image_id: string;
-    deposit: number;
-    product_id: string;
-    [x: string]: any;
-};
-export type ProductResult = {
-    product_details: SingleArticleDetails;
-    products: any[];
-    [x: string]: any;
 };
 export type SubCategory = {
     type: "CATEGORY";
@@ -323,7 +215,6 @@ export type SubCategory = {
     level: number;
     is_included_in_category_tree: boolean;
     hidden: boolean;
-    [x: string]: any;
 };
 export type Category = {
     type: "CATEGORY";
@@ -335,7 +226,6 @@ export type Category = {
     level: number;
     is_included_in_category_tree: boolean;
     hidden: boolean;
-    [x: string]: any;
 };
 export type TemplatedContent = {
     type: "TEMPLATED_CONTENT";
@@ -345,14 +235,12 @@ export type TemplatedContent = {
     content: string;
     parameters: string[];
     actions: string[];
-    [x: string]: any;
 };
 export type Content = {
     type: "CONTENT";
     id: string;
     display_position: string;
     payload: TemplatedContent;
-    [x: string]: any;
 };
 export type DisplayPositionContent = {
     type: "DISPLAY_POSITION_CONTENTS";
@@ -360,7 +248,6 @@ export type DisplayPositionContent = {
     links: Link[];
     display_position: string;
     items: Content[];
-    [x: string]: any;
 };
 export type MyStore = {
     type: "MY_STORE";
@@ -371,22 +258,22 @@ export type MyStore = {
     landing_page_hint: string;
     id: string;
     links: Link[];
-    [x: string]: any;
+};
+export type ArticleMixin = {
+    id: string;
+    name: string;
+    unit_quantity: string;
+    unit_quantity_sub?: string;
+    price: number;
+    tags: any[];
+    decorators: Decorator[];
+    max_count: number;
 };
 export type OrderArticle = {
     type: "ORDER_ARTICLE";
-    id: string;
-    name: string;
     image_ids: string[];
-    unit_quantity: string;
-    price: number;
-    max_count: number;
     perishable: boolean;
-    tags: any[];
-    decorators: Decorator[];
-    unit_quantity_sub?: string;
-    [x: string]: any;
-};
+} & ArticleMixin;
 export type OrderLine = {
     type: "ORDER_LINE";
     id: string;
@@ -394,11 +281,9 @@ export type OrderLine = {
     display_price: number;
     price: number;
     decorators: Decorator[];
-    [x: string]: any;
 };
 export type Source = {
     id: string;
-    [x: string]: any;
 };
 export type ImageComponent = {
     type: string;
@@ -406,23 +291,19 @@ export type ImageComponent = {
     width: number;
     height: number;
     resize_mode: string;
-    [x: string]: any;
 };
 export type IconImages = {
     "image-id": string;
-    [x: string]: any;
 };
 export type TrackingAttributes = {
     template_variant_id: string;
     entity_ids: string[];
-    [x: string]: any;
 };
 export type PML<Component> = {
     pml_version: string;
     component: Component;
     images?: IconImages;
     tracking_attributes: TrackingAttributes;
-    [x: string]: any;
 };
 export type Icon = PML<ImageComponent>;
 export type DeliverySlot = {
@@ -438,12 +319,10 @@ export type DeliverySlot = {
     minimum_order_value: number;
     icon?: Icon;
     unavailability_reason: "CLOSED" | string;
-    [x: string]: any;
 };
 export type SelectedSlot = {
     slot_id: string;
     state: string;
-    [x: string]: any;
 };
 export type StackComponent = {
     type: "STACK";
@@ -453,7 +332,6 @@ export type StackComponent = {
     padding_vertical?: number;
     children?: Component[];
     child?: Component;
-    [x: string]: any;
 };
 export type ContainerComponent = {
     type: "CONTAINER";
@@ -465,16 +343,14 @@ export type ContainerComponent = {
     height: number;
     children?: Component[];
     child?: Component;
-    [x: string]: any;
 };
 export type RichTextComponent = {
     type: "RICH_TEXT";
     text_type: string;
     text_alignment: string;
     markdown: string;
-    [x: string]: any;
 };
-export type Component = StackComponent | ContainerComponent | ImageComponent | RichTextComponent | any;
+export type Component = StackComponent | ContainerComponent | ImageComponent | RichTextComponent;
 export type SlotSelectorMessage = {
     pml_version: string;
     component: Component;
@@ -482,13 +358,11 @@ export type SlotSelectorMessage = {
         icon: string;
     };
     tracking_attributes: TrackingAttributes;
-    [x: string]: any;
 };
 export type DepositBreakdown = {
     type: "BAG" | "DEFAULT" | string;
     value: number;
     count: number;
-    [x: string]: any;
 };
 export type Order = {
     type: "ORDER";
@@ -501,7 +375,7 @@ export type Order = {
     total_price: number;
     checkout_total_price: number;
     mts: number;
-    deposit_breakdown: (DepositBreakdown | any)[];
+    deposit_breakdown: (DepositBreakdown)[];
     total_savings: number;
     total_deposit: number;
     cancellable: boolean;
@@ -511,35 +385,29 @@ export type Order = {
         [key: string]: Decorator[];
     };
     cancellation_time: string | null;
-    [x: string]: any;
 };
 export type AddProductInput = {
     product_id: string;
     count: number;
-    [x: string]: any;
 };
 export type GetDeliverySlotsResult = {
     delivery_slots: DeliverySlot[];
     slot_selector_message: SlotSelectorMessage;
     selected_slot: SelectedSlot;
-    [x: string]: any;
 };
 export type SetDeliverySlotInput = {
     slot_id: string;
-    [x: string]: any;
 };
 export type DeliveryStatus = "CURRENT" | "COMPLETED" | "CANCELLED" | string;
 export type DeliveryTime = {
     start: string;
     end: string;
-    [x: string]: any;
 };
 export type ReturnContainer = {
     type: "BAG" | "BEER_BOTTLE" | "DISPOSABLE" | "NESPRESSO_BAG" | string;
     localized_name: string;
     quantity: number;
     price: number;
-    [x: string]: any;
 };
 export type Delivery = {
     type: "DELIVERY";
@@ -553,30 +421,24 @@ export type Delivery = {
     orders: Order[];
     returned_containers: ReturnContainer[];
     parcels: any[];
-    [x: string]: any;
 };
 export type Vehicle = {
     image: string;
-    [x: string]: any;
 };
 export type Scenario = {
     ts: string;
     lng: string;
     lat: string;
-    [x: string]: any;
 };
 export type DeliveryScenario = {
     scenario: Scenario[];
     vehicle: Vehicle;
-    [x: string]: any;
 };
 export type DeliveryPosition = {
     scenario_ts: string;
-    [x: string]: any;
 };
 export type OrderStatus = {
     checkout_status: "FINISHED" | string;
-    [x: string]: any;
 };
 export type MgmDetails = {
     mgm_code: string;
@@ -584,14 +446,12 @@ export type MgmDetails = {
     inviter_value: number;
     share_url: string;
     amount_earned: number;
-    [x: string]: any;
 };
 export type ConsentSettingText = {
     title: string;
     text: string;
     dissent_text: string;
     timestamp: string;
-    [x: string]: any;
 };
 export type ConsentSetting = {
     type: string;
@@ -601,13 +461,11 @@ export type ConsentSetting = {
     text: ConsentSettingText;
     established_decision: boolean;
     initial_state: boolean;
-    [x: string]: any;
 };
 export type ConsentDeclaration = {
     consent_request_text_id: string;
     consent_request_locale: string;
     agreement: boolean;
-    [x: string]: any;
 };
 export type SetConsentSettingsInput = {
     consent_declarations: ConsentDeclaration[];
@@ -638,7 +496,7 @@ export type ArticleMiscHeader = {
 };
 export type ArticleMiscBody = NutritionalTable | Tagged<"PML", {
     pml_content: PML<Component>;
-}> | any;
+}>;
 export type ArticleMisc = {
     header: ArticleMiscHeader;
     body: ArticleMiscBody;
@@ -647,7 +505,6 @@ export type ArticleHighlight = {
     icon: string;
     text: string;
     action: any | null;
-    [x: string]: any;
 };
 export type AllergyContains = {
     name: string;
@@ -691,7 +548,6 @@ export type Article = {
     }> | any)[];
     decorators?: Decorator[];
     misc: ArticleMisc[];
-    [x: string]: any;
 };
 export {};
 //# sourceMappingURL=picnic-api.d.ts.map
