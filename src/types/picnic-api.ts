@@ -99,7 +99,7 @@ export type PriceDecorator = {
     display_price: number;
 };
 
-type QuantityDecorator = {
+export type QuantityDecorator = {
     type: "QUANTITY";
     quantity: number
 }
