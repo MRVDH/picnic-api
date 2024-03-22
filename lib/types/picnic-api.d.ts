@@ -1,34 +1,34 @@
-export type ApiConfig = {
+export declare type ApiConfig = {
     countryCode?: CountryCode;
     apiVersion?: string;
     authKey?: string;
     url?: string;
 };
-export type CountryCode = "NL" | "DE";
-export type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
-export type LoginInput = {
+export declare type CountryCode = "NL" | "DE";
+export declare type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
+export declare type LoginInput = {
     key: string;
     secret: string;
     client_id: number;
 };
-export type LoginResult = {
+export declare type LoginResult = {
     user_id: string;
     second_factor_authentication_required: string;
     authKey: string;
 };
-export type Address = {
+export declare type Address = {
     house_number: number;
     house_number_ext: string;
     postcode: string;
     street: string;
     city: string;
 };
-export type Subscription = {
+export declare type Subscription = {
     list_id: string;
     subscribed: boolean;
     name: string;
 };
-export type HouseholdDetails = {
+export declare type HouseholdDetails = {
     adults: number;
     children: number;
     cats: number;
@@ -36,7 +36,7 @@ export type HouseholdDetails = {
     author: string;
     last_edit_ts: number;
 };
-export type ConsentDecisions = {
+export declare type ConsentDecisions = {
     MISC_COMMERCIAL_ADS: boolean;
     PURCHASES_CATEGORY_CONSENT: boolean;
     MISC_COMMERCIAL_EMAILS: boolean;
@@ -45,7 +45,7 @@ export type ConsentDecisions = {
     MISC_COMMERCIAL_MESSAGES: boolean;
     WEEKLY_COMMERCIAL_EMAILS: boolean;
 };
-export type User = {
+export declare type User = {
     user_id: string;
     firstname: string;
     lastname: string;
@@ -64,40 +64,40 @@ export type User = {
     completed_deliveries: number;
     consent_decisions: ConsentDecisions;
 };
-export type Link = {
+export declare type Link = {
     type: string;
     href: string;
 };
-export type BasePriceDecorator = {
+export declare type BasePriceDecorator = {
     type: "BASE_PRICE";
     base_price_text: string;
 };
-export type FreshLabelDecorator = {
+export declare type FreshLabelDecorator = {
     type: "FRESH_LABEL";
     period: string;
 };
-export type LabelDecorator = {
+export declare type LabelDecorator = {
     type: "LABEL";
     text: string;
 };
-export type PriceDecorator = {
+export declare type PriceDecorator = {
     type: "PRICE";
     display_price: number;
 };
-type QuantityDecorator = {
+export declare type QuantityDecorator = {
     type: "QUANTITY";
     quantity: number;
 };
-export type BackgroundImageDecorator = {
+export declare type BackgroundImageDecorator = {
     type: "BACKGROUND_IMAGE";
     image_ids: string[];
     height_percent: number;
 };
-export type DeeplinkReference = {
+export declare type DeeplinkReference = {
     type: "DEEPLINK";
     target: string;
 };
-export type SubBanner = {
+export declare type SubBanner = {
     banner_id: string;
     image_id: string;
     display_time: string;
@@ -105,56 +105,56 @@ export type SubBanner = {
     reference: DeeplinkReference;
     position: string;
 };
-export type BannersDecorator = {
+export declare type BannersDecorator = {
     type: "BANNERS";
     height_percentage: number;
     banners: SubBanner[];
 };
-export type UnitQuantityDecorator = {
+export declare type UnitQuantityDecorator = {
     type: "UNIT_QUANTITY";
     unit_quantity_text: string;
 };
-export type ValidityLabelDecorator = {
+export declare type ValidityLabelDecorator = {
     type: "VALIDITY_LABEL";
     valid_until: string;
 };
-export type Position = {
+export declare type Position = {
     start_index: number;
     length: number;
 };
-export type Style = {
+export declare type Style = {
     position: Position;
     color: string;
     style: string;
 };
-export type TitleStyleDecorator = {
+export declare type TitleStyleDecorator = {
     type: "TITLE_STYLE";
     styles: Style[];
 };
-export type MoreButtonDecorator = {
+export declare type MoreButtonDecorator = {
     type: "MORE_BUTTON";
     link: Link;
     images: string[];
     sellable_item_count: number;
 };
-export type Explanation = {
+export declare type Explanation = {
     short_explanation: string;
     long_explanation: string;
 };
-export type Replacement = {
+export declare type Replacement = {
     type: "REPLACEMENT";
     display_price: number;
     image_id: string;
     replacement_type: string;
 } & ArticleMixin;
-export type UnavailableDecorator = {
+export declare type UnavailableDecorator = {
     type: "UNAVAILABLE";
     reason: string;
     replacements: Replacement[];
     explanation: Explanation;
 };
-export type FailureReason = "PRODUCT_ABSENT" | "PRODUCT_LOW_QUALITY" | "PRODUCT_NOT_SHIPPED";
-export type ArticleDeliveryFailureDecorator = {
+export declare type FailureReason = "PRODUCT_ABSENT" | "PRODUCT_LOW_QUALITY" | "PRODUCT_NOT_SHIPPED";
+export declare type ArticleDeliveryFailureDecorator = {
     type: "ARTICLE_DELIVERY_FAILURES";
     failures: {
         [x: string]: FailureReason[];
@@ -163,21 +163,21 @@ export type ArticleDeliveryFailureDecorator = {
         [x: string]: number;
     };
 };
-export type ImmutableDecorator = {
+export declare type ImmutableDecorator = {
     type: "IMMUTABLE";
 };
-export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator;
-export type SingleArticle = {
+export declare type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator;
+export declare type SingleArticle = {
     type: "SINGLE_ARTICLE";
     display_price: number;
     image_id: string;
 } & ArticleMixin;
-export type ItemSuggestionCatalog = {
+export declare type ItemSuggestionCatalog = {
     type: "ITEM_SUGGESTION_DIALOG";
     id: string;
 };
-export type SearchResultItem = SingleArticle | ItemSuggestionCatalog;
-export type SearchResult = {
+export declare type SearchResultItem = SingleArticle | ItemSuggestionCatalog;
+export declare type SearchResult = {
     type: string;
     id: string;
     links: Link[];
@@ -187,25 +187,25 @@ export type SearchResult = {
     is_included_in_category_tree: boolean;
     hidden: boolean;
 };
-export type SearchSuggestion = {
+export declare type SearchSuggestion = {
     type: "SEARCH_SUGGESTION";
     id: string;
     links: Link[];
     suggestion: string;
 };
-export type SuggestionResult = SearchSuggestion;
-export type NutritionalSubValue = {
+export declare type SuggestionResult = SearchSuggestion;
+export declare type NutritionalSubValue = {
     name: string;
     value: string;
     gda_percentage: string;
 };
-export type NutritionalValue = {
+export declare type NutritionalValue = {
     name: string;
     value: string;
     gda_percentage: string;
     sub_values: NutritionalSubValue[];
 };
-export type SubCategory = {
+export declare type SubCategory = {
     type: "CATEGORY";
     id: string;
     decorators: Decorator[];
@@ -216,7 +216,7 @@ export type SubCategory = {
     is_included_in_category_tree: boolean;
     hidden: boolean;
 };
-export type Category = {
+export declare type Category = {
     type: "CATEGORY";
     id: string;
     decorators: Decorator[];
@@ -227,7 +227,7 @@ export type Category = {
     is_included_in_category_tree: boolean;
     hidden: boolean;
 };
-export type TemplatedContent = {
+export declare type TemplatedContent = {
     type: "TEMPLATED_CONTENT";
     template_id: string;
     version_id: string;
@@ -236,20 +236,20 @@ export type TemplatedContent = {
     parameters: string[];
     actions: string[];
 };
-export type Content = {
+export declare type Content = {
     type: "CONTENT";
     id: string;
     display_position: string;
     payload: TemplatedContent;
 };
-export type DisplayPositionContent = {
+export declare type DisplayPositionContent = {
     type: "DISPLAY_POSITION_CONTENTS";
     id: string;
     links: Link[];
     display_position: string;
     items: Content[];
 };
-export type MyStore = {
+export declare type MyStore = {
     type: "MY_STORE";
     catalog: Category[];
     content: DisplayPositionContent[];
@@ -259,7 +259,7 @@ export type MyStore = {
     id: string;
     links: Link[];
 };
-export type ArticleMixin = {
+export declare type ArticleMixin = {
     id: string;
     name: string;
     unit_quantity: string;
@@ -269,12 +269,12 @@ export type ArticleMixin = {
     decorators: Decorator[];
     max_count: number;
 };
-export type OrderArticle = {
+export declare type OrderArticle = {
     type: "ORDER_ARTICLE";
     image_ids: string[];
     perishable: boolean;
 } & ArticleMixin;
-export type OrderLine = {
+export declare type OrderLine = {
     type: "ORDER_LINE";
     id: string;
     items: OrderArticle[];
@@ -282,31 +282,31 @@ export type OrderLine = {
     price: number;
     decorators: Decorator[];
 };
-export type Source = {
+export declare type Source = {
     id: string;
 };
-export type ImageComponent = {
+export declare type ImageComponent = {
     type: string;
     source: Source;
     width: number;
     height: number;
     resize_mode: string;
 };
-export type IconImages = {
+export declare type IconImages = {
     "image-id": string;
 };
-export type TrackingAttributes = {
+export declare type TrackingAttributes = {
     template_variant_id: string;
     entity_ids: string[];
 };
-export type PML<Component> = {
+export declare type PML<Component> = {
     pml_version: string;
     component: Component;
     images?: IconImages;
     tracking_attributes: TrackingAttributes;
 };
-export type Icon = PML<ImageComponent>;
-export type DeliverySlot = {
+export declare type Icon = PML<ImageComponent>;
+export declare type DeliverySlot = {
     slot_id: string;
     hub_id: string;
     fc_id: string;
@@ -320,11 +320,11 @@ export type DeliverySlot = {
     icon?: Icon;
     unavailability_reason: "CLOSED" | string;
 };
-export type SelectedSlot = {
+export declare type SelectedSlot = {
     slot_id: string;
     state: string;
 };
-export type StackComponent = {
+export declare type StackComponent = {
     type: "STACK";
     axis?: string;
     alignment: string;
@@ -333,7 +333,7 @@ export type StackComponent = {
     children?: Component[];
     child?: Component;
 };
-export type ContainerComponent = {
+export declare type ContainerComponent = {
     type: "CONTAINER";
     border_width: number;
     border_radius: number;
@@ -344,14 +344,14 @@ export type ContainerComponent = {
     children?: Component[];
     child?: Component;
 };
-export type RichTextComponent = {
+export declare type RichTextComponent = {
     type: "RICH_TEXT";
     text_type: string;
     text_alignment: string;
     markdown: string;
 };
-export type Component = StackComponent | ContainerComponent | ImageComponent | RichTextComponent;
-export type SlotSelectorMessage = {
+export declare type Component = StackComponent | ContainerComponent | ImageComponent | RichTextComponent;
+export declare type SlotSelectorMessage = {
     pml_version: string;
     component: Component;
     images: {
@@ -359,12 +359,12 @@ export type SlotSelectorMessage = {
     };
     tracking_attributes: TrackingAttributes;
 };
-export type DepositBreakdown = {
+export declare type DepositBreakdown = {
     type: "BAG" | "DEFAULT" | string;
     value: number;
     count: number;
 };
-export type Order = {
+export declare type Order = {
     type: "ORDER";
     id: string;
     items: OrderLine[];
@@ -386,30 +386,30 @@ export type Order = {
     };
     cancellation_time: string | null;
 };
-export type AddProductInput = {
+export declare type AddProductInput = {
     product_id: string;
     count: number;
 };
-export type GetDeliverySlotsResult = {
+export declare type GetDeliverySlotsResult = {
     delivery_slots: DeliverySlot[];
     slot_selector_message: SlotSelectorMessage;
     selected_slot: SelectedSlot;
 };
-export type SetDeliverySlotInput = {
+export declare type SetDeliverySlotInput = {
     slot_id: string;
 };
-export type DeliveryStatus = "CURRENT" | "COMPLETED" | "CANCELLED" | string;
-export type DeliveryTime = {
+export declare type DeliveryStatus = "CURRENT" | "COMPLETED" | "CANCELLED" | string;
+export declare type DeliveryTime = {
     start: string;
     end: string;
 };
-export type ReturnContainer = {
+export declare type ReturnContainer = {
     type: "BAG" | "BEER_BOTTLE" | "DISPOSABLE" | "NESPRESSO_BAG" | string;
     localized_name: string;
     quantity: number;
     price: number;
 };
-export type Delivery = {
+export declare type Delivery = {
     type: "DELIVERY";
     id: string;
     delivery_id: string;
@@ -422,38 +422,38 @@ export type Delivery = {
     returned_containers: ReturnContainer[];
     parcels: any[];
 };
-export type Vehicle = {
+export declare type Vehicle = {
     image: string;
 };
-export type Scenario = {
+export declare type Scenario = {
     ts: string;
     lng: string;
     lat: string;
 };
-export type DeliveryScenario = {
+export declare type DeliveryScenario = {
     scenario: Scenario[];
     vehicle: Vehicle;
 };
-export type DeliveryPosition = {
+export declare type DeliveryPosition = {
     scenario_ts: string;
 };
-export type OrderStatus = {
+export declare type OrderStatus = {
     checkout_status: "FINISHED" | string;
 };
-export type MgmDetails = {
+export declare type MgmDetails = {
     mgm_code: string;
     invitee_value: number;
     inviter_value: number;
     share_url: string;
     amount_earned: number;
 };
-export type ConsentSettingText = {
+export declare type ConsentSettingText = {
     title: string;
     text: string;
     dissent_text: string;
     timestamp: string;
 };
-export type ConsentSetting = {
+export declare type ConsentSetting = {
     type: string;
     id: string;
     text_id: string;
@@ -462,60 +462,60 @@ export type ConsentSetting = {
     established_decision: boolean;
     initial_state: boolean;
 };
-export type ConsentDeclaration = {
+export declare type ConsentDeclaration = {
     consent_request_text_id: string;
     consent_request_locale: string;
     agreement: boolean;
 };
-export type SetConsentSettingsInput = {
+export declare type SetConsentSettingsInput = {
     consent_declarations: ConsentDeclaration[];
 };
-export type SetConsentSettingsResult = {
+export declare type SetConsentSettingsResult = {
     consent_request_text_ids: string[];
 };
-export type NutritionalTable = {
+export declare type NutritionalTable = {
     type: "NUTRITIONAL_TABLE";
     nutritional_table: {
         default_unit: string;
         values: NutritionalValue[];
     };
 };
-export type PriceInfo = {
+export declare type PriceInfo = {
     price: number;
     price_color: string | null;
     original_price: number | null;
     deposit: number | null;
     base_price_text: string | null;
 };
-export type Tagged<Type, Obj> = {
+export declare type Tagged<Type, Obj> = {
     type: Type;
 } & Obj;
-export type ArticleMiscHeader = {
+export declare type ArticleMiscHeader = {
     icon: string;
     text: string;
 };
-export type ArticleMiscBody = NutritionalTable | Tagged<"PML", {
+export declare type ArticleMiscBody = NutritionalTable | Tagged<"PML", {
     pml_content: PML<Component>;
 }>;
-export type ArticleMisc = {
+export declare type ArticleMisc = {
     header: ArticleMiscHeader;
     body: ArticleMiscBody;
 };
-export type ArticleHighlight = {
+export declare type ArticleHighlight = {
     icon: string;
     text: string;
     action: any | null;
 };
-export type AllergyContains = {
+export declare type AllergyContains = {
     name: string;
     color: string;
 };
-export type Allergies = {
+export declare type Allergies = {
     allergy_contains: AllergyContains[];
     allergy_may_contain: string[];
     allergy_text: string | null;
 };
-export type ArticleLabels = {
+export declare type ArticleLabels = {
     brand_tier: any | null;
     status: any[];
     characteristics: any[];
@@ -524,11 +524,11 @@ export type ArticleLabels = {
         text: string;
     } | null;
 };
-export type ArticleDescription = {
+export declare type ArticleDescription = {
     main: string;
     extension: string | null;
 };
-export type Article = {
+export declare type Article = {
     type: "ARTICLE_DETAILS";
     id: string;
     name: string;
@@ -549,5 +549,4 @@ export type Article = {
     decorators?: Decorator[];
     misc: ArticleMisc[];
 };
-export {};
 //# sourceMappingURL=picnic-api.d.ts.map
