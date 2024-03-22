@@ -1,7 +1,7 @@
 import { AxiosInstance, AxiosResponse, Method } from "axios";
 import { ApiConfig, Article, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
 declare const _default: {
-    new (options?: ApiConfig): {
+    new (options?: ApiConfig | undefined): {
         countryCode: CountryCode;
         apiVersion: string;
         authKey: string | null;
@@ -130,7 +130,7 @@ declare const _default: {
          * @param {string} [subListId] The id of the sub list to get.
          * @param {number} [depth=0] The category depth of items to retrieve.
          */
-        getList(listId: string, subListId?: string, depth?: number): Promise<SubCategory[] | SingleArticle[]>;
+        getList(listId: string, subListId?: string | undefined, depth?: number): Promise<SubCategory[] | SingleArticle[]>;
         /**
          * Returns the MGM details. This are the friends discount data.
          */
