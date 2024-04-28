@@ -5,37 +5,46 @@ dotenv.config();
 
 let client: PicnicClient;
 
-describe("Picnic API integration test", () => {
-    test("Client constructor", async () => {
-        let error = null;
+describe("Auth", () => {
+  it("should construct the picnic api client", async () => {
+    let error = null;
 
-        try {
-            client = new PicnicClient();
-        } catch (err) {
-            error = err;
-        }
+    try {
+      client = new PicnicClient();
+    } catch (err) {
+      error = err;
+    }
 
-        expect(error).toBe(null);
-    });
+    expect(error).toBe(null);
+  });
 
-    test("Login", async () => {
-        const result = await client.login(process.env.PICNIC_USERNAME as string, process.env.PICNIC_PASSWORD as string);
+  it("should fail to log the user in due to invalid credentials", async () => {
+    let error = null;
 
-        expect(result).toBeDefined();
-        expect(result.authKey).toBeDefined();
-        expect(result.second_factor_authentication_required).toBeDefined();
-        expect(result.user_id).toBeDefined();
-    });
+    try {
+      await client.login("notausername", process.env.PICNIC_PASSWORD as string);
+    } catch (err) {
+      error = err;
+    }
 
-    test("Login - invalid credentials", async () => {
-        let error = null;
+    expect(error).toBe("Login failed: Invalid credentials");
+  });
 
-        try {
-            await client.login("notausername", process.env.PICNIC_PASSWORD as string);
-        } catch (err) {
-            error = err;
-        }
+  it("should log the user in successfully", async () => {
+    const result = await client.login(process.env.PICNIC_USERNAME as string, process.env.PICNIC_PASSWORD as string);
 
-        expect(error).toBe("Login failed: Invalid credentials.");
-    });
+    expect(result).toBeDefined();
+    expect(result.authKey).toBeDefined();
+    expect(result.second_factor_authentication_required).toBeDefined();
+    expect(result.user_id).toBeDefined();
+  });
+
+  it("should search for a product and return results", async () => {
+    const result = await client.search("Affligem blond");
+
+    expect(result).toBeDefined();
+    expect(result[0].id).toBeDefined();
+    expect(result[0].name).toBeDefined();
+    expect(result[0].unit_quantity).toBeDefined();
+  });
 });

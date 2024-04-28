@@ -6,14 +6,26 @@ export type ApiConfig = {
 };
 export type CountryCode = "NL" | "DE";
 export type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
+export type ApiError = {
+    code: string;
+    details: any;
+    message: string;
+};
 export type LoginInput = {
     key: string;
     secret: string;
     client_id: number;
 };
+export type Generate2FACodeInput = {
+    channel: "SMS" | string;
+};
+export type Verify2FACodeInput = {
+    otp: string;
+};
 export type LoginResult = {
     user_id: string;
-    second_factor_authentication_required: string;
+    second_factor_authentication_required: boolean;
+    show_second_factor_authentication_intro: boolean;
     authKey: string;
 };
 export type Address = {
@@ -38,12 +50,17 @@ export type HouseholdDetails = {
 };
 export type ConsentDecisions = {
     MISC_COMMERCIAL_ADS: boolean;
-    PURCHASES_CATEGORY_CONSENT: boolean;
     MISC_COMMERCIAL_EMAILS: boolean;
-    MISC_READ_ADVERTISING_ID: boolean;
-    PERSONALIZED_RANKING_CONSENT: boolean;
     MISC_COMMERCIAL_MESSAGES: boolean;
+    MISC_READ_ADVERTISING_ID: boolean;
+    MISC_WHATS_APP_COMMUNICATION: boolean;
+    PERSONALIZED_RANKING_CONSENT: boolean;
+    POST_MAIL: boolean;
+    PURCHASES_CATEGORY_CONSENT: boolean;
     WEEKLY_COMMERCIAL_EMAILS: boolean;
+};
+export type FeatureToggle = {
+    name: string;
 };
 export type User = {
     user_id: string;
@@ -52,10 +69,10 @@ export type User = {
     address: Address;
     phone: string;
     contact_email: string;
-    feature_toggles: any[];
+    feature_toggles: FeatureToggle[];
     push_subscriptions: Subscription[];
     subscriptions: Subscription[];
-    customer_type: string;
+    customer_type: string | "CONSUMER";
     household_details: HouseholdDetails;
     check_general_consent: boolean;
     placed_order: boolean;
@@ -63,6 +80,114 @@ export type User = {
     total_deliveries: number;
     completed_deliveries: number;
     consent_decisions: ConsentDecisions;
+};
+export type UserInfo = {
+    user_id: string;
+    redacted_phone_number: string;
+    feature_toggles: FeatureToggle[];
+};
+export type Avatar = {
+    image_url: string;
+    type: string;
+};
+export type ProfileUser = {
+    address: Address;
+    avatar: Avatar;
+    mgm: MgmDetails;
+};
+export type ProfileMenu = {
+    highlights: any[];
+    user: ProfileUser;
+};
+export type BankInformation = {
+    bank_id: string;
+    name: string;
+};
+export type AvailablePaymentMethod = {
+    available_banks?: BankInformation[];
+    payment_method: string;
+};
+export type PaymentMethodBrand = {
+    brand: string;
+    display_name: string;
+    icon_url: string;
+};
+export type PaymentMethod = {
+    brands: PaymentMethodBrand[];
+    data: object;
+    display_name: string;
+    icon_url: string;
+    payment_method: string;
+    visibility: string;
+    visibility_reason: null | string;
+};
+export type StoredPaymentOption = {
+    account: string | null;
+    brand: string;
+    display_name: string;
+    icon_url: string;
+    id: string;
+    payment_method: string;
+};
+export type PaymentProfile = {
+    available_payment_method_item: any | null;
+    available_payment_methods: AvailablePaymentMethod[];
+    checkout_banner: any | null;
+    payment_methods: PaymentMethod[];
+    preferred_payment_option_id: string;
+    stored_payment_options: StoredPaymentOption[];
+};
+export type WalletTransactionsInput = {
+    page_number: number;
+};
+export type WalletTransaction = {
+    account: string;
+    amount_in_cents: number;
+    brand: string;
+    display_name: string;
+    icon_url: string;
+    id: string;
+    status: string;
+    timestamp: number;
+    transaction_method: string;
+    transaction_type: string;
+};
+export type ReturnedContainer = {
+    localized_name: string;
+    price: number;
+    quantity: number;
+    type: string;
+};
+export type Deposit = {
+    count: number;
+    type: string;
+    value: number;
+};
+export type WalletTransactionDetails = {
+    article_issue_refunds: any[];
+    debt_resolution: any | null;
+    delivery_debt: any | null;
+    delivery_id: string;
+    deposits: Deposit[];
+    refunded_items: any[];
+    returned_containers: ReturnedContainer[];
+    shop_items: OrderLine[];
+};
+export type OpeningTime = {
+    start: number[];
+    end: number[];
+};
+export type OpeningTimes = {
+    [date: string]: OpeningTime;
+};
+export type ContactDetails = {
+    email: string;
+    phone: string;
+    whatsapp: string;
+};
+export type CustomerServiceContactInfo = {
+    contact_details: ContactDetails;
+    opening_times: OpeningTimes;
 };
 export type Link = {
     type: string;
@@ -84,7 +209,7 @@ export type PriceDecorator = {
     type: "PRICE";
     display_price: number;
 };
-type QuantityDecorator = {
+export type QuantityDecorator = {
     type: "QUANTITY";
     quantity: number;
 };
@@ -113,6 +238,15 @@ export type BannersDecorator = {
 export type UnitQuantityDecorator = {
     type: "UNIT_QUANTITY";
     unit_quantity_text: string;
+};
+export type OrderedQuantityDecorator = {
+    type: "ORDERED_QUANTITY";
+    image_id: string;
+    quantity: string;
+};
+export type ProductSizeDecorator = {
+    type: "PRODUCT_SIZE";
+    text: string;
 };
 export type ValidityLabelDecorator = {
     type: "VALIDITY_LABEL";
@@ -150,8 +284,19 @@ export type Replacement = {
 export type UnavailableDecorator = {
     type: "UNAVAILABLE";
     reason: string;
-    replacements: Replacement[];
+    replacements?: Replacement[];
+    deeplink: string;
     explanation: Explanation;
+};
+export type Characteristics = {
+    baby_month: string | null;
+    rating: string | null;
+    score: string | null;
+    type: "FROZEN";
+};
+export type ProductCharacteristicsDecorator = {
+    type: "PRODUCT_CHARACTERISTICS";
+    characteristics: Characteristics[];
 };
 export type FailureReason = "PRODUCT_ABSENT" | "PRODUCT_LOW_QUALITY" | "PRODUCT_NOT_SHIPPED";
 export type ArticleDeliveryFailureDecorator = {
@@ -166,26 +311,26 @@ export type ArticleDeliveryFailureDecorator = {
 export type ImmutableDecorator = {
     type: "IMMUTABLE";
 };
-export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator;
+export type BundlesButtonDecorator = {
+    type: "BUNDLES_BUTTON";
+    icon_color: string;
+    deeplink: string;
+    background_color: string;
+};
+export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | BundlesButtonDecorator | OrderedQuantityDecorator | ProductSizeDecorator | ProductCharacteristicsDecorator;
 export type SingleArticle = {
     type: "SINGLE_ARTICLE";
     display_price: number;
     image_id: string;
 } & ArticleMixin;
-export type ItemSuggestionCatalog = {
-    type: "ITEM_SUGGESTION_DIALOG";
-    id: string;
-};
-export type SearchResultItem = SingleArticle | ItemSuggestionCatalog;
 export type SearchResult = {
-    type: string;
+    decorators: Decorator[];
+    display_price: string;
     id: string;
-    links: Link[];
+    image_id: string;
+    max_count: number;
     name: string;
-    items: SearchResultItem[];
-    level: number;
-    is_included_in_category_tree: boolean;
-    hidden: boolean;
+    unit_quantity: string;
 };
 export type SearchSuggestion = {
     type: "SEARCH_SUGGESTION";
@@ -375,7 +520,7 @@ export type Order = {
     total_price: number;
     checkout_total_price: number;
     mts: number;
-    deposit_breakdown: (DepositBreakdown)[];
+    deposit_breakdown: DepositBreakdown[];
     total_savings: number;
     total_deposit: number;
     cancellable: boolean;
@@ -549,5 +694,4 @@ export type Article = {
     decorators?: Decorator[];
     misc: ArticleMisc[];
 };
-export {};
 //# sourceMappingURL=picnic-api.d.ts.map
