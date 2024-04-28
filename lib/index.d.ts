@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosResponse, Method } from "axios";
-import { ApiConfig, Article, Category, ConsentSetting, CountryCode, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User } from "./types/picnic-api";
+import { ApiConfig, ApiError, Article, Category, ConsentSetting, CountryCode, CustomerServiceContactInfo, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, PaymentProfile, ProfileMenu, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User, UserInfo, WalletTransaction, WalletTransactionDetails } from "./types/picnic-api";
 declare const _default: {
     new (options?: ApiConfig): {
         countryCode: CountryCode;
@@ -14,9 +14,27 @@ declare const _default: {
          */
         login(username: string, password: string): Promise<LoginResult>;
         /**
+         * Generates a 2FA code for the user to verify.
+         * @param {string} channel The channel to send the code to. Can be 'SMS' or possibly something else.
+         */
+        generate2FACode(channel: string): Promise<null>;
+        /**
+         * Verifies the 2FA code from the user.
+         * @param {string} code The code to verify.
+         */
+        verify2FACode(code: string): Promise<ApiError | null>;
+        /**
          * Gets the details of the current logged in user.
          */
         getUserDetails(): Promise<User>;
+        /**
+         * Gets information about the user such as toggled features.
+         */
+        getUserInfo(): Promise<UserInfo>;
+        /**
+         * Gets information to display on the profile section.
+         */
+        getProfileMenu(): Promise<ProfileMenu>;
         /**
          * Searches in picnic products.
          * @param {string} query The keywords to search for.
@@ -154,6 +172,29 @@ declare const _default: {
          */
         getReminders(): Promise<any>;
         /**
+         * Gets payment information.
+         */
+        getPaymentProfile(): Promise<PaymentProfile>;
+        /**
+         * Gets transactions made.
+         * @param {number} pageNumber The page number to get the transactions from.
+         */
+        getWalletTransactions(pageNumber: number): Promise<WalletTransaction[]>;
+        /**
+         * Gets payment information.
+         * @param {string} walletTransactionId The id of the transaction to get the details from.
+         */
+        getWalletTransactionDetails(walletTransactionId: string): Promise<WalletTransactionDetails>;
+        /**
+         * Gets payment information.
+         */
+        getCustomerServiceContactInfo(): Promise<CustomerServiceContactInfo>;
+        /**
+         * Gets parcels.
+         * @todo Implement return type once known.
+         */
+        getParcels(): Promise<any[]>;
+        /**
          * Can be used to send custom requests that are not implemented but do need authentication for it.
          * @param {string} method The HTTP method to use, such as GET, POST, PUT and DELETE.
          * @param {string} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
@@ -162,10 +203,6 @@ declare const _default: {
          * @param {boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
          */
         sendRequest<TRequestData = never, TResponseData = AxiosResponse<TRequestData, any>>(method: Method, path: string, data?: Object | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
-        /**
-         * Returns list (string) of all known API routes.
-         */
-        getKnownApiRoutes(): string;
     };
 };
 export = _default;
