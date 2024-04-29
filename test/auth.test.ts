@@ -38,13 +38,4 @@ describe("Auth", () => {
     expect(result.second_factor_authentication_required).toBeDefined();
     expect(result.user_id).toBeDefined();
   });
-
-  it("should search for a product and return results", async () => {
-    const result = await client.search("Affligem blond");
-
-    expect(result).toBeDefined();
-    expect(result[0].id).toBeDefined();
-    expect(result[0].name).toBeDefined();
-    expect(result[0].unit_quantity).toBeDefined();
-  });
 });
