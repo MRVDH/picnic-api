@@ -330,6 +330,7 @@ export type SearchResult = {
     image_id: string;
     max_count: number;
     name: string;
+    sole_article_id: string;
     unit_quantity: string;
 };
 export type SearchSuggestion = {

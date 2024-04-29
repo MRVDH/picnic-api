@@ -156,12 +156,48 @@ export = class PicnicClient {
     for (const child1 of rawResults.body.children) {
       for (const child2 of child1.children) {
         if (child2.content?.selling_unit) {
-          finalResults.push(child2.content.selling_unit);
+          try {
+            const soleArticleId = Array.from(JSON.stringify(child2.pml).matchAll(/sole_article_id=([0-9]+)/g)).map((match) => match[1])[0];
+
+            finalResults.push({
+              ...child2.content.selling_unit,
+              sole_article_id: soleArticleId,
+            });
+          } catch (error) {
+            throw new Error(
+              "Failed to parse the search results and find the sole_article_id. This could mean that the response format from the picnic servers has changed. Please open an issue on the github repository."
+            );
+          }
         }
       }
     }
 
     return finalResults;
+  }
+
+  async getBundleArticleIds(soleArticleId: string): Promise<string[]> {
+    try {
+      const response = await this.sendRequest<any, any>(
+        "GET",
+        `/pages/bundle-overview-page?sole_article_id=${soleArticleId}&show_category_action=true`,
+        null,
+        true
+      );
+
+      if (!response.body) {
+        return [];
+      }
+
+      const articleIdMatches = Array.from(JSON.stringify(response.body).matchAll(/"product-page-bundle-item-(s[0-9]+)"/g)).map((match) => match[1]);
+
+      const uniqueArticleIds = [...new Set(articleIdMatches)];
+
+      return uniqueArticleIds;
+    } catch (error) {
+      throw new Error(
+        "Failed to parse the results and find the article id. This could mean that the response format from the picnic servers has changed. Please open an issue on the github repository."
+      );
+    }
   }
 
   /**

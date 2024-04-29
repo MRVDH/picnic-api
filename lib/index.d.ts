@@ -40,6 +40,7 @@ declare const _default: {
          * @param {string} query The keywords to search for.
          */
         search(query: string): Promise<SearchResult[]>;
+        getBundleArticleIds(soleArticleId: string): Promise<string[]>;
         /**
          * returns a suggestion on Picnic products matching the query.
          * @param {string} query The keywords for suggestions.
