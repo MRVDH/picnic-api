@@ -1,6 +1,4 @@
-import md5 from "crypto-js/md5";
-import utf8 from "crypto-js/enc-utf8";
-import hex from "crypto-js/enc-hex";
+import crypto from "crypto";
 
 import {
   AddProductInput,
@@ -68,7 +66,7 @@ export = class PicnicClient {
    * @param {string} password The password of the Picnic account.
    */
   async login(username: string, password: string): Promise<LoginResult> {
-    const secret = md5(utf8.parse(password)).toString(hex);
+    const secret = crypto.createHash("md5").update(password, "utf8").digest("hex");
 
     const response = await fetch(`${this.url}/user/login`, {
       method: "POST",
