@@ -491,10 +491,6 @@ export = class PicnicClient {
       }
     }
 
-    if (isImageRequest) {
-      return response.arrayBuffer() as unknown as TResponseData; // cast ArrayBuffer to TResponseData
-    } else {
-      return response.json() as Promise<TResponseData>; // assert that the JSON output is of type TResponseData
-    }
+    return isImageRequest ? (response.arrayBuffer() as Promise<TResponseData>) : (response.json() as Promise<TResponseData>);
   }
 };

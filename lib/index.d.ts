@@ -1,4 +1,3 @@
-import { AxiosInstance, AxiosResponse, Method } from "axios";
 import { ApiConfig, ApiError, Article, Category, ConsentSetting, CountryCode, CustomerServiceContactInfo, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, PaymentProfile, ProfileMenu, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User, UserInfo, WalletTransaction, WalletTransactionDetails } from "./types/picnic-api";
 declare const _default: {
     new (options?: ApiConfig): {
@@ -6,7 +5,6 @@ declare const _default: {
         apiVersion: string;
         authKey: string | null;
         url: string;
-        httpInstance: AxiosInstance;
         /**
          * Logs the user into picnic to be able to send requests.
          * @param {string} username The username of the Picnic account.
@@ -199,11 +197,11 @@ declare const _default: {
          * Can be used to send custom requests that are not implemented but do need authentication for it.
          * @param {string} method The HTTP method to use, such as GET, POST, PUT and DELETE.
          * @param {string} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
-         * @param {Object|Array} [data=null] The request body, usually in case of a POST or PUT request.
+         * @param {TRequestData|null} [data=null] The request body, usually in case of a POST or PUT request.
          * @param {boolean} [includePicnicHeaders=false] If it should include x-picnic-agent and x-picnic-did headers.
          * @param {boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
          */
-        sendRequest<TRequestData = never, TResponseData = AxiosResponse<TRequestData, any>>(method: Method, path: string, data?: Object | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
+        sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
     };
 };
 export = _default;
