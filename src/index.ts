@@ -1,7 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method } from "axios";
-import md5 from "crypto-js/md5";
-import utf8 from "crypto-js/enc-utf8";
-import hex from "crypto-js/enc-hex";
+import crypto from "crypto";
 
 import {
   AddProductInput,
@@ -47,7 +44,6 @@ export = class PicnicClient {
   apiVersion: string;
   authKey: string | null;
   url: string;
-  httpInstance: AxiosInstance;
 
   /**
    * Builds the client that sends the requests.
@@ -61,12 +57,7 @@ export = class PicnicClient {
     this.countryCode = options?.countryCode || "NL";
     this.apiVersion = options?.apiVersion || "15";
     this.authKey = options?.authKey || null;
-
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
-
-    this.httpInstance = axios.create({
-      baseURL: this.url,
-    });
   }
 
   /**
@@ -74,37 +65,39 @@ export = class PicnicClient {
    * @param {string} username The username of the Picnic account.
    * @param {string} password The password of the Picnic account.
    */
-  login(username: string, password: string): Promise<LoginResult> {
-    return new Promise<LoginResult>(async (resolve, reject) => {
-      let secret = md5(utf8.parse(password)).toString(hex);
+  async login(username: string, password: string): Promise<LoginResult> {
+    const secret = crypto.createHash("md5").update(password, "utf8").digest("hex");
 
-      try {
-        const response = await this.httpInstance.post<LoginInput, AxiosResponse<LoginResult>>(`/user/login`, {
-          key: username,
-          secret,
-          client_id: 30100,
-        });
-
-        this.authKey = response.headers[`x-picnic-auth`];
-
-        if (!this.authKey) {
-          reject("Login failed: No auth key received.");
-        }
-
-        resolve({
-          authKey: this.authKey!,
-          second_factor_authentication_required: response.data.second_factor_authentication_required,
-          show_second_factor_authentication_intro: response.data.show_second_factor_authentication_intro,
-          user_id: response.data.user_id,
-        });
-      } catch (error: any) {
-        if (error?.response?.data?.error?.message) {
-          reject(`Login failed: ${error.response.data.error.message}`);
-        } else {
-          reject(error);
-        }
-      }
+    const response = await fetch(`${this.url}/user/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key: username,
+        secret,
+        client_id: 30100,
+      }),
     });
+
+    if (!response.ok) {
+      const errorData: any = await response.json();
+      throw new Error(`Login failed: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data: any = await response.json();
+    this.authKey = response.headers.get(`x-picnic-auth`);
+
+    if (!this.authKey) {
+      throw new Error("Login failed: No auth key received.");
+    }
+
+    return {
+      authKey: this.authKey,
+      second_factor_authentication_required: data.second_factor_authentication_required,
+      show_second_factor_authentication_intro: data.show_second_factor_authentication_intro,
+      user_id: data.user_id,
+    };
   }
 
   /**
@@ -465,37 +458,39 @@ export = class PicnicClient {
    * Can be used to send custom requests that are not implemented but do need authentication for it.
    * @param {string} method The HTTP method to use, such as GET, POST, PUT and DELETE.
    * @param {string} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
-   * @param {Object|Array} [data=null] The request body, usually in case of a POST or PUT request.
+   * @param {TRequestData|null} [data=null] The request body, usually in case of a POST or PUT request.
    * @param {boolean} [includePicnicHeaders=false] If it should include x-picnic-agent and x-picnic-did headers.
    * @param {boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
    */
-  sendRequest<TRequestData = never, TResponseData = AxiosResponse<TRequestData>>(
-    method: Method,
+  async sendRequest<TRequestData, TResponseData>(
+    method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
-    data: Object | null = null,
+    data: TRequestData | null = null,
     includePicnicHeaders: boolean = false,
     isImageRequest: boolean = false
   ): Promise<TResponseData> {
-    return new Promise(async (resolve, reject) => {
-      const options: AxiosRequestConfig<Object> = {
-        method,
-        url: path,
-        headers: {
-          "User-Agent": "okhttp/3.12.2",
-          "Content-Type": "application/json; charset=UTF-8",
-          ...(this.authKey && { "x-picnic-auth": this.authKey }),
-          ...(includePicnicHeaders && { "x-picnic-agent": "30100;1.15.232-15154", "x-picnic-did": "3C417201548B2E3B" }),
-        },
-        ...(data && { data }),
-        ...(isImageRequest && { responseType: "arraybuffer" }),
-      };
-
-      try {
-        const response = await this.httpInstance.request<TRequestData, AxiosResponse<TResponseData>>(options as AxiosRequestConfig<TRequestData>);
-        resolve(response.data);
-      } catch (error) {
-        reject(error);
-      }
+    const headers = new Headers({
+      "User-Agent": "okhttp/3.12.2",
+      "Content-Type": "application/json; charset=UTF-8",
+      ...(this.authKey && { "x-picnic-auth": this.authKey }),
+      ...(includePicnicHeaders && { "x-picnic-agent": "30100;1.15.232-15154", "x-picnic-did": "3C417201548B2E3B" }),
     });
+
+    const response = await fetch(`${this.url}${path}`, {
+      method: method,
+      headers: headers,
+      body: data ? JSON.stringify(data) : null,
+    });
+
+    if (!response.ok) {
+      try {
+        const errorData: any = await response.json();
+        throw new Error(`${errorData.error?.message || response.statusText}`);
+      } catch (e) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+    }
+
+    return isImageRequest ? (response.arrayBuffer() as Promise<TResponseData>) : (response.json() as Promise<TResponseData>);
   }
 };
