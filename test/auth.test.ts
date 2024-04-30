@@ -27,7 +27,7 @@ describe("Auth", () => {
       error = err;
     }
 
-    expect(error).toBe("Login failed: Invalid credentials");
+    expect((error as any).message).toBe("Login failed: Invalid credentials");
   });
 
   it("should log the user in successfully", async () => {
