@@ -142,30 +142,20 @@ export = class PicnicClient {
    * @param {string} query The keywords to search for.
    */
   async search(query: string): Promise<SearchResult[]> {
+    const exploreChildren = (children: any): any[] => {
+					const ret = [];
+					for (const child of children) {
+						if (child.children) {
+							ret.push(...exploreChildren(child.children));
+						}
+						if (child.content?.sellingUnit) {
+							ret.push(child.content.sellingUnit);
+						}
+					}
+					return ret;
+				};
     const rawResults = await this.sendRequest<any, any>("GET", `/pages/search-page-results?search_term=${encodeURIComponent(query)}`, null, true);
-
-    const finalResults: SearchResult[] = [];
-
-    for (const child1 of rawResults.body.children) {
-      for (const child2 of child1.children) {
-        if (child2.content?.selling_unit) {
-          try {
-            const soleArticleId = Array.from(JSON.stringify(child2.pml).matchAll(/sole_article_id=([0-9]+)/g)).map((match) => match[1])[0];
-
-            finalResults.push({
-              ...child2.content.selling_unit,
-              sole_article_id: soleArticleId,
-            });
-          } catch (error) {
-            throw new Error(
-              "Failed to parse the search results and find the sole_article_id. This could mean that the response format from the picnic servers has changed. Please open an issue on the github repository."
-            );
-          }
-        }
-      }
-    }
-
-    return finalResults;
+    return exploreChildren(rawResults.body.child.children);
   }
 
   async getBundleArticleIds(soleArticleId: string): Promise<string[]> {
