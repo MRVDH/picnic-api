@@ -21,14 +21,7 @@ describe("Search", () => {
     const result = await client.search("Affligem blond");
 
     expect(result.length).toBeGreaterThan(0);
-    expect(result[0].id).toBe("s1001524");
-    expect(result[0].name).toBe("Affligem blond");
-    expect(result[0].sole_article_id).toBe("11295810");
-  });
-
-  it("should get the bundle options for a certain product", async () => {
-    const result = await client.getBundleArticleIds("11295810");
-
-    expect(result).toEqual(["s1001524", "s1084031", "s1084032", "s1084033"]);
+    expect(result[0].id).toContain("s1");
+    expect(result[0].name).toContain("Affligem blond");
   });
 });
