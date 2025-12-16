@@ -38,6 +38,7 @@ import {
   WalletTransactionDetails,
   WalletTransactionsInput,
 } from "./types/picnic-api";
+import { JSONPath } from "jsonpath-plus";
 
 export = class PicnicClient {
   countryCode: CountryCode;
@@ -142,20 +143,8 @@ export = class PicnicClient {
    * @param {string} query The keywords to search for.
    */
   async search(query: string): Promise<SearchResult[]> {
-    const exploreChildren = (children: any): any[] => {
-					const ret = [];
-					for (const child of children) {
-						if (child.children) {
-							ret.push(...exploreChildren(child.children));
-						}
-						if (child.content?.sellingUnit) {
-							ret.push(child.content.sellingUnit);
-						}
-					}
-					return ret;
-				};
     const rawResults = await this.sendRequest<any, any>("GET", `/pages/search-page-results?search_term=${encodeURIComponent(query)}`, null, true);
-    return exploreChildren(rawResults.body.child.children);
+    return JSONPath({ path: '$..sellingUnit', json: rawResults });
   }
 
   async getBundleArticleIds(soleArticleId: string): Promise<string[]> {
