@@ -19,6 +19,7 @@
 
 1. Do whatever code changes are necessary.
 2. Bump the package number based on semver.
+3. Run `npm install` to bump the version in the lockfile.
 3. Run `npm run build` to build the code.
 4. Run `npm run test` to run the tests to see if everything still works.
 5. Merge the PR to main.
