@@ -5,7 +5,7 @@ dotenv.config();
 
 let client: PicnicClient;
 
-describe("Search", () => {
+describe("Product Detail Page", () => {
   beforeAll(async () => {
     if (process.env.PICNIC_AUTH_KEY) {
       client = new PicnicClient({
@@ -17,13 +17,10 @@ describe("Search", () => {
     }
   });
 
-  it("should search for a product and return results", async () => {
-    const result = await client.search("Affligem blond");
+  it("should retrieve the product detail page", async () => {
+    const result = await client.getProductDetailsPage("s1001524");
 
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0].id).toContain("s1");
-    expect(result[0].name).toContain("Affligem blond");
-
-    console.log(result[0].id);
+    expect(result).not.toBeNull();
+    expect(result.id).toBe("product-details-page-root");
   });
 });

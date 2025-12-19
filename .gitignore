@@ -55,3 +55,6 @@ typings/
 
 # dotenv environment variables file
 .env
+
+# npm env
+.npmrc
