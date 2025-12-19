@@ -38,7 +38,15 @@ declare const _default: {
          * @param {string} query The keywords to search for.
          */
         search(query: string): Promise<SearchResult[]>;
+        /**
+         * @deprecated This endpoint seems to be deprecated.
+         */
         getBundleArticleIds(soleArticleId: string): Promise<string[]>;
+        /**
+         * Returns the full product page. Some digging is required to get the properties you want. The response is not typed as the content seems to be quite dynamic. Good luck!
+         * @param {string} productId The product ID to fetch the page for.
+         */
+        getProductDetailsPage(productId: string): Promise<any>;
         /**
          * returns a suggestion on Picnic products matching the query.
          * @param {string} query The keywords for suggestions.

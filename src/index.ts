@@ -78,7 +78,7 @@ export = class PicnicClient {
         key: username,
         secret,
         client_id: 30100,
-      }),
+      } as LoginInput),
     });
 
     if (!response.ok) {
@@ -144,9 +144,12 @@ export = class PicnicClient {
    */
   async search(query: string): Promise<SearchResult[]> {
     const rawResults = await this.sendRequest<any, any>("GET", `/pages/search-page-results?search_term=${encodeURIComponent(query)}`, null, true);
-    return JSONPath({ path: '$..sellingUnit', json: rawResults });
+    return JSONPath({ path: "$..sellingUnit", json: rawResults });
   }
 
+  /**
+   * @deprecated This endpoint seems to be deprecated.
+   */
   async getBundleArticleIds(soleArticleId: string): Promise<string[]> {
     try {
       const response = await this.sendRequest<any, any>(
@@ -170,6 +173,19 @@ export = class PicnicClient {
         "Failed to parse the results and find the article id. This could mean that the response format from the picnic servers has changed. Please open an issue on the github repository."
       );
     }
+  }
+
+  /**
+   * Returns the full product page. Some digging is required to get the properties you want. The response is not typed as the content seems to be quite dynamic. Good luck!
+   * @param {string} productId The product ID to fetch the page for.
+   */
+  async getProductDetailsPage(productId: string): Promise<any> {
+    return await this.sendRequest<any, any>(
+      "GET",
+      `/pages/product-details-page-root?id=${productId}&show_category_action=true&show_remove_from_purchases_page_action=false`,
+      null,
+      true
+    );
   }
 
   /**
