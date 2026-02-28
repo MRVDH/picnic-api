@@ -486,6 +486,11 @@ export = class PicnicClient {
       }
     }
 
-    return isImageRequest ? (response.arrayBuffer() as Promise<TResponseData>) : (response.json() as Promise<TResponseData>);
+    if (isImageRequest) {
+      return response.arrayBuffer() as Promise<TResponseData>;
+    }
+
+    const text = await response.text();
+    return (text ? JSON.parse(text) : null) as Promise<TResponseData>;
   }
 };
