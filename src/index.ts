@@ -6,6 +6,7 @@ import {
   ApiError,
   Article,
   Category,
+  ChannelType2FA,
   ConsentSetting,
   CountryCode,
   CustomerServiceContactInfo,
@@ -46,6 +47,16 @@ export = class PicnicClient {
   authKey: string | null;
   url: string;
 
+  readonly baseHeaders = {
+    "User-Agent": "okhttp/3.12.2",
+    "Content-Type": "application/json; charset=UTF-8",
+  };
+
+  readonly picnicHeaders = {
+    "x-picnic-agent": "30100;1.15.232-15154",
+    "x-picnic-did": "3C417201548B2E3B",
+  };
+
   /**
    * Builds the client that sends the requests.
    * @param {ApiConfig} options To configure the client.
@@ -71,9 +82,7 @@ export = class PicnicClient {
 
     const response = await fetch(`${this.url}/user/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.baseHeaders,
       body: JSON.stringify({
         key: username,
         secret,
@@ -103,9 +112,9 @@ export = class PicnicClient {
 
   /**
    * Generates a 2FA code for the user to verify.
-   * @param {string} channel The channel to send the code to. Can be 'SMS' or possibly something else.
+   * @param {string} channel The channel to send the code to. Can be 'SMS', 'EMAIL' or possibly something else.
    */
-  generate2FACode(channel: string) {
+  generate2FACode(channel: ChannelType2FA) {
     return this.sendRequest<Generate2FACodeInput, null>("POST", `/user/2fa/generate`, { channel }, true);
   }
 
@@ -113,8 +122,9 @@ export = class PicnicClient {
    * Verifies the 2FA code from the user.
    * @param {string} code The code to verify.
    */
-  verify2FACode(code: string) {
-    return this.sendRequest<Verify2FACodeInput, null | ApiError>("POST", `/user/2fa/verify`, { otp: code }, true);
+  async verify2FACode(code: string): Promise<any> {
+    const data = await this.sendRequest<Verify2FACodeInput, any>("POST", `/user/2fa/verify`, { otp: code }, true);
+    return { ...data, authKey: this.authKey };
   }
 
   /**
@@ -465,10 +475,9 @@ export = class PicnicClient {
     isImageRequest: boolean = false
   ): Promise<TResponseData> {
     const headers = new Headers({
-      "User-Agent": "okhttp/3.12.2",
-      "Content-Type": "application/json; charset=UTF-8",
+      ...this.baseHeaders,
       ...(this.authKey && { "x-picnic-auth": this.authKey }),
-      ...(includePicnicHeaders && { "x-picnic-agent": "30100;1.15.232-15154", "x-picnic-did": "3C417201548B2E3B" }),
+      ...(includePicnicHeaders && this.picnicHeaders),
     });
 
     const response = await fetch(`${this.url}${path}`, {
@@ -476,6 +485,10 @@ export = class PicnicClient {
       headers: headers,
       body: data ? JSON.stringify(data) : null,
     });
+
+    if (response.headers.has("x-picnic-auth")) {
+      this.authKey = response.headers.get("x-picnic-auth");
+    }
 
     if (!response.ok) {
       try {
