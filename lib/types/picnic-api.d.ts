@@ -5,6 +5,7 @@ export type ApiConfig = {
     url?: string;
 };
 export type CountryCode = "NL" | "DE";
+export type ChannelType2FA = "SMS" | "EMAIL" | string;
 export type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
 export type ApiError = {
     code: string;
@@ -17,7 +18,7 @@ export type LoginInput = {
     client_id: number;
 };
 export type Generate2FACodeInput = {
-    channel: "SMS" | string;
+    channel: ChannelType2FA;
 };
 export type Verify2FACodeInput = {
     otp: string;

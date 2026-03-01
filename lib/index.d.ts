@@ -1,10 +1,18 @@
-import { ApiConfig, ApiError, Article, Category, ConsentSetting, CountryCode, CustomerServiceContactInfo, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, PaymentProfile, ProfileMenu, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User, UserInfo, WalletTransaction, WalletTransactionDetails } from "./types/picnic-api";
+import { ApiConfig, Article, Category, ChannelType2FA, ConsentSetting, CountryCode, CustomerServiceContactInfo, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, PaymentProfile, ProfileMenu, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User, UserInfo, WalletTransaction, WalletTransactionDetails } from "./types/picnic-api";
 declare const _default: {
     new (options?: ApiConfig): {
         countryCode: CountryCode;
         apiVersion: string;
         authKey: string | null;
         url: string;
+        readonly baseHeaders: {
+            "User-Agent": string;
+            "Content-Type": string;
+        };
+        readonly picnicHeaders: {
+            "x-picnic-agent": string;
+            "x-picnic-did": string;
+        };
         /**
          * Logs the user into picnic to be able to send requests.
          * @param {string} username The username of the Picnic account.
@@ -13,14 +21,14 @@ declare const _default: {
         login(username: string, password: string): Promise<LoginResult>;
         /**
          * Generates a 2FA code for the user to verify.
-         * @param {string} channel The channel to send the code to. Can be 'SMS' or possibly something else.
+         * @param {string} channel The channel to send the code to. Can be 'SMS', 'EMAIL' or possibly something else.
          */
-        generate2FACode(channel: string): Promise<null>;
+        generate2FACode(channel: ChannelType2FA): Promise<null>;
         /**
          * Verifies the 2FA code from the user.
          * @param {string} code The code to verify.
          */
-        verify2FACode(code: string): Promise<ApiError | null>;
+        verify2FACode(code: string): Promise<any>;
         /**
          * Gets the details of the current logged in user.
          */
