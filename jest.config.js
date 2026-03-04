@@ -5,4 +5,5 @@ module.exports = {
   coverageProvider: "v8",
   preset: "ts-jest",
   testEnvironment: "node",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 };

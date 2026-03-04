@@ -1,214 +1,34 @@
-import { ApiConfig, ApiError, Article, Category, ConsentSetting, CountryCode, CustomerServiceContactInfo, Delivery, DeliveryPosition, DeliveryScenario, DeliveryStatus, GetDeliverySlotsResult, ImageSize, LoginResult, MgmDetails, MyStore, Order, OrderStatus, PaymentProfile, ProfileMenu, SearchResult, SetConsentSettingsInput, SetConsentSettingsResult, SingleArticle, SubCategory, SuggestionResult, User, UserInfo, WalletTransaction, WalletTransactionDetails } from "./types/picnic-api";
+import { ApiConfig } from "./types/common";
+import { AppService } from "./domains/app/service";
+import { AuthService } from "./domains/auth/service";
+import { UserService } from "./domains/user/service";
+import { CatalogService } from "./domains/catalog/service";
+import { CartService } from "./domains/cart/service";
+import { DeliveryService } from "./domains/delivery/service";
+import { PaymentService } from "./domains/payment/service";
+import { ConsentService } from "./domains/consent/service";
+import { CustomerServiceService } from "./domains/customer-service/service";
+import { ContentService } from "./domains/content/service";
+import { UserOnboardingService } from "./domains/user-onboarding/service";
+import { RecipeService } from "./domains/recipe/service";
 declare const _default: {
     new (options?: ApiConfig): {
-        countryCode: CountryCode;
+        readonly app: AppService;
+        readonly auth: AuthService;
+        readonly user: UserService;
+        readonly catalog: CatalogService;
+        readonly cart: CartService;
+        readonly delivery: DeliveryService;
+        readonly payment: PaymentService;
+        readonly consent: ConsentService;
+        readonly customerService: CustomerServiceService;
+        readonly content: ContentService;
+        readonly userOnboarding: UserOnboardingService;
+        readonly recipe: RecipeService;
+        countryCode: import("./types/common").CountryCode;
         apiVersion: string;
         authKey: string | null;
         url: string;
-        /**
-         * Logs the user into picnic to be able to send requests.
-         * @param {string} username The username of the Picnic account.
-         * @param {string} password The password of the Picnic account.
-         */
-        login(username: string, password: string): Promise<LoginResult>;
-        /**
-         * Generates a 2FA code for the user to verify.
-         * @param {string} channel The channel to send the code to. Can be 'SMS' or possibly something else.
-         */
-        generate2FACode(channel: string): Promise<null>;
-        /**
-         * Verifies the 2FA code from the user.
-         * @param {string} code The code to verify.
-         */
-        verify2FACode(code: string): Promise<ApiError | null>;
-        /**
-         * Gets the details of the current logged in user.
-         */
-        getUserDetails(): Promise<User>;
-        /**
-         * Gets information about the user such as toggled features.
-         */
-        getUserInfo(): Promise<UserInfo>;
-        /**
-         * Gets information to display on the profile section.
-         */
-        getProfileMenu(): Promise<ProfileMenu>;
-        /**
-         * Searches in picnic products.
-         * @param {string} query The keywords to search for.
-         */
-        search(query: string): Promise<SearchResult[]>;
-        /**
-         * @deprecated This endpoint seems to be deprecated.
-         */
-        getBundleArticleIds(soleArticleId: string): Promise<string[]>;
-        /**
-         * Returns the full product page. Some digging is required to get the properties you want. The response is not typed as the content seems to be quite dynamic. Good luck!
-         * @param {string} productId The product ID to fetch the page for.
-         */
-        getProductDetailsPage(productId: string): Promise<any>;
-        /**
-         * returns a suggestion on Picnic products matching the query.
-         * @param {string} query The keywords for suggestions.
-         */
-        getSuggestions(query: string): Promise<SuggestionResult[]>;
-        /**
-         * Returns the details of a specific product.
-         * @param {string} productId The id of the product to get.
-         */
-        getArticle(productId: string): Promise<Article>;
-        /**
-         * Retreives product images from the server as an arrayBuffer.
-         * @param {string} imageId The image id to retreive.
-         * @param {ImageSize} size The size of the image to return.
-         */
-        getImage(imageId: string, size: ImageSize): Promise<string>;
-        /**
-         * Retreives product images from the server ad a DataUri.
-         * @param {string} imageId The image id to retreive.
-         * @param {ImageSize} size The size of the image to return.
-         */
-        getImageAsDataUri(imageId: string, size: ImageSize): Promise<string>;
-        /**
-         * Returns the catgories.
-         * @param {number} [depth=0] The category depth of items to retrieve.
-         */
-        getCategories(depth?: number): Promise<MyStore>;
-        /**
-         * Returns the shopping cart information of the user and contents.
-         */
-        getShoppingCart(): Promise<Order>;
-        /**
-         * Adds a product to the shopping cart.
-         * @param {string} productId The id of the product to add.
-         * @param {number} [count=1] The amount of this product to add.
-         */
-        addProductToShoppingCart(productId: string, count?: number): Promise<Order>;
-        /**
-         * Removes a product from the shopping cart.
-         * @param {string} productId The id of the product to remove.
-         * @param {number} [count=1] The amount of this product to remove.
-         */
-        removeProductFromShoppingCart(productId: string, count?: number): Promise<Order>;
-        /**
-         * Clears the shopping cart of the user.
-         */
-        clearShoppingCart(): Promise<Order>;
-        /**
-         * Get all the delivery slots.
-         */
-        getDeliverySlots(): Promise<GetDeliverySlotsResult>;
-        /**
-         * Selects a delivery slot.
-         * @param {string} slotId The id of the delivery slot to be selected.
-         */
-        setDeliverySlot(slotId: string): Promise<Order>;
-        /**
-         * Returns all past and current deliveries of the user.
-         * @param {DeliveryStatus[]} [filter=[]] An array with the statusses of the deliveries to filter on.
-         */
-        getDeliveries(filter?: DeliveryStatus[]): Promise<Delivery[]>;
-        /**
-         * Get the details of one specific delivery.
-         * @param {string} deliveryId The id of the delivery to look up.
-         */
-        getDelivery(deliveryId: string): Promise<Delivery>;
-        /**
-         * Get the position data of one specific delivery. For the route and delivery information, use the scenario call.
-         * @param {string} deliveryId The id of the delivery to look up.
-         */
-        getDeliveryPosition(deliveryId: string): Promise<DeliveryPosition>;
-        /**
-         * Get the driver and route information of the delivery.
-         * @param {string} deliveryId The id of the delivery to look up.
-         */
-        getDeliveryScenario(deliveryId: string): Promise<DeliveryScenario>;
-        /**
-         * Cancels the order with the given delivery id.
-         * @param {string} deliveryId
-         */
-        cancelDelivery(deliveryId: string): Promise<any>;
-        /**
-         * Sets a rating for the delivery from 0 to 10. Will return 400 if a delivery already has a rating.
-         * @param {string} deliveryId
-         * @param {number} rating
-         */
-        setDeliveryRating(deliveryId: string, rating: number): Promise<string>;
-        /**
-         * (Re)sends the invoice email of the delivery.
-         * @param {string} deliveryId
-         */
-        sendDeliveryInvoiceEmail(deliveryId: string): Promise<string>;
-        /**
-         * Returns the status of the order (not delivery) with the given id.
-         * @param {string} orderId
-         */
-        getOrderStatus(orderId: string): Promise<OrderStatus>;
-        /**
-         * Returns all the lists and sublists.
-         * @param {number} [depth=0] The category depth of items to retrieve.
-         */
-        getLists(depth?: number): Promise<Category[]>;
-        /**
-         * Returns the sublists of a list, the articles of a sublist if the subListId is given.
-         * @param {string} listId The id of the list to get.
-         * @param {string} [subListId] The id of the sub list to get.
-         * @param {number} [depth=0] The category depth of items to retrieve.
-         */
-        getList(listId: string, subListId?: string, depth?: number): Promise<SubCategory[] | SingleArticle[]>;
-        /**
-         * Returns the MGM details. This are the friends discount data.
-         */
-        getMgmDetails(): Promise<MgmDetails>;
-        /**
-         * Returns the list of consent settings.
-         * @param {boolean} [general=false] Returns only the 'general' consent settings.
-         */
-        getConsentSettings(general?: boolean): Promise<ConsentSetting[]>;
-        /**
-         * Sets one or multiple consent options to true or false.
-         * @param {SetConsentSettingsInput} consentSettingsInput An array of objects of consent items.
-         */
-        setConsentSettings(consentSettingsInput: SetConsentSettingsInput): Promise<SetConsentSettingsResult>;
-        /**
-         * Returns the popup messages in the app. For example, the message after a delivery, asking if the delivery was satisfactory.
-         */
-        getMessages(): Promise<any>;
-        /**
-         * Returns the reminders.
-         */
-        getReminders(): Promise<any>;
-        /**
-         * Gets payment information.
-         */
-        getPaymentProfile(): Promise<PaymentProfile>;
-        /**
-         * Gets transactions made.
-         * @param {number} pageNumber The page number to get the transactions from.
-         */
-        getWalletTransactions(pageNumber: number): Promise<WalletTransaction[]>;
-        /**
-         * Gets payment information.
-         * @param {string} walletTransactionId The id of the transaction to get the details from.
-         */
-        getWalletTransactionDetails(walletTransactionId: string): Promise<WalletTransactionDetails>;
-        /**
-         * Gets payment information.
-         */
-        getCustomerServiceContactInfo(): Promise<CustomerServiceContactInfo>;
-        /**
-         * Gets parcels.
-         * @todo Implement return type once known.
-         */
-        getParcels(): Promise<any[]>;
-        /**
-         * Can be used to send custom requests that are not implemented but do need authentication for it.
-         * @param {string} method The HTTP method to use, such as GET, POST, PUT and DELETE.
-         * @param {string} path The path, possibly including query params. Example: '/cart/set_delivery_slot' or '/my_store?depth=0'.
-         * @param {TRequestData|null} [data=null] The request body, usually in case of a POST or PUT request.
-         * @param {boolean} [includePicnicHeaders=false] If it should include x-picnic-agent and x-picnic-did headers.
-         * @param {boolean} [isImageRequest=false] Will add the arrayBuffer response type if true.
-         */
         sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
     };
 };
