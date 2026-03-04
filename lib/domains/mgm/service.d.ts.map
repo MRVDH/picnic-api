@@ -1,0 +1,1 @@
+{"version":3,"file":"service.d.ts","sourceRoot":"","sources":["../../../src/domains/mgm/service.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,UAAU,MAAM,mBAAmB,CAAC;AAChD,OAAO,EAAE,UAAU,EAAE,MAAM,SAAS,CAAC;AAErC,qBAAa,UAAU;IACT,OAAO,CAAC,IAAI;gBAAJ,IAAI,EAAE,UAAU;IAEpC;;OAEG;IACH,aAAa,IAAI,OAAO,CAAC,UAAU,CAAC;CAGrC"}

@@ -20,7 +20,7 @@
   ],
   "main": "./lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "jest"
   },
   "repository": "github:MRVDH/picnic-api",

@@ -1,68 +1,86 @@
 # Picnic-API
 
-[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE) [![Buy me an Affligem blond](https://img.shields.io/badge/buy%20me%20an-affligem%20blond-orange?style=flat-square)](https://www.buymeacoffee.com/MRVDH) [![MAAR3267](https://img.shields.io/badge/picnic%20discount-MAAR3267-E1171E?style=flat-square)](https://picnic.app/nl/vriendenkorting/MAAR3267)
+[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE) [![MAAR3267](https://img.shields.io/badge/picnic%20discount-MAAR3267-E1171E?style=flat-square)](https://picnic.app/nl/vriendenkorting/MAAR3267)
 
-Unofficial and unaffiliated Node.js npm package as a wrapper for the API of the online supermarket Picnic.
+Unofficial Node.js wrapper for the API of the [Picnic](https://picnic.app) online supermarket. Not affiliated with Picnic.
 
-## Getting started
-
-Using `npm`:
+## Installation
 
 ```bash
 npm install picnic-api
 ```
 
-Then import the package into your project. `PicnicClient` is the default export.
+## Quick start
 
-```js
+Import the package and create a client. All configuration options are optional.
+
+```ts
 import PicnicClient from "picnic-api";
 
-// or
-
-const PicnicClient = require("picnic-api");
-```
-
-Now initialize the Picnic client with an optional options object.
-
-```js
-const picnicClient = new PicnicClient();
-
-// or
-
 const picnicClient = new PicnicClient({
-    countryCode: "NL", // The country code for the requests. Can be NL or DE. Untested for other countries.
-    apiVersion: "15", // default 15 as this is what the app currently uses. The api version for the requests. The effect of this version numbering is unknown to me.
-    authKey: "long string here", // default null. The code for the x-picnic-auth header to make authenticated requests. If not supplied then login() needs to be called before making any other requests.
-    url: "url here" // default https://storefront-prod.nl.picnicinternational.com/api/15. The url to send requests to.
+  countryCode: "NL", // The country code for the API. Options: "NL" (default) or "DE".
+  apiVersion: "15",  // The API version (default "15").
+  authKey: "...",    // An existing auth key to skip the login step.
+  url: "...",        // A custom base URL (defaults to https://storefront-prod.<cc>.picnicinternational.com/api/<version>).
 });
 ```
 
-If no authKey was given in the options use the `login` method. Empty response if successful, otherwise an error.
+### Authentication
 
-```js
-await picnicClient.login("email", "password");
-// and then send an authenticated request...
+Most endpoints require authentication. Call `auth.login()` to obtain an auth key, which is automatically stored in the client and sent with subsequent requests. If you already have a key from a previous session, pass it as `authKey` in the constructor instead.
+
+```ts
+await picnicClient.auth.login("email", "password");
 ```
 
-Example of a `GET` request:
+### Usage examples
 
-```js
-const searchResults = await picnicClient.search("Affligem blond");
+```ts
+// Search for products
+const results = await picnicClient.catalog.search("Affligem blond");
+
+// Add a product to the cart
+await picnicClient.cart.addProductToCart(11295810, 2);
+
+// Get available delivery slots
+const slots = await picnicClient.cart.getDeliverySlots();
+
+// Get details of a specific delivery
+const delivery = await picnicClient.delivery.getDelivery("delivery-id");
 ```
 
-Example of a `POST` request:
+### Custom requests
 
-```js
-await picnicClient.addProductToShoppingCart(11295810, 2);
+For endpoints not yet covered by a domain service, use `sendRequest` directly:
+
+```ts
+await picnicClient.sendRequest("GET", "/unknown/route");
+await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@example.com" });
 ```
 
-Examples of a custom (unimplemented) request:
+## API reference
 
-```js
-picnicClient.sendRequest("GET", "/unknown/route");
-picnicClient.sendRequest("POST", "/invite/friend", { email: "email@email.email" });
-```
+The client exposes the following domain services, each grouping a set of related endpoints:
+
+| Service | Accessor | Description |
+| --- | --- | --- |
+| **App** | `client.app` | Bootstrap data, pages, and deeplink resolution. |
+| **Auth** | `client.auth` | Login, logout, 2FA, and phone verification. |
+| **Cart** | `client.cart` | Cart management, delivery slots, and order placement. |
+| **Catalog** | `client.catalog` | Product search, suggestions, details, and images. |
+| **Consent** | `client.consent` | Consent settings and GDPR declarations. |
+| **Content** | `client.content` | Static content pages (FAQ, search empty state). |
+| **Customer Service** | `client.customerService` | Contact info, messages, reminders, and parcels. |
+| **Delivery** | `client.delivery` | Delivery history, live position, ratings, and invoices. |
+| **Payment** | `client.payment` | Payment profile and wallet transactions. |
+| **Recipe** | `client.recipe` | Recipe browsing, saving, and adding ingredients to cart. |
+| **User** | `client.user` | User details, profile, suggestions, and push tokens. |
+| **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
+
+Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
 
 ## Contributing
 
-If you want to contribute to this project then please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file, and if you like this library then please consider using my discount code [MAAR3267](https://picnic.app/nl/vriendenkorting/MAAR3267) so that we both get a 10 euro discount on our orders. 😄
+Contributions are welcome! Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file for guidelines.
+
+If you enjoy this package, consider using the discount code [MAAR3267](https://picnic.app/nl/vriendenkorting/MAAR3267) so we both get a discount on our next order. 😄
