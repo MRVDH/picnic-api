@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import type HttpClient from "../../http-client";
-import { LoginResult, Generate2FACodeInput, Verify2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
-import { ApiError } from "../../types/common";
+import { LoginResult, Verify2FAResult, Generate2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
 
 export class AuthService {
   constructor(private http: HttpClient) {}
@@ -51,11 +50,45 @@ export class AuthService {
   }
 
   /**
-   * Verifies the 2FA code.
-   * @param {string} code The code to verify.
+   * Verifies the 2FA code and captures the updated auth key from the response.
+   * The Picnic API returns a new auth key in the `x-picnic-auth` header after
+   * successful 2FA verification (HTTP 204, empty body).
+   * @param {string} code The 2FA code to verify.
    */
-  verify2FACode(code: string) {
-    return this.http.sendRequest<Verify2FACodeInput, null | ApiError>("POST", `/user/2fa/verify`, { otp: code }, true);
+  async verify2FACode(code: string): Promise<Verify2FAResult> {
+    const headers = new Headers({
+      "User-Agent": "okhttp/3.12.2",
+      "Content-Type": "application/json; charset=UTF-8",
+      ...(this.http.authKey && { "x-picnic-auth": this.http.authKey }),
+      "x-picnic-agent": "30100;1.15.232-15154",
+      "x-picnic-did": "3C417201548B2E3B",
+    });
+
+    const response = await fetch(`${this.http.url}/user/2fa/verify`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ otp: code }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      try {
+        const errorData: any = JSON.parse(body);
+        throw new Error(`2FA verification failed: ${errorData.error?.message || response.statusText}`);
+      } catch (e) {
+        if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
+        throw new Error(`2FA verification failed: ${response.status} ${response.statusText}`);
+      }
+    }
+
+    const authKey = response.headers.get("x-picnic-auth");
+    if (!authKey) {
+      throw new Error("2FA verification failed: No auth key received.");
+    }
+
+    this.http.authKey = authKey;
+
+    return { authKey };
   }
 
   /**

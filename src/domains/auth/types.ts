@@ -19,6 +19,10 @@ export type Verify2FACodeInput = {
   otp: string;
 };
 
+export type Verify2FAResult = {
+  authKey: string;
+};
+
 export type GeneratePhoneVerificationInput = {
   phone_number: string;
 };
