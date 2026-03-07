@@ -9,6 +9,8 @@ export default class HttpClient {
     authKey: string | null;
     url: string;
     constructor(options?: ApiConfig);
+    get baseHeaders(): Record<string, string>;
+    get picnicHeaders(): Record<string, string>;
     /**
      * Can be used to send custom requests that are not covered by the domain services.
      * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.

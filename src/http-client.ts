@@ -17,6 +17,21 @@ export default class HttpClient {
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
   }
 
+  get baseHeaders(): Record<string, string> {
+    return {
+      "User-Agent": "okhttp/3.12.2",
+      "Content-Type": "application/json; charset=UTF-8",
+      ...(this.authKey && { "x-picnic-auth": this.authKey }),
+    };
+  }
+
+  get picnicHeaders(): Record<string, string> {
+    return {
+      "x-picnic-agent": "30100;1.15.232-15154",
+      "x-picnic-did": "3C417201548B2E3B",
+    };
+  }
+
   /**
    * Can be used to send custom requests that are not covered by the domain services.
    * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.
@@ -33,13 +48,8 @@ export default class HttpClient {
     isImageRequest: boolean = false,
   ): Promise<TResponseData> {
     const headers = new Headers({
-      "User-Agent": "okhttp/3.12.2",
-      "Content-Type": "application/json; charset=UTF-8",
-      ...(this.authKey && { "x-picnic-auth": this.authKey }),
-      ...(includePicnicHeaders && {
-        "x-picnic-agent": "30100;1.15.232-15154",
-        "x-picnic-did": "3C417201548B2E3B",
-      }),
+      ...this.baseHeaders,
+      ...(includePicnicHeaders && this.picnicHeaders),
     });
 
     const response = await fetch(`${this.url}${path}`, {

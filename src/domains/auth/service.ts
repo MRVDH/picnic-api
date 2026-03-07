@@ -15,7 +15,7 @@ export class AuthService {
 
     const response = await fetch(`${this.http.url}/user/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.http.baseHeaders,
       body: JSON.stringify({ key: username, secret, client_id: 30100 }),
     });
 
@@ -57,11 +57,8 @@ export class AuthService {
    */
   async verify2FACode(code: string): Promise<Verify2FAResult> {
     const headers = new Headers({
-      "User-Agent": "okhttp/3.12.2",
-      "Content-Type": "application/json; charset=UTF-8",
-      ...(this.http.authKey && { "x-picnic-auth": this.http.authKey }),
-      "x-picnic-agent": "30100;1.15.232-15154",
-      "x-picnic-did": "3C417201548B2E3B",
+      ...this.http.baseHeaders,
+      ...this.http.picnicHeaders,
     });
 
     const response = await fetch(`${this.http.url}/user/2fa/verify`, {
