@@ -1,6 +1,5 @@
 import type HttpClient from "../../http-client";
-import { LoginResult } from "./types";
-import { ApiError } from "../../types/common";
+import { LoginResult, Verify2FAResult } from "./types";
 export declare class AuthService {
     private http;
     constructor(http: HttpClient);
@@ -16,10 +15,12 @@ export declare class AuthService {
      */
     generate2FACode(channel: string): Promise<null>;
     /**
-     * Verifies the 2FA code.
-     * @param {string} code The code to verify.
+     * Verifies the 2FA code and captures the updated auth key from the response.
+     * The Picnic API returns a new auth key in the `x-picnic-auth` header after
+     * successful 2FA verification (HTTP 204, empty body).
+     * @param {string} code The 2FA code to verify.
      */
-    verify2FACode(code: string): Promise<ApiError | null>;
+    verify2FACode(code: string): Promise<Verify2FAResult>;
     /**
      * Logs the current user out, invalidating the auth key.
      */

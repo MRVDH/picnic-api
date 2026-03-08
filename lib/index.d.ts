@@ -29,6 +29,8 @@ declare const _default: {
         apiVersion: string;
         authKey: string | null;
         url: string;
+        get baseHeaders(): Record<string, string>;
+        get picnicHeaders(): Record<string, string>;
         sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
     };
 };
