@@ -6,11 +6,6 @@ export type ApiConfig = {
 };
 export type CountryCode = "NL" | "DE";
 export type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
-export type ApiError = {
-    code: string;
-    details: any;
-    message: string;
-};
 export type Link = {
     type: string;
     href: string;
