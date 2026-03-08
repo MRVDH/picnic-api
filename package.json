@@ -1,6 +1,6 @@
 {
   "name": "picnic-api",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Unofficial wrapper for the API of the online supermarket Picnic",
   "keywords": [
     "picnic",

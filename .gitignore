@@ -15,6 +15,7 @@ node_modules/
 playground.ts
 picnic-app/
 consumer-test/
+picnic-web/
 
 # Test coverage
 coverage/
