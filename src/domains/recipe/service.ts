@@ -1,6 +1,10 @@
 import type HttpClient from "../../http-client";
-import type { RecipeSavingInput, SellingUnitMutationRecipeContext } from "./types";
-import type { Cart } from "../cart/types";
+import type {
+  RecipeSavingInput,
+  AssignSellingGroupInput,
+  UpdateSellingGroupPortionsInput,
+  RemoveSellingGroupInput,
+} from "./types";
 import { FusionPage } from "../../types/fusion";
 
 export class RecipeService {
@@ -62,53 +66,61 @@ export class RecipeService {
   }
 
   /**
-   * Adds a product to the shopping cart in the context of a recipe.
-   *
-   * This calls the standard `POST /cart/add_product` endpoint but includes
-   * `selling_unit_contexts` so Picnic knows the addition originated from a
-   * recipe. The context is used for analytics and for the recipe stepper UI.
-   *
-   * @param {string} productId The selling-unit / article id.
-   * @param {string} recipeId The recipe the product belongs to.
-   * @param {string} [sectionId] The section within the recipe (optional).
-   * @param {number} [count=1] How many units to add.
+   * Assigns a selling group (recipe bundle) to the basket in the meal planner.
+   * @param {string} sellingGroupId The selling group / recipe id.
+   * @param {number} [dayOffset] Which delivery day to plan for (relative to the selected slot).
+   * @param {number} [portions] Number of servings.
    */
-  addProductToRecipe(productId: string, recipeId: string, sectionId?: string, count: number = 1): Promise<Cart> {
-    const context: SellingUnitMutationRecipeContext = {
-      type: "RECIPE",
-      recipe_id: recipeId,
-      ...(sectionId && { section_id: sectionId }),
-    };
-
-    return this.http.sendRequest<any, Cart>("POST", `/cart/add_product`, {
-      product_id: productId,
-      count,
-      selling_unit_contexts: [context],
-    });
+  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<Record<string, never>> {
+    return this.http.sendRequest<AssignSellingGroupInput, Record<string, never>>(
+      "POST",
+      `/pages/task/assign-selling-group-to-basket`,
+      {
+        payload: {
+          selling_group_id: sellingGroupId,
+          ...(dayOffset !== undefined && { day_offset: dayOffset }),
+          ...(portions !== undefined && { portions }),
+        },
+      },
+      true,
+    );
   }
 
   /**
-   * Removes a product from the shopping cart in the context of a recipe.
-   *
-   * This calls the standard `POST /cart/remove_product` endpoint but includes
-   * `selling_unit_contexts` so Picnic knows the removal originated from a recipe.
-   *
-   * @param {string} productId The selling-unit / article id.
-   * @param {string} recipeId The recipe the product belongs to.
-   * @param {string} [sectionId] The section within the recipe (optional).
-   * @param {number} [count=1] How many units to remove.
+   * Updates the number of portions for a selling group already in the basket.
+   * @param {string} sellingGroupId The selling group / recipe id.
+   * @param {number} dayOffset Which delivery day the recipe is planned for.
+   * @param {number} portions The new number of servings.
    */
-  removeProductFromRecipe(productId: string, recipeId: string, sectionId?: string, count: number = 1): Promise<Cart> {
-    const context: SellingUnitMutationRecipeContext = {
-      type: "RECIPE",
-      recipe_id: recipeId,
-      ...(sectionId && { section_id: sectionId }),
-    };
+  updateSellingGroupPortions(sellingGroupId: string, dayOffset: number, portions: number): Promise<Record<string, never>> {
+    return this.http.sendRequest<UpdateSellingGroupPortionsInput, Record<string, never>>(
+      "POST",
+      `/pages/task/update-selling-group-number-of-portions-task`,
+      {
+        payload: {
+          selling_group_id: sellingGroupId,
+          day_offset: dayOffset,
+          portions,
+        },
+      },
+      true,
+    );
+  }
 
-    return this.http.sendRequest<any, Cart>("POST", `/cart/remove_product`, {
-      product_id: productId,
-      count,
-      selling_unit_contexts: [context],
-    });
+  /**
+   * Removes a selling group (recipe bundle) from the basket.
+   * @param {string} sellingGroupId The selling group / recipe id to remove.
+   */
+  removeSellingGroupFromBasket(sellingGroupId: string): Promise<Record<string, never>> {
+    return this.http.sendRequest<RemoveSellingGroupInput, Record<string, never>>(
+      "POST",
+      `/pages/task/remove-selling-group-from-basket`,
+      {
+        payload: {
+          selling_group_id: sellingGroupId,
+        },
+      },
+      true,
+    );
   }
 }

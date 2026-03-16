@@ -66,14 +66,14 @@ The client exposes the following domain services, each grouping a set of related
 | --- | --- | --- |
 | **App** | `client.app` | Bootstrap data, pages, and deeplink resolution. |
 | **Auth** | `client.auth` | Login, logout, 2FA, and phone verification. |
-| **Cart** | `client.cart` | Cart management, delivery slots, and order placement. |
+| **Cart** | `client.cart` | Cart management, delivery slots and selling units (recipes, meal plans, selling groups). |
 | **Catalog** | `client.catalog` | Product search, suggestions, details, and images. |
 | **Consent** | `client.consent` | Consent settings and GDPR declarations. |
 | **Content** | `client.content` | Static content pages (FAQ, search empty state). |
 | **Customer Service** | `client.customerService` | Contact info, messages, reminders, and parcels. |
 | **Delivery** | `client.delivery` | Delivery history, live position, ratings, and invoices. |
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
-| **Recipe** | `client.recipe` | Recipe browsing, saving, and adding ingredients to cart. |
+| **Recipe** | `client.recipe` | Recipe browsing and saving. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
 | **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
