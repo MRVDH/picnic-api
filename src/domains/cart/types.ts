@@ -150,11 +150,37 @@ export type Order = {
   membership_savings?: number;
 };
 
+// ─── Selling Unit Contexts ────────────────────────────────────────────────────
+
+export type MealPlanContext = {
+  type: "MEAL_PLAN";
+  day_offset: number;
+  servings: number;
+};
+
+export type SellingGroupContext = {
+  type: "SELLING_GROUP";
+  recipe_id: string;
+  ingredient_id: string;
+  component_type: string;
+};
+
+export type RecipeContext = {
+  type: "RECIPE" | "RECIPES";
+  recipe_id: string;
+  section_id?: string;
+  recipe_section_id?: string;
+  recipe_ingredient_type?: string;
+};
+
+export type SellingUnitContext = MealPlanContext | SellingGroupContext | RecipeContext;
+
 // ─── Cart Actions ─────────────────────────────────────────────────────────────
 
 export type AddProductInput = {
   product_id: string;
   count: number;
+  selling_unit_contexts?: SellingUnitContext[];
 };
 
 export type GetDeliverySlotsResult = {

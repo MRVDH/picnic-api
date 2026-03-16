@@ -6,6 +6,7 @@ import {
   GetDeliverySlotsResult,
   OrderStatus,
   RemoveGroupInput,
+  SellingUnitContext,
   SetDeliverySlotInput,
   UserSlotMinimumOrderValue,
 } from "./types";
@@ -24,18 +25,28 @@ export class CartService {
    * Adds a product to the shopping cart.
    * @param {string} productId The id of the product to add.
    * @param {number} [count=1] The amount of this product to add.
+   * @param {SellingUnitContext[]} [sellingUnitContexts] Optional contexts to track the origin of the mutation (e.g. recipe, meal plan).
    */
-  addProductToCart(productId: string, count: number = 1): Promise<Cart> {
-    return this.http.sendRequest<AddProductInput, Cart>("POST", `/cart/add_product`, { product_id: productId, count });
+  addProductToCart(productId: string, count: number = 1, sellingUnitContexts?: SellingUnitContext[]): Promise<Cart> {
+    return this.http.sendRequest<AddProductInput, Cart>("POST", `/cart/add_product`, {
+      product_id: productId,
+      count,
+      ...(sellingUnitContexts && { selling_unit_contexts: sellingUnitContexts }),
+    });
   }
 
   /**
    * Removes a product from the shopping cart.
    * @param {string} productId The id of the product to remove.
    * @param {number} [count=1] The amount of this product to remove.
+   * @param {SellingUnitContext[]} [sellingUnitContexts] Optional contexts to track the origin of the mutation (e.g. recipe, meal plan).
    */
-  removeProductFromCart(productId: string, count: number = 1): Promise<Cart> {
-    return this.http.sendRequest<AddProductInput, Cart>("POST", `/cart/remove_product`, { product_id: productId, count });
+  removeProductFromCart(productId: string, count: number = 1, sellingUnitContexts?: SellingUnitContext[]): Promise<Cart> {
+    return this.http.sendRequest<AddProductInput, Cart>("POST", `/cart/remove_product`, {
+      product_id: productId,
+      count,
+      ...(sellingUnitContexts && { selling_unit_contexts: sellingUnitContexts }),
+    });
   }
 
   /**
