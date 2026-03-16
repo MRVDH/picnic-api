@@ -18,30 +18,44 @@ export type RecipeSavingInput = {
   payload: RecipeSavingPayload;
 };
 
-// ─── Add Recipe Section to Cart ──────────────────────────────────────────────
+// ─── Selling Group (Meal Planner) types ──────────────────────────────────────
 
 /**
- * Context passed when mutating a selling unit from a recipe.
- * Allows Picnic to track which recipe and section triggered the cart change.
- *
- * The existing `POST /cart/add_product` and `POST /cart/remove_product`
- * endpoints accept an optional `selling_unit_contexts` array. When the
- * mutation originates from a recipe, one entry of this type is included.
+ * Payload for assigning a selling group (recipe bundle) to the basket.
+ * Extracted from the `onAddButtonPostRecipeHandler` PML expression in `cookbook-page-content`.
  */
-export type SellingUnitMutationRecipeContext = {
-  type: "RECIPE" | "RECIPES";
-  recipe_id: string;
-  section_id?: string;
-  recipe_section_id?: string;
-  recipe_ingredient_type?: string;
+export type AssignSellingGroupPayload = {
+  selling_group_id: string;
+  day_offset?: number;
+  portions?: number;
+};
+
+export type AssignSellingGroupInput = {
+  payload: AssignSellingGroupPayload;
 };
 
 /**
- * Input for adding / removing a product via the cart endpoints,
- * enriched with the recipe selling-unit context.
+ * Payload for updating the number of portions of a selling group already in the basket.
+ * Extracted from the portion-update PML expression in `cookbook-page-content`.
  */
-export type RecipeProductInput = {
-  product_id: string;
-  count: number;
-  selling_unit_contexts?: SellingUnitMutationRecipeContext[];
+export type UpdateSellingGroupPortionsPayload = {
+  selling_group_id: string;
+  day_offset: number;
+  portions: number;
+};
+
+export type UpdateSellingGroupPortionsInput = {
+  payload: UpdateSellingGroupPortionsPayload;
+};
+
+/**
+ * Payload for removing a selling group from the basket.
+ * Extracted from the "REMOVE" case PML expression in `cookbook-page-content`.
+ */
+export type RemoveSellingGroupPayload = {
+  selling_group_id: string;
+};
+
+export type RemoveSellingGroupInput = {
+  payload: RemoveSellingGroupPayload;
 };
