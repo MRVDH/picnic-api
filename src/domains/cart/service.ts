@@ -36,6 +36,14 @@ export class CartService {
   }
 
   /**
+   * Adds multiple products to the shopping cart in a single request.
+   * @param {Record<string, number>} products A map of selling unit ids to quantities.
+   */
+  addProductsToCart(products: Record<string, number>): Promise<Cart> {
+    return this.http.sendRequest<Record<string, number>, Cart>("POST", `/cart/products/add`, products);
+  }
+
+  /**
    * Removes a product from the shopping cart.
    * @param {string} productId The id of the product to remove.
    * @param {number} [count=1] The amount of this product to remove.
