@@ -42,11 +42,11 @@ const results = await picnicClient.catalog.search("Affligem blond");
 // Add a product to the cart
 await picnicClient.cart.addProductToCart(11295810, 2);
 
-// Bulk add products to the cart using selling-unit ids as keys
-await picnicClient.cart.addProductsToCart({
-  s11295810: 2,
-  s10000123: 1,
-});
+// Bulk add products to the cart
+await picnicClient.cart.addProductsToCart([
+  { productId: "s11295810", quantity: 2 },
+  { productId: "s10000123", quantity: 1 },
+]);
 
 // Get available delivery slots
 const slots = await picnicClient.cart.getDeliverySlots();
@@ -84,8 +84,6 @@ The client exposes the following domain services, each grouping a set of related
 | **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
 Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
-
-For larger baskets such as recipes or weekly menus, prefer `client.cart.addProductsToCart(...)` over repeated `addProductToCart(...)` calls.
 
 ## Contributing
 

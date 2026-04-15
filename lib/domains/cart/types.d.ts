@@ -167,6 +167,10 @@ export type AddProductInput = {
     count: number;
     selling_unit_contexts?: SellingUnitContext[];
 };
+export type AddProductsItem = {
+    productId: string;
+    quantity: number;
+};
 export type GetDeliverySlotsResult = {
     delivery_slots: DeliverySlot[];
     slot_selector_message: SlotSelectorMessage;

@@ -19,10 +19,10 @@ describe("CartService - addProductsToCart", () => {
       json: () => Promise.resolve({ id: "cart-id" }),
     });
 
-    const products = {
-      s11295810: 2,
-      s10000123: 1,
-    };
+    const products = [
+      { productId: "s11295810", quantity: 2 },
+      { productId: "s10000123", quantity: 1 },
+    ];
 
     await cart.addProductsToCart(products);
 
@@ -30,7 +30,10 @@ describe("CartService - addProductsToCart", () => {
       expect.stringContaining("/cart/products/add"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify(products),
+        body: JSON.stringify({
+          s11295810: 2,
+          s10000123: 1,
+        }),
       }),
     );
   });

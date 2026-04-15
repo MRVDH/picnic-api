@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { Cart, CheckoutConfirmation, GetDeliverySlotsResult, OrderStatus, SellingUnitContext, UserSlotMinimumOrderValue } from "./types";
+import { AddProductsItem, Cart, CheckoutConfirmation, GetDeliverySlotsResult, OrderStatus, SellingUnitContext, UserSlotMinimumOrderValue } from "./types";
 export declare class CartService {
     private http;
     constructor(http: HttpClient);
@@ -14,6 +14,11 @@ export declare class CartService {
      * @param {SellingUnitContext[]} [sellingUnitContexts] Optional contexts to track the origin of the mutation (e.g. recipe, meal plan).
      */
     addProductToCart(productId: string, count?: number, sellingUnitContexts?: SellingUnitContext[]): Promise<Cart>;
+    /**
+     * Adds multiple products to the shopping cart in a single request.
+     * @param {AddProductsItem[]} products An array of products with their ids and quantities.
+     */
+    addProductsToCart(products: AddProductsItem[]): Promise<Cart>;
     /**
      * Removes a product from the shopping cart.
      * @param {string} productId The id of the product to remove.

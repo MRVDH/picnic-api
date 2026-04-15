@@ -1,6 +1,7 @@
 import type HttpClient from "../../http-client";
 import {
   AddProductInput,
+  AddProductsItem,
   Cart,
   CheckoutConfirmation,
   GetDeliverySlotsResult,
@@ -37,10 +38,14 @@ export class CartService {
 
   /**
    * Adds multiple products to the shopping cart in a single request.
-   * @param {Record<string, number>} products A map of selling unit ids to quantities.
+   * @param {AddProductsItem[]} products An array of products with their ids and quantities.
    */
-  addProductsToCart(products: Record<string, number>): Promise<Cart> {
-    return this.http.sendRequest<Record<string, number>, Cart>("POST", `/cart/products/add`, products);
+  addProductsToCart(products: AddProductsItem[]): Promise<Cart> {
+    const body: Record<string, number> = {};
+    for (const { productId, quantity } of products) {
+      body[productId] = quantity;
+    }
+    return this.http.sendRequest<Record<string, number>, Cart>("POST", `/cart/products/add`, body);
   }
 
   /**
