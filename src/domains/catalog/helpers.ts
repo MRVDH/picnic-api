@@ -39,7 +39,7 @@ export const extractMarkdowns = (node: any): string[] => {
  */
 export function extractProductDetails(productId: string, page: FusionPage): ProductDetails {
   // ── Name, brand, unit quantity, unit price ──
-  const mainContainer = findById(page.body, `product-details-page-root-main-container`);
+  const mainContainer = findById(  page.layout.body, `product-details-page-root-main-container`);
   const mainTexts = extractMarkdowns(mainContainer).map(stripColorMarkup);
   const name = mainTexts[0] ?? "";
   const brand = mainTexts[1] ?? "";
@@ -53,8 +53,15 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   // For bundle products the selling unit carries `display_price`. For non-bundle
   // products the price is rendered as a PRICE component inside the main container.
   let displayPrice: number = mainUnit.display_price ?? 0;
+  // price_ranges may be on the selling unit directly (rare on PDP), or embedded
+  // in the PML script expression params (at __ep1.v1 / __ep2.v1 paths used by
+  // getCurrentPrice / getFormattedPriceValueForPriceRanges expressions).
+  let priceRanges = mainUnit.price_ranges ?? null;
+  if (!priceRanges) {
+    priceRanges = extractPriceRangesFromExpressions(page) ?? null;
+  }
   if (!displayPrice) {
-    const bundleNode = findById(page.body, productId);
+    const bundleNode = findById(  page.layout.body, productId);
     if (bundleNode) {
       displayPrice = JSONPath({ path: "$..price", json: bundleNode })[0] ?? 0;
     }
@@ -67,22 +74,22 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   const maxCount: number = mainUnit.max_count ?? 0;
 
   // ── Gallery images ──
-  const gallery = findById(page.body, "product-page-image-gallery-main-image-container");
+  const gallery = findById(  page.layout.body, "product-page-image-gallery-main-image-container");
   const imageIds: string[] = gallery
     ? [...new Set<string>(JSONPath({ path: "$..source.id", json: gallery }))]
     : mainUnit.image_id ? [mainUnit.image_id] : [];
 
   // ── Description ──
-  const descBlock = findById(page.body, "description");
+  const descBlock = findById(  page.layout.body, "description");
   const descMarkdowns = extractMarkdowns(descBlock);
   const description = descMarkdowns.length > 0 ? descMarkdowns.join("\n") : null;
 
   // ── Highlights ──
-  const highlightsBlock = findById(page.body, "product-page-highlights");
+  const highlightsBlock = findById(  page.layout.body, "product-page-highlights");
   const highlights = extractMarkdowns(highlightsBlock).map((h) => stripMarkdownFormatting(stripColorMarkup(h)));
 
   // ── Allergens ──
-  const allergiesBlock = findById(page.body, "product-page-allergies");
+  const allergiesBlock = findById(  page.layout.body, "product-page-allergies");
   const allergenTexts = extractMarkdowns(allergiesBlock).map(stripColorMarkup);
   // Allergen list starts with a heading like "Bevat" and may include a separator
   // like "Bevat mogelijk" partway through. Drop the heading(s) and keep individual allergens.
@@ -91,7 +98,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   );
 
   // ── Info sections (accordion) ──
-  const accordionBlock = findById(page.body, "accordion-list");
+  const accordionBlock = findById(  page.layout.body, "accordion-list");
   const infoSections: ProductDetails["infoSections"] = [];
   if (accordionBlock) {
     const items = JSONPath({ path: "$..items", json: accordionBlock })[0];
@@ -120,7 +127,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
 
   // ── Bundles ──
   const bundles: BundleItem[] = [];
-  const bundleContainer = findBundleContainer(page.body);
+  const bundleContainer = findBundleContainer(  page.layout.body);
 
   if (bundleContainer) {
     // Each bundle item is wrapped in a STATE_BOUNDARY with id matching the selling unit id
@@ -156,7 +163,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   }
 
   // ── Similar products ──
-  const altContainer = findById(page.body, "alternatives-container");
+  const altContainer = findById(  page.layout.body, "alternatives-container");
   const altSellingUnits: any[] = altContainer ? JSONPath({ path: "$..sellingUnit", json: altContainer }) : [];
   const similarProducts: SimilarProduct[] = altSellingUnits
     .filter((u: any) => u.display_price !== undefined)
@@ -168,6 +175,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
       unitQuantity: u.unit_quantity,
       maxCount: u.max_count,
       ...(u.deposit !== undefined ? { deposit: u.deposit } : {}),
+      ...(u.price_ranges ? { priceRanges: u.price_ranges } : {}),
     }));
 
   return {
@@ -185,6 +193,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
     infoSections,
     promotion,
     bundles,
+    priceRanges,
     similarProducts,
   };
 }
@@ -208,4 +217,38 @@ function findBundleContainer(body: any): any {
     return null;
   };
   return walk(body);
+}
+
+/**
+ * Extract price_ranges from PML script expression parameters.
+ * On the PDP, price ranges are embedded in the expression payload (e.g. __ep1.v1)
+ * used by scripts like `getCurrentPrice` / `getFormattedPriceValueForPriceRanges`.
+ * Each entry has `{ price: number, from_quantity: number }`.
+ */
+function extractPriceRangesFromExpressions(page: FusionPage): any[] | null {
+  // Search the entire page tree for expression params containing price_range-shaped arrays
+  const allV1Arrays: any[] = JSONPath({ path: "$..__ep1.v1", json: page });
+  for (const arr of allV1Arrays) {
+    if (
+      Array.isArray(arr) &&
+      arr.length > 0 &&
+      arr[0].price !== undefined &&
+      arr[0].from_quantity !== undefined
+    ) {
+      return arr;
+    }
+  }
+  // Also check __ep2.v1 as a fallback
+  const allV1Ep2: any[] = JSONPath({ path: "$..__ep2.v1", json: page });
+  for (const arr of allV1Ep2) {
+    if (
+      Array.isArray(arr) &&
+      arr.length > 0 &&
+      arr[0].price !== undefined &&
+      arr[0].from_quantity !== undefined
+    ) {
+      return arr;
+    }
+  }
+  return null;
 }

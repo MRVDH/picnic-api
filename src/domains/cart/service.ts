@@ -19,7 +19,7 @@ export class CartService {
    * Returns the cart of the current user.
    */
   getCart(): Promise<Cart> {
-    return this.http.sendRequest<any, Cart>("GET", `/cart`);
+    return this.http.sendRequest<any, Cart>("GET", `/cart`, null, true);
   }
 
   /**
@@ -33,7 +33,7 @@ export class CartService {
       product_id: productId,
       count,
       ...(sellingUnitContexts && { selling_unit_contexts: sellingUnitContexts }),
-    });
+    }, true);
   }
 
   /**
@@ -45,7 +45,7 @@ export class CartService {
     for (const { productId, quantity } of products) {
       body[productId] = quantity;
     }
-    return this.http.sendRequest<Record<string, number>, Cart>("POST", `/cart/products/add`, body);
+    return this.http.sendRequest<Record<string, number>, Cart>("POST", `/cart/products/add`, body, true);
   }
 
   /**
@@ -59,14 +59,14 @@ export class CartService {
       product_id: productId,
       count,
       ...(sellingUnitContexts && { selling_unit_contexts: sellingUnitContexts }),
-    });
+    }, true);
   }
 
   /**
    * Clears all items from the shopping cart.
    */
   clearCart(): Promise<Cart> {
-    return this.http.sendRequest<any, Cart>("POST", `/cart/clear`);
+    return this.http.sendRequest<any, Cart>("POST", `/cart/clear`, null, true);
   }
 
   /**
@@ -81,7 +81,7 @@ export class CartService {
    * @param {string} slotId The id of the delivery slot to select.
    */
   setDeliverySlot(slotId: string): Promise<Cart> {
-    return this.http.sendRequest<SetDeliverySlotInput, Cart>("POST", `/cart/set_delivery_slot`, { slot_id: slotId });
+    return this.http.sendRequest<SetDeliverySlotInput, Cart>("POST", `/cart/set_delivery_slot`, { slot_id: slotId }, true);
   }
 
   /**
@@ -97,7 +97,7 @@ export class CartService {
    * @param {string} groupId The id of the group to remove.
    */
   removeGroupFromCart(groupId: string): Promise<Cart> {
-    return this.http.sendRequest<RemoveGroupInput, Cart>("POST", `/cart/remove_group`, { group_id: groupId });
+    return this.http.sendRequest<RemoveGroupInput, Cart>("POST", `/cart/remove_group`, { group_id: groupId }, true);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Component, Icon } from "../../types/fusion";
+import { Component, Icon, PriceRange } from "../../types/fusion";
 import { Decorator } from "../../types/common";
 export type DeliverySlot = {
     slot_id: string;
@@ -41,7 +41,10 @@ export type OrderArticle = {
     name: string;
     unit_quantity: string;
     unit_quantity_sub?: string;
+    /** Base per-unit price in cents (before bundle discounts). */
     price: number;
+    /** Bundle discount price tiers. Present when picnic headers are sent; each entry defines a per-unit price that applies when the cart quantity reaches `from_quantity`. */
+    price_ranges?: PriceRange[];
     decorators: Decorator[];
     max_count: number;
     image_ids: string[];
@@ -57,7 +60,8 @@ export type OrderLine = {
     items: OrderArticle[];
     display_price: number;
     price: number;
-    decorators: Decorator[];
+    /** Decorators such as PRICE (discounted total) and PROMO (e.g. "BundelBonus"). Present when picnic headers are sent or on delivery order lines. */
+    decorators?: Decorator[];
 };
 export type DepositBreakdown = {
     type: "BAG" | "DEFAULT" | string;
@@ -96,6 +100,8 @@ export type Cart = {
     total_count: number;
     total_price: number;
     checkout_total_price: number;
+    /** Total savings from bundle discounts in cents. Present when picnic headers are sent. */
+    total_savings?: number;
     /** Modification timestamp (milliseconds). */
     mts: number;
     deposit_breakdown: DepositBreakdown[];

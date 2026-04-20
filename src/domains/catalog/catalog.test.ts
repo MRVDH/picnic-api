@@ -21,6 +21,6 @@ describe("Catalog - product details page", () => {
     const result = await client.catalog.getProductDetailsPage("s1001524");
 
     expect(result).not.toBeNull();
-    expect(result.id).toBe("product-details-page-root");
+    expect(result.layout.id).toBe("product-details-page-root");
   });
 });

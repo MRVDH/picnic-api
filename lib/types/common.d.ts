@@ -146,5 +146,15 @@ export type BundlesButtonDecorator = {
     deeplink: string;
     background_color: string;
 };
-export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | BundlesButtonDecorator | OrderedQuantityDecorator | ProductSizeDecorator | ProductCharacteristicsDecorator;
+/** Promotional label decorator (e.g. "BundelBonus"). Seen on order lines with bundle discounts. */
+export type PromoDecorator = {
+    type: "PROMO";
+    /** Promotional label text (e.g. "BundelBonus"). */
+    text: string;
+    /** Background hex colour for the promo badge. */
+    background_color: string;
+    /** Foreground/text hex colour for the promo badge. */
+    text_color: string;
+};
+export type Decorator = BasePriceDecorator | FreshLabelDecorator | LabelDecorator | PriceDecorator | BackgroundImageDecorator | BannersDecorator | QuantityDecorator | UnitQuantityDecorator | ValidityLabelDecorator | TitleStyleDecorator | MoreButtonDecorator | UnavailableDecorator | ImmutableDecorator | ArticleDeliveryFailureDecorator | BundlesButtonDecorator | PromoDecorator | OrderedQuantityDecorator | ProductSizeDecorator | ProductCharacteristicsDecorator;
 //# sourceMappingURL=common.d.ts.map
