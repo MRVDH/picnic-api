@@ -1,3 +1,4 @@
+import { PriceRange } from "../../types/fusion";
 export type SearchSuggestion = {
     type: "SEARCH_SUGGESTION";
     id: string;
@@ -60,6 +61,8 @@ export type ProductDetails = {
     promotion: ProductPromotion | null;
     /** Bundle options (buy-more-pay-less). Empty when no bundles are available. */
     bundles: BundleItem[];
+    /** Progressive discount price tiers from the selling unit data. Usually `null` on the PDP (embedded in PML scripts instead); available on search results via the `SellingUnit` type. */
+    priceRanges: PriceRange[] | null;
     /** Selling units for similar/alternative products. */
     similarProducts: SimilarProduct[];
 };
@@ -79,5 +82,7 @@ export type SimilarProduct = {
     maxCount: number;
     /** Deposit amount in cents, if applicable. */
     deposit?: number;
+    /** Progressive discount price tiers. `null` or absent when no bundle pricing is available. */
+    priceRanges?: PriceRange[] | null;
 };
 //# sourceMappingURL=types.d.ts.map

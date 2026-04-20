@@ -19,15 +19,16 @@ export default class HttpClient {
 
   get baseHeaders(): Record<string, string> {
     return {
-      "User-Agent": "okhttp/3.12.2",
+      "User-Agent": "okhttp/4.9.0",
       "Content-Type": "application/json; charset=UTF-8",
+      "Accept-Language": this.countryCode === "DE" ? "de" : "nl",
       ...(this.authKey && { "x-picnic-auth": this.authKey }),
     };
   }
 
   get picnicHeaders(): Record<string, string> {
     return {
-      "x-picnic-agent": "30100;1.15.232-15154",
+      "x-picnic-agent": "30100;1.228.1-15480;",
       "x-picnic-did": "3C417201548B2E3B",
     };
   }

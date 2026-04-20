@@ -367,6 +367,13 @@ export type FusionExpressionComponent = {
     name: string;
     expression: string;
 };
+/** A single tier in a progressive (bundle) discount schedule. */
+export type PriceRange = {
+    /** Per-unit price in cents that applies at this tier. */
+    price: number;
+    /** Minimum quantity in the cart for this price to kick in. */
+    from_quantity: number;
+};
 export type SellingUnit = {
     id: string;
     name: string;
@@ -375,7 +382,8 @@ export type SellingUnit = {
     unit_quantity: string;
     max_count: number;
     decorators: any[];
-    price_ranges: any[] | null;
+    /** Bundle discount price tiers. Each entry defines a per-unit price that applies when the cart quantity reaches `from_quantity`. */
+    price_ranges: PriceRange[] | null;
 };
 export type SellingUnitImageConfiguration = {
     derivativeType: string;
@@ -664,10 +672,10 @@ export type DefaultPageHeader = {
     buttons?: any[] | null;
 };
 /**
- * Generic page response returned by `GET /pages/:page-id`.
- * The same shape is shared across all page routes (home, purchases, slot selector, etc.).
+ * The layout portion of a page response. Contains the page ID, presentation
+ * config, header and body tree.
  */
-export type FusionPage = {
+export type FusionPageLayout = {
     id: string;
     /** Present on most pages, but may be absent on some routes. */
     analytics?: PageAnalytics | null;
@@ -676,6 +684,16 @@ export type FusionPage = {
     header: StaticPageHeader | DefaultPageHeader | PageHeader | null;
     body: StateBoundaryComponent;
 };
-/** @deprecated Renamed to {@link FusionPage}. */
-export type HomePage = FusionPage;
+/**
+ * Generic page response returned by `GET /pages/:page-id`.
+ * The API wraps the layout in an envelope that also carries PML script expressions.
+ */
+export type FusionPage = {
+    /** PML script expressions (client-side JS functions) keyed by name. */
+    script: Record<string, string>;
+    /** The page layout tree. */
+    layout: FusionPageLayout;
+};
+/** @deprecated Renamed to {@link FusionPageLayout}. */
+export type HomePage = FusionPageLayout;
 //# sourceMappingURL=fusion.d.ts.map
