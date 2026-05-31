@@ -18,10 +18,12 @@ Import the package and create a client. All configuration options are optional.
 import PicnicClient from "picnic-api";
 
 const picnicClient = new PicnicClient({
-  countryCode: "NL", // The country code for the API. Options: "NL" (default) or "DE".
-  apiVersion: "15",  // The API version (default "15").
+  countryCode: "NL", // The country code for the API. Options: "NL" (default), "DE" or "FR".
   authKey: "...",    // An existing auth key to skip the login step.
-  url: "...",        // A custom base URL (defaults to https://storefront-prod.<cc>.picnicinternational.com/api/<version>).
+  apiVersion: "15",  // The API version (defaults to "15").
+  url: "...",        // A custom base URL (defaults to https://storefront-prod.<countryCode>.picnicinternational.com/api/<apiVersion>).
+  deviceId: "...",   // Custom device identifier for x-picnic-did header. (defaults to "3C417201548B2E3B")
+  agent: "...",      // Custom agent string for x-picnic-agent header. (defaults to "30100;1.228.1-15480;")
 });
 ```
 
@@ -29,8 +31,14 @@ const picnicClient = new PicnicClient({
 
 Most endpoints require authentication. Call `auth.login()` to obtain an auth key, which is automatically stored in the client and sent with subsequent requests. If you already have a key from a previous session, pass it as `authKey` in the constructor instead.
 
+If the login endpoint responds with a 2FA requirement (`second_factor_authentication_required: true`), then call `auth.generate2FACode("SMS")` to generate a 2FA code and pass it to `auth.verify2FA(<code>)` to complete the login process.
+
 ```ts
 await picnicClient.auth.login("email", "password");
+
+// If 2FA is required:
+await picnicClient.auth.generate2FACode("SMS");
+await picnicClient.auth.verify2FA("123456");
 ```
 
 ### Usage examples

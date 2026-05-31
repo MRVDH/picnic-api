@@ -3,9 +3,11 @@ export type ApiConfig = {
   apiVersion?: string;
   authKey?: string;
   url?: string;
+  deviceId?: string;
+  agent?: string;
 };
 
-export type CountryCode = "NL" | "DE";
+export type CountryCode = "NL" | "DE" | "FR";
 
 export type ImageSize = "tiny" | "small" | "medium" | "large" | "extra-large";
 

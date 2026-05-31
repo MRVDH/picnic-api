@@ -9,27 +9,31 @@ export default class HttpClient {
   apiVersion: string;
   authKey: string | null;
   url: string;
+  deviceId: string;
+  agent: string;
 
   constructor(options?: ApiConfig) {
     this.countryCode = options?.countryCode || "NL";
     this.apiVersion = options?.apiVersion || "15";
     this.authKey = options?.authKey || null;
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
+    this.deviceId = options?.deviceId || "3C417201548B2E3B";
+    this.agent = options?.agent || "30100;1.228.1-15480;";
   }
 
   get baseHeaders(): Record<string, string> {
     return {
       "User-Agent": "okhttp/4.9.0",
       "Content-Type": "application/json; charset=UTF-8",
-      "Accept-Language": this.countryCode === "DE" ? "de" : "nl",
+      "Accept-Language": this.countryCode === "DE" ? "de" : (this.countryCode === "FR" ? "fr" : "nl"),
       ...(this.authKey && { "x-picnic-auth": this.authKey }),
     };
   }
 
   get picnicHeaders(): Record<string, string> {
     return {
-      "x-picnic-agent": "30100;1.228.1-15480;",
-      "x-picnic-did": "3C417201548B2E3B",
+      "x-picnic-agent": this.agent,
+      "x-picnic-did": this.deviceId,
     };
   }
 
