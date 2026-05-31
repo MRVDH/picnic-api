@@ -8,6 +8,8 @@ export default class HttpClient {
     apiVersion: string;
     authKey: string | null;
     url: string;
+    deviceId: string;
+    agent: string;
     constructor(options?: ApiConfig);
     get baseHeaders(): Record<string, string>;
     get picnicHeaders(): Record<string, string>;
