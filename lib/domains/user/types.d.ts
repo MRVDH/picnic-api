@@ -73,6 +73,19 @@ export type UserInfo = {
     redacted_phone_number: string;
     feature_toggles: FeatureToggle[];
 };
+export type UpdateCheckInput = {
+    device_id: string;
+    device_name: string;
+    client_id: string;
+    version: string;
+    device_os: string;
+    build_number: string;
+};
+export type UpdateCheckResult = {
+    update_required: boolean;
+    address_autocomplete_enabled_countries: string[];
+    use_address_autocomplete_flow: boolean;
+};
 export type Avatar = {
     image_url: string;
     type: string;
