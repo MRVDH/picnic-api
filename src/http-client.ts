@@ -57,7 +57,11 @@ export default class HttpClient {
       ...(includePicnicHeaders && this.picnicHeaders),
     });
 
-    const response = await fetch(`${this.url}${path}`, {
+    // `path` may be an absolute URL (e.g. image requests target a different base
+    // than the API), in which case it must be used as-is rather than prefixed.
+    const requestUrl = /^https?:\/\//.test(path) ? path : `${this.url}${path}`;
+
+    const response = await fetch(requestUrl, {
       method,
       headers,
       body: data ? JSON.stringify(data) : null,
