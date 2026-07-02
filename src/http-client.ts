@@ -18,7 +18,7 @@ export default class HttpClient {
     this.authKey = options?.authKey || null;
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
     this.deviceId = options?.deviceId || "3C417201548B2E3B";
-    this.agent = options?.agent || "30100;1.228.1-15480;";
+    this.agent = options?.agent || "30100;1.236.1-15553;";
   }
 
   get baseHeaders(): Record<string, string> {
