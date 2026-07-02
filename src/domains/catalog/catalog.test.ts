@@ -24,3 +24,27 @@ describe("Catalog - product details page", () => {
     expect(result.layout.id).toBe("product-details-page-root");
   });
 });
+
+describe("Catalog - getProductDetails", () => {
+  it("extracts details for a product without brand", async () => {
+    const details = await client.catalog.getProductDetails("s1001504");
+
+    expect(details).toMatchObject({
+      id: "s1001504",
+      name: "Rode paprika",
+      brand: null,
+      unitQuantity: "1 stuk",
+    });
+  });
+
+  it("extracts details for a product with brand", async () => {
+    const details = await client.catalog.getProductDetails("s1139960");
+
+    expect(details).toMatchObject({
+      id: "s1139960",
+      name: "Witte vrije uitloop eieren",
+      brand: "Picnic",
+      unitQuantity: "6 stuks",
+    });
+  });
+});
