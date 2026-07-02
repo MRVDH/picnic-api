@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { User, UserInfo, ProfileMenu } from "./types";
+import { User, UserInfo, ProfileMenu, UpdateCheckResult } from "./types";
 export declare class UserService {
     private http;
     constructor(http: HttpClient);
@@ -28,10 +28,10 @@ export declare class UserService {
      */
     registerPushToken(pushToken: string, platform: string): Promise<any>;
     /**
-     * Checks whether a newer version of the app is available.
-     * The app also sends a 'picnic-country' header, which the HttpClient does not
-     * currently support for custom headers — may need to be added.
+     * Checks whether a newer version of the app is available. The endpoint requires
+     * a body describing the client; the device and version fields are derived from
+     * the client's configured `deviceId` and `agent` string.
      */
-    checkForUpdates(): Promise<any>;
+    checkForUpdates(): Promise<UpdateCheckResult>;
 }
 //# sourceMappingURL=service.d.ts.map

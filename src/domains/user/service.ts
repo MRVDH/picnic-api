@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { User, UserInfo, ProfileMenu } from "./types";
+import { User, UserInfo, ProfileMenu, UpdateCheckInput, UpdateCheckResult } from "./types";
 
 export class UserService {
   constructor(private http: HttpClient) {}
@@ -45,13 +45,22 @@ export class UserService {
     return this.http.sendRequest<any, any>("POST", `/user/device/register_push`, { push_token: pushToken, platform });
   }
 
-  // TODO: Test route and add types
   /**
-   * Checks whether a newer version of the app is available.
-   * The app also sends a 'picnic-country' header, which the HttpClient does not
-   * currently support for custom headers — may need to be added.
+   * Checks whether a newer version of the app is available. The endpoint requires
+   * a body describing the client; the device and version fields are derived from
+   * the client's configured `deviceId` and `agent` string.
    */
-  checkForUpdates() {
-    return this.http.sendRequest<any, any>("POST", `/update_check`, {}, true);
+  checkForUpdates(): Promise<UpdateCheckResult> {
+    const [clientId, versionBuild = ""] = this.http.agent.split(";");
+    const [version = "", buildNumber = ""] = versionBuild.split("-");
+    const body: UpdateCheckInput = {
+      device_id: this.http.deviceId,
+      device_name: "notAvailable",
+      client_id: clientId,
+      version,
+      device_os: this.http.agent,
+      build_number: buildNumber,
+    };
+    return this.http.sendRequest<UpdateCheckInput, UpdateCheckResult>("POST", `/update_check`, body, true);
   }
 }
