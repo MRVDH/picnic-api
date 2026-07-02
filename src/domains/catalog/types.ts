@@ -47,7 +47,7 @@ export type ProductDetails = {
   /** The product name (e.g. "Blond"). */
   name: string;
   /** The brand name (e.g. "Affligem"). */
-  brand: string;
+  brand: string | null;
   /** The unit quantity description (e.g. "6 x 300 ml"). */
   unitQuantity: string;
   /** The unit price description (e.g. "€4.81/l"). `null` if not available. */
