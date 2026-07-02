@@ -47,4 +47,15 @@ describe("Catalog - getProductDetails", () => {
       unitQuantity: "6 stuks",
     });
   });
+
+  it("extracts details for a product with a label before texts", async () => {
+    const details = await client.catalog.getProductDetails("s1009498");
+
+    expect(details).toMatchObject({
+      id: "s1009498",
+      name: "Spinazie gewassen",
+      brand: "Picnic",
+      unitQuantity: "200 gram",
+    });
+  });
 });

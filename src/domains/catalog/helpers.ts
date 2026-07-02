@@ -44,8 +44,8 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   const children = JSONPath({ path: "$.pml.component.children", json: mainContainer })[0] ?? [];
   const nameNode = children.find((child: any) => child.textType === "HEADER1");
   const brandNode = children.find((child: any) => child.textAttributes?.weight === "REGULAR");
-  const unitStack = children.find((child: any) => child.type === "STACK");
-  const [unitQuantityNode, _dotNode, unitPriceNode] = unitStack?.children ?? [];
+  const stackNode = children.find((child: any) => child.type === "STACK");
+  const [unitQuantityNode, unitPriceNode] = stackNode?.children?.filter((child: any) => child.type === "RICH_TEXT") ?? [];
 
   const nodeMarkdown = (node: any) => typeof node?.markdown === "string" ? stripColorMarkup(node.markdown) : null;
 
@@ -54,7 +54,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
   const unitQuantity = nodeMarkdown(unitQuantityNode) ?? "";
   const unitPrice = nodeMarkdown(unitPriceNode);
 
-    // ── Price & max count ──
+  // ── Price & max count ──
   const allSellingUnits: any[] = JSONPath({ path: "$..sellingUnit", json: page });
   const mainUnit = allSellingUnits.find((u: any) => u.id === productId && u.max_count !== undefined) ?? {};
 
