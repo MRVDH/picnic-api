@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { AddProductsItem, Cart, CheckoutConfirmation, GetDeliverySlotsResult, OrderStatus, SellingUnitContext, UserSlotMinimumOrderValue } from "./types";
+import { AddProductsItem, Cart, CheckoutConfirmation, CheckoutStartInput, CheckoutStartResult, CheckoutStatusResult, GetDeliverySlotsResult, InitiatePaymentResult, OrderStatus, SellingUnitContext, UserSlotMinimumOrderValue } from "./types";
 export declare class CartService {
     private http;
     constructor(http: HttpClient);
@@ -59,5 +59,23 @@ export declare class CartService {
      * @param {string} orderId The id of the order to confirm.
      */
     confirmOrder(orderId: string): Promise<CheckoutConfirmation>;
+    /**
+     * Starts the checkout flow for the current cart.
+     * Requires cart.mts to match the current cart modification timestamp.
+     * May throw CheckoutIssueError when the cart has blocking issues (e.g. alcohol age check).
+     */
+    startCheckout(input: CheckoutStartInput): Promise<CheckoutStartResult>;
+    /**
+     * Initiates payment for a checkout order and returns a bank redirect URL.
+     */
+    initiatePayment(orderId: string, appReturnUrl: string): Promise<InitiatePaymentResult>;
+    /**
+     * Polls checkout payment status while a transaction is in progress.
+     */
+    getCheckoutStatus(transactionId: string): Promise<CheckoutStatusResult>;
+    /**
+     * Cancels an in-progress checkout transaction.
+     */
+    cancelCheckout(transactionId: string): Promise<void>;
 }
 //# sourceMappingURL=service.d.ts.map

@@ -222,3 +222,53 @@ export type CheckoutConfirmation = {
   delivery_slot: DeliverySlot;
   analytics: Record<string, any> | null;
 };
+
+// ─── Checkout ───────────────────────────────────────────────────────────────
+
+export type CheckoutStartInput = {
+  mts: number;
+  oos_article_ids?: string[] | null;
+  resolve_key?: string;
+};
+
+export type CheckoutStartResult = {
+  order_id: string;
+  total_price: number;
+  total_count: number;
+  total_deposit: number;
+  total_savings: number;
+  transaction_expiry: string;
+  delivery_slots: DeliverySlot[];
+  deposit_breakdown: DepositBreakdown[];
+  address?: {
+    street?: string;
+    city?: string;
+    postcode?: string;
+    house_number?: number;
+  };
+};
+
+export type InitiatePaymentInput = {
+  order_id: string;
+  app_return_url: string;
+};
+
+export type PaymentAction = {
+  type: string;
+  redirect_url: string;
+};
+
+export type InitiatePaymentResult = {
+  payment_id: string;
+  transaction_id: string;
+  issuer_authentication_url?: string;
+  action: PaymentAction;
+};
+
+export type CheckoutStatusResult = {
+  checkout_status: "FINISHED" | string;
+};
+
+export type CancelCheckoutInput = {
+  transaction_id: string;
+};
