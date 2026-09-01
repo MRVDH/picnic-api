@@ -1,4 +1,5 @@
 import { ApiConfig, CountryCode } from "./types/common";
+import { parseCheckoutIssueError } from "./errors/checkout-error";
 
 /**
  * Base HTTP client that handles request construction, authentication headers,
@@ -71,8 +72,12 @@ export default class HttpClient {
       const body = await response.text();
 
       try {
-        const errorData: any = JSON.parse(body);
-        throw new Error(`${errorData.error?.message || response.statusText}`);
+        const errorData: unknown = JSON.parse(body);
+        const checkoutIssue = parseCheckoutIssueError(errorData);
+        if (checkoutIssue) throw checkoutIssue;
+
+        const parsed = errorData as { error?: { message?: string } };
+        throw new Error(`${parsed.error?.message || response.statusText}`);
       } catch (e) {
         if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
         throw new Error(`${response.status} ${response.statusText}${body ? ` - ${body}` : ""}`);

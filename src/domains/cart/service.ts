@@ -2,9 +2,15 @@ import type HttpClient from "../../http-client";
 import {
   AddProductInput,
   AddProductsItem,
+  CancelCheckoutInput,
   Cart,
   CheckoutConfirmation,
+  CheckoutStartInput,
+  CheckoutStartResult,
+  CheckoutStatusResult,
   GetDeliverySlotsResult,
+  InitiatePaymentInput,
+  InitiatePaymentResult,
   OrderStatus,
   RemoveGroupInput,
   SellingUnitContext,
@@ -114,5 +120,62 @@ export class CartService {
    */
   confirmOrder(orderId: string): Promise<CheckoutConfirmation> {
     return this.http.sendRequest<void, CheckoutConfirmation>("POST", `/cart/checkout/order/${orderId}/confirm`);
+  }
+
+  /**
+   * Starts the checkout flow for the current cart.
+   * Requires cart.mts to match the current cart modification timestamp.
+   * May throw CheckoutIssueError when the cart has blocking issues (e.g. alcohol age check).
+   */
+  startCheckout(input: CheckoutStartInput): Promise<CheckoutStartResult> {
+    return this.http.sendRequest<CheckoutStartInput, CheckoutStartResult>(
+      "POST",
+      `/cart/checkout/start`,
+      {
+        mts: input.mts,
+        oos_article_ids: input.oos_article_ids ?? null,
+        ...(input.resolve_key ? { resolve_key: input.resolve_key } : {}),
+      },
+      true,
+    );
+  }
+
+  /**
+   * Initiates payment for a checkout order and returns a bank redirect URL.
+   */
+  initiatePayment(orderId: string, appReturnUrl: string): Promise<InitiatePaymentResult> {
+    const body: InitiatePaymentInput = {
+      order_id: orderId,
+      app_return_url: appReturnUrl,
+    };
+    return this.http.sendRequest<InitiatePaymentInput, InitiatePaymentResult>(
+      "POST",
+      `/cart/checkout/initiate_payment`,
+      body,
+      true,
+    );
+  }
+
+  /**
+   * Polls checkout payment status while a transaction is in progress.
+   */
+  getCheckoutStatus(transactionId: string): Promise<CheckoutStatusResult> {
+    return this.http.sendRequest<void, CheckoutStatusResult>(
+      "GET",
+      `/cart/checkout/${transactionId}/status`,
+    );
+  }
+
+  /**
+   * Cancels an in-progress checkout transaction.
+   */
+  cancelCheckout(transactionId: string): Promise<void> {
+    const body: CancelCheckoutInput = { transaction_id: transactionId };
+    return this.http.sendRequest<CancelCheckoutInput, void>(
+      "POST",
+      `/cart/checkout/cancel`,
+      body,
+      true,
+    );
   }
 }
