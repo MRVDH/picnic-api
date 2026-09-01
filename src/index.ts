@@ -13,8 +13,16 @@ import { CustomerServiceService } from "./domains/customer-service/service";
 import { ContentService } from "./domains/content/service";
 import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
+import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 
 export = class PicnicClient extends HttpClient {
+  /**
+   * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).
+   * Exposed so consumers can catch it by type without deep-importing internals.
+   */
+  static readonly CheckoutIssueError = CheckoutIssueError;
+  static readonly isCheckoutIssueError = isCheckoutIssueError;
+
   public readonly app: AppService;
   public readonly auth: AuthService;
   public readonly user: UserService;
