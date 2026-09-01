@@ -11,6 +11,7 @@ import { CustomerServiceService } from "./domains/customer-service/service";
 import { ContentService } from "./domains/content/service";
 import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
+import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 declare const _default: {
     new (options?: ApiConfig): {
         readonly app: AppService;
@@ -35,6 +36,12 @@ declare const _default: {
         get picnicHeaders(): Record<string, string>;
         sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
     };
+    /**
+     * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).
+     * Exposed so consumers can catch it by type without deep-importing internals.
+     */
+    readonly CheckoutIssueError: typeof CheckoutIssueError;
+    readonly isCheckoutIssueError: typeof isCheckoutIssueError;
 };
 export = _default;
 //# sourceMappingURL=index.d.ts.map
