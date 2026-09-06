@@ -87,7 +87,7 @@ The client exposes the following domain services, each grouping a set of related
 | **Customer Service** | `client.customerService` | Contact info, messages, reminders, and parcels. |
 | **Delivery** | `client.delivery` | Delivery history, live position, ratings, and invoices. |
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
-| **Recipe** | `client.recipe` | Recipe browsing and saving. |
+| **Recipe** | `client.recipe` | Recipe browsing and saving, plus creating and editing your own (user defined) recipes: name, portions, ingredients, note and image. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
 | **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
