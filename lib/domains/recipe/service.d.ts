@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import type { UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, RemoveUserDefinedRecipeIngredientResult, AssignSellableComponentToDayResult, SellingGroupSwapType, UserDefinedRecipeReferenceImage, UserDefinedRecipeSuggestedImage, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
+import type { AssignSellingGroupToBasketResult, RemoveSellingGroupFromBasketResult, UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, RemoveUserDefinedRecipeIngredientResult, AssignSellableComponentToDayResult, SellingGroupSwapType, UserDefinedRecipeReferenceImage, UserDefinedRecipeSuggestedImage, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 export declare class RecipeService {
     private http;
@@ -50,7 +50,7 @@ export declare class RecipeService {
      * @param {number} [dayOffset] Which delivery day to plan for (relative to the selected slot).
      * @param {number} [portions] Number of servings.
      */
-    assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<Record<string, never>>;
+    assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<AssignSellingGroupToBasketResult>;
     /**
      * Updates the number of portions for a selling group already in the basket.
      * @param {string} sellingGroupId The selling group / recipe id.
@@ -62,7 +62,7 @@ export declare class RecipeService {
      * Removes a selling group (recipe bundle) from the basket.
      * @param {string} sellingGroupId The selling group / recipe id to remove.
      */
-    removeSellingGroupFromBasket(sellingGroupId: string): Promise<Record<string, never>>;
+    removeSellingGroupFromBasket(sellingGroupId: string): Promise<RemoveSellingGroupFromBasketResult>;
     /**
      * Lists the user's own (user defined) recipes.
      * Fetches the cookbook page and extracts the tiles of the `USER_DEFINED_RECIPES`
@@ -157,7 +157,9 @@ export declare class RecipeService {
     /**
      * Pushes an updated ingredient selection of a recipe that is in the basket to the
      * basket. The app calls this after {@link updateUserDefinedRecipeIngredient}
-     * returned `shouldUpdateCart: true`; without it the basket keeps the old products.
+     * returned `shouldUpdateCart: true`. The edit task itself removes the replaced
+     * product from the basket; this call adds the new selection, so without it the
+     * basket lacks that ingredient.
      * @param {string} recipeId The recipe id.
      * @param {string} ingredientId The ingredient (selling group component) id.
      * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).

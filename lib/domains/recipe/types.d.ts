@@ -48,6 +48,23 @@ export type RemoveSellingGroupPayload = {
 export type RemoveSellingGroupInput = {
     payload: RemoveSellingGroupPayload;
 };
+/** Response of `assign-selling-group-to-basket`. */
+export type AssignSellingGroupToBasketResult = {
+    anyUnavailableIngredient: boolean;
+    assignedNumberOfPortions: number;
+    cart: SellingGroupCartSnapshot;
+};
+/** Response of `remove-selling-group-from-basket`. */
+export type RemoveSellingGroupFromBasketResult = {
+    cart: SellingGroupCartSnapshot;
+    /** The ingredient (selling group component) ids that were in the basket. */
+    selectedSellableComponentIds: string[];
+    /** The selling units removed from the basket. */
+    SURemoved: {
+        quantity: number;
+        selling_unit_id: string;
+    }[];
+};
 /** Where an ingredient was picked from while composing a new recipe (analytics only). */
 export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" | string;
 /**
@@ -209,16 +226,35 @@ export type UpdateUserDefinedRecipeIngredientPayload = {
 export type UpdateUserDefinedRecipeIngredientInput = {
     payload: UpdateUserDefinedRecipeIngredientPayload;
 };
-/** Basket snapshot returned by the ingredient edit and remove tasks. */
+/** A basket line's link to the recipe it was added for. */
+export type SellingGroupCartLineContext = {
+    quantity: number;
+    details: ({
+        type: "SELLING_GROUP";
+        sellingGroupId: string;
+        sellingGroupComponentId: string;
+        sellingGroupComponentType: string;
+        sellingGroupComponentSwapType: SellingGroupSwapType | null;
+    } | {
+        type: "MEAL_PLAN";
+        dayRelativeToSlot: number;
+        numberOfServings: number;
+    } | {
+        type: string;
+        [key: string]: unknown;
+    })[];
+};
+/** Basket snapshot returned by the recipe basket tasks. */
 export type SellingGroupCartSnapshot = {
     checkoutTotalPrice: number | null;
     generatedAt: number;
-    /** Selling unit id → quantity and availability in the basket. */
+    /** Selling unit id → quantity, availability and, for recipe lines, the recipe contexts. */
     sellingUnits: Record<string, {
         availabilityStatus: {
             type: string;
         };
         quantity: number;
+        contexts?: SellingGroupCartLineContext[];
     }>;
     sellingUnitsTotalPrice: number;
 };

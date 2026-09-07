@@ -4,6 +4,8 @@ import type {
   AssignSellingGroupInput,
   UpdateSellingGroupPortionsInput,
   RemoveSellingGroupInput,
+  AssignSellingGroupToBasketResult,
+  RemoveSellingGroupFromBasketResult,
   UserDefinedRecipeSummary,
   UserDefinedRecipeDetails,
   NewUserDefinedRecipeIngredient,
@@ -117,8 +119,8 @@ export class RecipeService {
    * @param {number} [dayOffset] Which delivery day to plan for (relative to the selected slot).
    * @param {number} [portions] Number of servings.
    */
-  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<Record<string, never>> {
-    return this.http.sendRequest<AssignSellingGroupInput, Record<string, never>>(
+  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<AssignSellingGroupToBasketResult> {
+    return this.http.sendRequest<AssignSellingGroupInput, AssignSellingGroupToBasketResult>(
       "POST",
       `/pages/task/assign-selling-group-to-basket`,
       {
@@ -157,8 +159,8 @@ export class RecipeService {
    * Removes a selling group (recipe bundle) from the basket.
    * @param {string} sellingGroupId The selling group / recipe id to remove.
    */
-  removeSellingGroupFromBasket(sellingGroupId: string): Promise<Record<string, never>> {
-    return this.http.sendRequest<RemoveSellingGroupInput, Record<string, never>>(
+  removeSellingGroupFromBasket(sellingGroupId: string): Promise<RemoveSellingGroupFromBasketResult> {
+    return this.http.sendRequest<RemoveSellingGroupInput, RemoveSellingGroupFromBasketResult>(
       "POST",
       `/pages/task/remove-selling-group-from-basket`,
       {
@@ -387,7 +389,9 @@ export class RecipeService {
   /**
    * Pushes an updated ingredient selection of a recipe that is in the basket to the
    * basket. The app calls this after {@link updateUserDefinedRecipeIngredient}
-   * returned `shouldUpdateCart: true`; without it the basket keeps the old products.
+   * returned `shouldUpdateCart: true`. The edit task itself removes the replaced
+   * product from the basket; this call adds the new selection, so without it the
+   * basket lacks that ingredient.
    * @param {string} recipeId The recipe id.
    * @param {string} ingredientId The ingredient (selling group component) id.
    * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).
