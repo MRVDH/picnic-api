@@ -1,4 +1,4 @@
-import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
+import { extractRecipes, extractRecipeDetails, extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
 import { FusionPage } from "../../types/fusion";
 
 const page = (body: unknown): FusionPage => ({ script: {}, layout: { id: "p", presentation: { type: "FULL_SCREEN" }, header: null, body } as any });
@@ -55,15 +55,17 @@ describe("recipe helpers", () => {
     expect(extractUserDefinedRecipeDetails(id, page(body))).toEqual({
       id,
       name: "Avocadopasta",
-      portions: 2,
+      portions: 4,
+      defaultPortions: 2,
       displayedPortions: 4,
       creatorType: "USER",
       isRecipeOwner: true,
       isSaved: false,
       imageType: "SUGGESTED",
+      imageId: null,
       ingredients: [
-        { ingredientId: "88c457541b974e8ab682e0a449a2d94c", sellingUnitId: "s1143210", quantity: 1, status: "ACTIVE", swapType: null, checked: true },
-        { ingredientId: "54edeceb41c04ca78cd06bc6b189aa8b", sellingUnitId: "s1189145", quantity: 2, status: "UNAVAILABLE", swapType: "SIMILAR", checked: false },
+        { ingredientId: "88c457541b974e8ab682e0a449a2d94c", name: null, sellingUnitId: "s1143210", quantity: 1, status: "ACTIVE", swapType: null, checked: true },
+        { ingredientId: "54edeceb41c04ca78cd06bc6b189aa8b", name: null, sellingUnitId: "s1189145", quantity: 2, status: "UNAVAILABLE", swapType: "SIMILAR", checked: false },
       ],
       note: "<p>400g pasta</p>",
     });
@@ -102,10 +104,54 @@ describe("recipe helpers", () => {
     expect(extractSuggestedImages({ body: {} })).toEqual([]);
   });
 
-  it("extractUserDefinedRecipeDetails returns empty defaults when the page has no recipe data", () => {
-    const result = extractUserDefinedRecipeDetails("x".repeat(32), page({ children: [] }));
-    expect(result.ingredients).toEqual([]);
-    expect(result.note).toBeNull();
-    expect(result.name).toBe("");
+  it("rejects a details page without a recipe context", () => {
+    expect(() => extractUserDefinedRecipeDetails("missing", page({ children: [] }))).toThrow("recipe context missing");
+  });
+
+  it("extracts saved tile titles when analytics omit the name, deduplicating tiles", () => {
+    const tile = {
+      analytics: { contexts: [
+        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: "saved" } },
+        { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: "SAVED_RECIPES" } },
+      ] },
+      pml: { component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "#(#333333)**Pasta**#(#333333)" } },
+    };
+    expect(extractRecipes(page({ children: [tile, tile] }), "SAVED_RECIPES")).toEqual([
+      { id: "saved", name: "Pasta", imageType: null },
+    ]);
+    expect(extractRecipes(page(tile), "USER_DEFINED_RECIPES")).toEqual([]);
+  });
+
+  it.each(["recipes/catalog-photo", "sellable-customer-uploaded/own-photo"])("extracts the main image %s without picking ingredient images", (imageId) => {
+    const id = "recipe";
+    const result = extractRecipeDetails(id, page({ children: [
+      { type: "IMAGE", source: { id: "articles/ingredient-photo" } },
+      { id: "selling-group-details-image", pml: { component: { type: "IMAGE", source: { id: imageId } } } },
+      { data: { recipe_id: id, recipe_name: "Recipe", portions: 2, selling_units: [] } },
+    ] }));
+    expect(result.imageId).toBe(imageId);
+  });
+
+  it("preserves discontinued ingredients and extracts names without executing PML", () => {
+    const ingredientId = "a".repeat(32);
+    const result = extractRecipeDetails("recipe", page({ children: [
+      { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 2, selling_units: [
+        { ingredient_id: ingredientId, selling_unit_id: "", quantity: 0, checked: false },
+      ] } },
+      { type: "PML", id: "core-wide-selling-unit-tile-unsellable-0", pml: {
+        component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "Old product" },
+        expression: `throw new Error("Do not execute"); // ingredient_id=${ingredientId}&is_udr=true`,
+      } },
+    ] }));
+    expect(result.ingredients[0]).toMatchObject({ name: "Old product", sellingUnitId: "", quantity: 0, checked: false });
+  });
+
+  it("returns no image ID when the recipe image is hidden", () => {
+    const result = extractRecipeDetails("recipe", page({ children: [
+      { id: "selling-group-details-image-hidden", type: "BLOCK", children: [] },
+      { type: "IMAGE", source: { id: "articles/product-image" } },
+      { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 4, selling_units: [] } },
+    ] }));
+    expect(result.imageId).toBeNull();
   });
 });

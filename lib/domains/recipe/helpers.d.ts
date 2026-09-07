@@ -19,17 +19,14 @@ export declare function extractIngredientProductName(page: FusionPage): string |
  * `creator_type` / `default_portions` / `is_saved`, an `is_recipe_owner` flag
  * and, when present, the note as the `initialContent` of a `TEXT_EDITOR` component.
  *
- * The page renders the recipe at a display portion count that is a multiple of
- * the stored default (e.g. a 2-portion recipe is shown at 4 portions with doubled
- * quantities), so the ingredient quantities returned here are for
- * `displayedPortions`. Use {@link extractIngredientQuantities} on the
- * `selling-group-content-wrapper` sub-page requested with `portions=<default>`
- * to get the stored quantities; `RecipeService.getRecipe` and `getUserDefinedRecipe` do this.
+ * Names, product ids and quantities all come from this response at `portions`.
+ * The stored default is exposed separately as `defaultPortions`; changing the
+ * portion count may select different products, not merely scale quantities.
  * @param {string} recipeId The recipe id that was requested.
  * @param {FusionPage} page The raw page response.
  */
 export declare function extractRecipeDetails(recipeId: string, page: FusionPage): RecipeDetails;
-/** Compatibility name for the shared extractor; quantities here match displayedPortions. */
+/** Compatibility name for the shared extractor; quantities match portions. */
 export declare const extractUserDefinedRecipeDetails: typeof extractRecipeDetails;
 /**
  * Extracts the required amount per selling unit for every ingredient from a
@@ -39,8 +36,6 @@ export declare const extractUserDefinedRecipeDetails: typeof extractRecipeDetail
  * @returns Ingredient id → (selling unit id → required amount).
  */
 export declare function extractIngredientQuantities(page: unknown): Record<string, Record<string, number>>;
-/** Applies default-portion quantities without mutating the input or approximating package rounding. */
-export declare function normalizeRecipeQuantities(details: RecipeDetails, page: unknown): RecipeDetails;
 /**
  * Extracts the suggested images from a `sellable-image-selection-page-root`
  * response. The page keeps them in the `ImageSelectionState` state boundary as

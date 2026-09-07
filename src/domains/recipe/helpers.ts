@@ -98,12 +98,9 @@ export function extractIngredientProductName(page: FusionPage): string | null {
  * `creator_type` / `default_portions` / `is_saved`, an `is_recipe_owner` flag
  * and, when present, the note as the `initialContent` of a `TEXT_EDITOR` component.
  *
- * The page renders the recipe at a display portion count that is a multiple of
- * the stored default (e.g. a 2-portion recipe is shown at 4 portions with doubled
- * quantities), so the ingredient quantities returned here are for
- * `displayedPortions`. Use {@link extractIngredientQuantities} on the
- * `selling-group-content-wrapper` sub-page requested with `portions=<default>`
- * to get the stored quantities; `RecipeService.getRecipe` and `getUserDefinedRecipe` do this.
+ * Names, product ids and quantities all come from this response at `portions`.
+ * The stored default is exposed separately as `defaultPortions`; changing the
+ * portion count may select different products, not merely scale quantities.
  * @param {string} recipeId The recipe id that was requested.
  * @param {FusionPage} page The raw page response.
  */
@@ -112,8 +109,14 @@ export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe
   let header: Record<string, any> | undefined;
   let owner: Record<string, any> | undefined;
   let note: string | null = null;
+  let imageId: string | null = null;
 
   walkObjects(page, (obj) => {
+    if (obj.id === "selling-group-details-image") {
+      walkObjects(obj, (image) => {
+        if (!imageId && image.type === "IMAGE" && typeof image.source?.id === "string") imageId = image.source.id;
+      });
+    }
     if (!recipeContext && obj.recipe_id === recipeId && Array.isArray(obj.selling_units) && typeof obj.recipe_name === "string") {
       recipeContext = obj;
     }
@@ -143,18 +146,20 @@ export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe
   return {
     id: recipeId,
     name: recipeContext?.recipe_name ?? header?.sellable_name ?? owner?.name ?? "",
-    portions: header?.default_portions ?? recipeContext?.portions ?? 0,
+    portions: recipeContext.portions ?? header?.default_portions ?? 0,
+    defaultPortions: header?.default_portions ?? recipeContext.portions ?? 0,
     displayedPortions: recipeContext?.portions ?? header?.default_portions ?? 0,
     creatorType: header?.creator_type ?? "UNKNOWN",
     isRecipeOwner: owner?.is_recipe_owner ?? false,
     isSaved: header?.is_saved ?? false,
     imageType: recipeContext?.image_type ?? null,
+    imageId,
     ingredients,
     note,
   };
 }
 
-/** Compatibility name for the shared extractor; quantities here match displayedPortions. */
+/** Compatibility name for the shared extractor; quantities match portions. */
 export const extractUserDefinedRecipeDetails = extractRecipeDetails;
 
 /**
@@ -176,23 +181,6 @@ export function extractIngredientQuantities(page: unknown): Record<string, Recor
     }
   });
   return result;
-}
-
-/** Applies default-portion quantities without mutating the input or approximating package rounding. */
-export function normalizeRecipeQuantities(details: RecipeDetails, page: unknown): RecipeDetails {
-  const quantities = extractIngredientQuantities(page);
-  return {
-    ...details,
-    ingredients: details.ingredients.map((ingredient) => {
-      // Discontinued ingredients without a product have no purchasable quantity.
-      if (!ingredient.sellingUnitId) return ingredient;
-      const quantity = quantities[ingredient.ingredientId]?.[ingredient.sellingUnitId];
-      if (typeof quantity !== "number") {
-        throw new Error(`Could not normalize ingredient ${ingredient.ingredientId} for recipe ${details.id}`);
-      }
-      return { ...ingredient, quantity };
-    }),
-  };
 }
 
 /**

@@ -97,16 +97,29 @@ export type RecipeIngredient = {
 };
 /** Shared structured details for catalog and user-defined recipes. */
 export type RecipeDetails = RecipeSummary & {
-    /** Default portion count; ingredient quantities returned by the service match this count. */
+    /** Portion count for the returned products and quantities. */
     portions: number;
-    /** Portion count used to render the initial page, which may differ from the default. */
+    /** Stored default portion count, which can differ from a requested count. */
+    defaultPortions: number;
+    /** Portion count of the returned page; the same as portions. */
     displayedPortions: number;
     creatorType: "USER" | "PIM" | string;
     isRecipeOwner: boolean;
     isSaved: boolean;
+    /** Main image source id including its namespace (e.g. recipes/abc); null if absent or hidden. */
+    imageId: string | null;
     ingredients: RecipeIngredient[];
     /** Free-text note as HTML, or null; not the catalog recipe's cooking steps. */
     note: string | null;
+};
+/** Optional extra requests when retrieving structured recipe details. */
+export type RecipeDetailsOptions = {
+    /**
+     * Fetch product pages for names missing from recipe tiles. Defaults to false.
+     * Requests run concurrently, once per distinct product; request failures reject
+     * the detail call. A missing name on a successful page remains null.
+     */
+    resolveIngredientNames?: boolean;
 };
 /** Where an ingredient was picked from while composing a new recipe (analytics only). */
 export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" | string;

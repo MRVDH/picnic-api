@@ -3,6 +3,7 @@ import type {
   RecipeSavingInput,
   RecipeSummary,
   RecipeDetails,
+  RecipeDetailsOptions,
   AssignSellingGroupInput,
   UpdateSellingGroupPortionsInput,
   RemoveSellingGroupInput,
@@ -36,7 +37,7 @@ import type {
 } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 import { CatalogService } from "../catalog/service";
-import { extractRecipes, extractRecipeDetails, extractIngredientProductName, normalizeRecipeQuantities, extractSuggestedImages } from "./helpers";
+import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./helpers";
 
 export class RecipeService {
   constructor(private http: HttpClient) {}
@@ -73,9 +74,14 @@ export class RecipeService {
    * Contains ingredients, cooking steps, servings, cooking time, and pricing.
    * @param {string} recipeId The id of the recipe (a `selling_group_id`; 24 hex
    *   chars for catalog recipes, 32 for the user's own recipes).
+   * @param {number} [portions] Render this many portions; omit to use the app's selection.
    */
-  getRecipeDetailsPage(recipeId: string): Promise<FusionPage> {
-    return this.http.sendRequest<null, FusionPage>("GET", `/pages/selling-group-details-page?selling_group_id=${encodeURIComponent(recipeId)}`, null, true);
+  getRecipeDetailsPage(recipeId: string, portions?: number): Promise<FusionPage> {
+    if (portions !== undefined && (!Number.isSafeInteger(portions) || portions <= 0)) {
+      throw new RangeError("Recipe portions must be a positive integer");
+    }
+    const query = portions === undefined ? "" : `&portions=${portions}`;
+    return this.http.sendRequest<null, FusionPage>("GET", `/pages/selling-group-details-page?selling_group_id=${encodeURIComponent(recipeId)}${query}`, null, true);
   }
 
   /**
@@ -89,40 +95,47 @@ export class RecipeService {
   }
 
   /**
-   * Returns structured details for a catalog or user-defined recipe.
-   * Ingredient quantities are selling-unit counts for the default `portions`.
-   * If the initial page renders different portions, fetches the content wrapper
-   * at the defaults to obtain quantities without approximating package rounding.
-   * Ingredient names come from recipe tiles, with product-page GETs as needed;
-   * names remain null if neither page supplies them.
+   * Returns structured catalog or user-defined recipe details at the requested
+   * portions, or the stored default when omitted. If the app initially renders a
+   * different count, refetches the full page so names, product ids and quantities
+   * come from the same response. Products may change with the portion count.
+   * `defaultPortions` retains the stored default; `portions` describes the result.
    *
-   * Parses dynamic Fusion/PML pages. Use {@link getRecipeDetailsPage} for the
-   * raw page, including catalog cooking steps, cooking time, and pricing.
-   * The backend may briefly fail to render details immediately after a mutation.
-   * Deleted recipes fail persistently, so bound any retries.
+   * Ingredient names come from recipe tiles. Set `resolveIngredientNames` to true
+   * to fetch missing names from product pages concurrently; otherwise they remain
+   * null. These extra requests can fail the call. Quantities are selling-unit
+   * counts, not weights or volumes. The image id includes its namespace.
+   *
+   * Parses dynamic Fusion/PML and may need updates when Picnic changes its pages.
+   * Use {@link getRecipeDetailsPage} for raw cooking steps, time and pricing.
+   * The backend can briefly fail after mutations; deleted recipes fail persistently.
+   * Some recipes reject particular portion counts with a page-rendering error.
    * @param {string} recipeId The selling group id of either kind of recipe.
+   * @param {number} [portions] Positive integer portion count; defaults to the stored count.
+   * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
    */
-  async getRecipe(recipeId: string): Promise<RecipeDetails> {
-    let details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId));
-    if (details.portions > 0 && details.displayedPortions !== details.portions) {
-      const wrapper = await this.http.sendRequest<null, unknown>(
-        "GET",
-        `/pages/selling-group-content-wrapper?portions=${details.portions}&selling_group_creator_type=${encodeURIComponent(details.creatorType)}&selling_group_id=${encodeURIComponent(recipeId)}`,
-        null,
-        true,
-      );
-      details = normalizeRecipeQuantities(details, wrapper);
+  async getRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<RecipeDetails> {
+    let details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, portions));
+    const requestedPortions = portions ?? details.defaultPortions;
+    if (details.portions !== requestedPortions) {
+      details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, requestedPortions));
+    }
+    if (details.portions !== requestedPortions) {
+      throw new Error(`Recipe ${recipeId} rendered ${details.portions} portions instead of ${requestedPortions}`);
     }
 
-    const catalog = new CatalogService(this.http);
-    const names = new Map<string, string | null>();
-    for (const ingredient of details.ingredients) {
-      if (ingredient.name !== null || !ingredient.sellingUnitId) continue;
-      if (!names.has(ingredient.sellingUnitId)) {
-        const productPage = await catalog.getProductDetailsPage(ingredient.sellingUnitId);
-        names.set(ingredient.sellingUnitId, extractIngredientProductName(productPage));
-      }
-      ingredient.name = names.get(ingredient.sellingUnitId) ?? null;
+    if (options.resolveIngredientNames) {
+      const catalog = new CatalogService(this.http);
+      const names = new Map<string, Promise<string | null>>();
+      await Promise.all(details.ingredients.map(async (ingredient) => {
+        if (ingredient.name !== null || !ingredient.sellingUnitId) return;
+        let name = names.get(ingredient.sellingUnitId);
+        if (!name) {
+          name = catalog.getProductDetailsPage(ingredient.sellingUnitId).then(extractIngredientProductName);
+          names.set(ingredient.sellingUnitId, name);
+        }
+        ingredient.name = await name;
+      }));
     }
     return details;
   }
@@ -242,12 +255,14 @@ export class RecipeService {
 
   /**
    * Returns the same structured details as {@link getRecipe}, including ingredient
-   * names and quantities for the default portions. Kept as a convenience method
-   * for callers working with the user's own recipes.
+   * names and quantities for the requested or default portions. Extra product-name
+   * requests are opt-in, as with getRecipe.
    * @param {string} recipeId The user-defined recipe's selling group id.
+   * @param {number} [portions] Requested count; defaults to the stored count.
+   * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
    */
-  getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails> {
-    return this.getRecipe(recipeId);
+  getUserDefinedRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<UserDefinedRecipeDetails> {
+    return this.getRecipe(recipeId, portions, options);
   }
 
   /**
