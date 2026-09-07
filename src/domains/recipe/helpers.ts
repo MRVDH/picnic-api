@@ -1,5 +1,11 @@
 import { FusionPage } from "../../types/fusion";
-import { UserDefinedRecipeDetails, UserDefinedRecipeIngredient, UserDefinedRecipeSummary } from "./types";
+import {
+  UserDefinedRecipeDetails,
+  UserDefinedRecipeIngredient,
+  UserDefinedRecipeReferenceImage,
+  UserDefinedRecipeSuggestedImage,
+  UserDefinedRecipeSummary,
+} from "./types";
 
 const RECIPE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/";
 const SEGMENT_SCHEMA = "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/";
@@ -138,4 +144,22 @@ export function extractIngredientQuantities(page: unknown): Record<string, Recor
     }
   });
   return result;
+}
+
+/**
+ * Extracts the suggested images from a `sellable-image-selection-page-root`
+ * response. The page keeps them in the `ImageSelectionState` state boundary as
+ * `referenceImagesById`; each entry is what the save button sends as
+ * `reference_image`, with its id as `selected_image_id`.
+ * @param {unknown} page The raw page response.
+ */
+export function extractSuggestedImages(page: unknown): UserDefinedRecipeSuggestedImage[] {
+  const images: UserDefinedRecipeSuggestedImage[] = [];
+  walkObjects(page, (obj) => {
+    if (obj.type !== "STATE_BOUNDARY" || obj.id !== "ImageSelectionState") return;
+    for (const reference of Object.values(obj.state?.referenceImagesById ?? {}) as UserDefinedRecipeReferenceImage[]) {
+      if (reference?.id) images.push({ id: reference.id, referenceImage: reference });
+    }
+  });
+  return images;
 }

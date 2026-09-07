@@ -161,6 +161,41 @@ describe("RecipeService", () => {
       expect(lastCall().body).toEqual({ payload: { selling_group_id: recipeId } });
     });
 
+    it("updateUserDefinedRecipeIngredient includes the swap type when given", async () => {
+      await recipe.updateUserDefinedRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 0, s1189145: 1 }, 2, "SEARCH_SELECTION");
+      const { body } = lastCall();
+      expect(body.payload.swapType).toBe("SEARCH_SELECTION");
+      expect(body.payload.selling_unit_quantity_by_id).toEqual({ s1143210: 0, s1189145: 1 });
+    });
+
+    it("assignSellableComponentToDay posts the selection with portions as a string", async () => {
+      await recipe.assignSellableComponentToDay(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1189145: 1 }, 2, "SEARCH_SELECTION");
+      const { url, body } = lastCall();
+      expect(url).toContain("/pages/task/assign-sellable-component-to-day");
+      expect(body).toEqual({
+        payload: {
+          component_swap_type: "SEARCH_SELECTION",
+          portions: "2",
+          required_amount_by_selling_unit_id: { s1189145: 1 },
+          selected_component_id: "88c457541b974e8ab682e0a449a2d94c",
+          selling_group_id: recipeId,
+        },
+      });
+    });
+
+    it("getUserDefinedRecipeSuggestedImages extracts the reference images from the selection page", async () => {
+      const reference = { id: "a".repeat(64), namespace: "recipes", primary_image: true, rank_value: 1, sellable_id: "69738f92ca0c63178b4a67a9", type: "GALLERY" };
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ id: "sellable-image-selection-page-root", body: { children: [{ type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { referenceImagesById: { [reference.id]: reference } } }] } }),
+      });
+
+      const images = await recipe.getUserDefinedRecipeSuggestedImages(recipeId);
+
+      expect(lastCall().url).toContain(`/pages/sellable-image-selection-page-root?origin=RECIPE_DETAILS&sellable_id=${recipeId}`);
+      expect(images).toEqual([{ id: reference.id, referenceImage: reference }]);
+    });
+
     it("selectUserDefinedRecipeImage posts to select-sellable-image", async () => {
       await recipe.selectUserDefinedRecipeImage(recipeId, "img-1");
       const { url, body } = lastCall();
@@ -177,9 +212,10 @@ describe("RecipeService", () => {
       expect(url).toContain(`/user-defined-sellable/${recipeId}`);
       expect(init.method).toBe("POST");
       expect(init.body).toBeInstanceOf(Uint8Array);
-      expect(init.headers["Content-Type"]).toBe("image/jpeg");
-      expect(init.headers["x-picnic-auth"]).toBe("initial-auth-key");
-      expect(init.headers["x-picnic-agent"]).toBeDefined();
+      const headers = init.headers as Headers;
+      expect(headers.get("Content-Type")).toBe("image/jpeg");
+      expect(headers.get("x-picnic-auth")).toBe("initial-auth-key");
+      expect(headers.get("x-picnic-agent")).not.toBeNull();
       expect(result.image_id).toBe("img-1");
     });
   });

@@ -35,6 +35,8 @@ declare const _default: {
         get baseHeaders(): Record<string, string>;
         get picnicHeaders(): Record<string, string>;
         sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
+        sendRawRequest<TResponseData>(method: "POST" | "PUT", path: string, body: import("./http-client").RequestBody, contentType: string, includePicnicHeaders?: boolean): Promise<TResponseData>;
+        performRequest<TResponseData>(method: string, path: string, headers: Headers, body: import("./http-client").RequestBody | null, isImageRequest: boolean): Promise<TResponseData>;
     };
     /**
      * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).

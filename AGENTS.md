@@ -73,6 +73,8 @@ sendRequest<TRequestData, TResponseData>(
 
 Some routes require Picnic headers to be sent. You can enable these by setting `includePicnicHeaders` to `true` (the fourth parameter).
 
+For routes that take a raw (non-JSON) body, such as the recipe image upload, use `HttpClient.sendRawRequest(method, path, body, contentType, includePicnicHeaders)`. It shares the auth headers and error handling with `sendRequest` and sets `Content-Type` to the given MIME type. Do not call `fetch` directly from a service.
+
 ## Searching the Decompiled App
 
 When looking for API routes in the decompiled picnic-app:

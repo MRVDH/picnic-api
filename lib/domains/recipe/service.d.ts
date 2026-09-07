@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import type { UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
+import type { UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, RemoveUserDefinedRecipeIngredientResult, AssignSellableComponentToDayResult, SellingGroupSwapType, UserDefinedRecipeReferenceImage, UserDefinedRecipeSuggestedImage, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 export declare class RecipeService {
     private http;
@@ -79,7 +79,8 @@ export declare class RecipeService {
      * portions so that `ingredients[].quantity` reflects the stored values.
      *
      * Note: the page may answer `Error rendering page_id='selling-group-details-page'`
-     * for a second or so right after a mutation; retry in that case.
+     * for a second or so right after a mutation; retry in that case. A deleted recipe
+     * answers with this error on every request, so bound your retries.
      * @param {string} recipeId The recipe id (a `selling_group_id`, 32 hex chars).
      */
     getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails>;
@@ -90,6 +91,13 @@ export declare class RecipeService {
      * @param {string} recipeId The recipe id.
      */
     getUserDefinedRecipeImageSelectionPage(recipeId: string): Promise<FusionPageLayout>;
+    /**
+     * Returns the suggested images for a user defined recipe, extracted from
+     * {@link getUserDefinedRecipeImageSelectionPage}. Pass an entry's `id` and
+     * `referenceImage` to {@link selectUserDefinedRecipeImage}.
+     * @param {string} recipeId The recipe id.
+     */
+    getUserDefinedRecipeSuggestedImages(recipeId: string): Promise<UserDefinedRecipeSuggestedImage[]>;
     /**
      * Creates a new user defined recipe.
      * Mirrors the "Lijstje opslaan" button of `user-defined-recipe-root`, which posts
@@ -132,20 +140,37 @@ export declare class RecipeService {
     /**
      * Updates an ingredient of a user defined recipe: change its quantity, or swap
      * the product by passing a different selling unit id.
-     * Mirrors the save button of `selling-group-component-edit-page?is_udr=true`.
+     * Mirrors the save button of `selling-group-component-edit-page?is_udr=true`. When
+     * swapping an ingredient that has more than one selling unit, include each of its
+     * current selling unit ids with quantity `0` next to the new selection.
+     *
+     * A response with `shouldUpdateCart: true` means the recipe is in the basket with a
+     * selection that differs from this one; call {@link assignSellableComponentToDay}
+     * with the same selection to update the basket.
      * @param {string} recipeId The recipe id.
      * @param {string} ingredientId The ingredient (selling group component) id.
      * @param {Record<string, number>} sellingUnitQuantities Selling unit id → quantity for this ingredient.
      * @param {number} [portions=4] The recipe's number of portions the quantities are based on.
-     * @param {string|null} [swapType] Swap type, when the product was swapped.
+     * @param {SellingGroupSwapType|null} [swapType] Swap type, when the product was swapped.
      */
-    updateUserDefinedRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions?: number, swapType?: string | null): Promise<UpdateUserDefinedRecipeIngredientResult>;
+    updateUserDefinedRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions?: number, swapType?: SellingGroupSwapType | null): Promise<UpdateUserDefinedRecipeIngredientResult>;
+    /**
+     * Pushes an updated ingredient selection of a recipe that is in the basket to the
+     * basket. The app calls this after {@link updateUserDefinedRecipeIngredient}
+     * returned `shouldUpdateCart: true`; without it the basket keeps the old products.
+     * @param {string} recipeId The recipe id.
+     * @param {string} ingredientId The ingredient (selling group component) id.
+     * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).
+     * @param {number} portions The recipe's number of portions the quantities are based on.
+     * @param {SellingGroupSwapType} swapType The swap type that was sent to the edit task.
+     */
+    assignSellableComponentToDay(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number, swapType: SellingGroupSwapType): Promise<AssignSellableComponentToDayResult>;
     /**
      * Removes an ingredient from a user defined recipe.
      * @param {string} recipeId The recipe id.
      * @param {string} ingredientId The ingredient (selling group component) id.
      */
-    removeUserDefinedRecipeIngredient(recipeId: string, ingredientId: string): Promise<Record<string, never>>;
+    removeUserDefinedRecipeIngredient(recipeId: string, ingredientId: string): Promise<RemoveUserDefinedRecipeIngredientResult>;
     /**
      * Sets (creates or replaces) the free-text note of a user defined recipe.
      * The note is HTML as produced by the app's editor, e.g. `<p>400g pasta</p><p>Kook de pasta.</p>`.
@@ -175,8 +200,8 @@ export declare class RecipeService {
      * {@link uploadUserDefinedRecipeImage}.
      * @param {string} recipeId The recipe id.
      * @param {string} imageId The image id to select.
-     * @param {unknown} [referenceImage] Reference image metadata, for suggested images.
+     * @param {UserDefinedRecipeReferenceImage} [referenceImage] Reference image metadata, for suggested images (see {@link getUserDefinedRecipeSuggestedImages}).
      */
-    selectUserDefinedRecipeImage(recipeId: string, imageId: string, referenceImage?: unknown): Promise<Record<string, never>>;
+    selectUserDefinedRecipeImage(recipeId: string, imageId: string, referenceImage?: UserDefinedRecipeReferenceImage): Promise<Record<string, never>>;
 }
 //# sourceMappingURL=service.d.ts.map
