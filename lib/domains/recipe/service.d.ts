@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import type { AssignSellingGroupToBasketResult, RemoveSellingGroupFromBasketResult, UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, RemoveUserDefinedRecipeIngredientResult, AssignSellableComponentToDayResult, SellingGroupSwapType, UserDefinedRecipeReferenceImage, UserDefinedRecipeSuggestedImage, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
+import type { RecipeSummary, RecipeDetails, RecipeDetailsOptions, AssignSellingGroupToBasketResult, RemoveSellingGroupFromBasketResult, UserDefinedRecipeSummary, UserDefinedRecipeDetails, NewUserDefinedRecipeIngredient, CreateUserDefinedRecipeResult, AddUserDefinedRecipeIngredientResult, UpdateUserDefinedRecipeIngredientResult, RemoveUserDefinedRecipeIngredientResult, AssignSellableComponentToDayResult, SellingGroupSwapType, UserDefinedRecipeReferenceImage, UserDefinedRecipeSuggestedImage, UserDefinedRecipeImageUpload, UserDefinedRecipeImageUploadResult } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 export declare class RecipeService {
     private http;
@@ -30,8 +30,37 @@ export declare class RecipeService {
      * Contains ingredients, cooking steps, servings, cooking time, and pricing.
      * @param {string} recipeId The id of the recipe (a `selling_group_id`; 24 hex
      *   chars for catalog recipes, 32 for the user's own recipes).
+     * @param {number} [portions] Render this many portions; omit to use the app's selection.
      */
-    getRecipeDetailsPage(recipeId: string): Promise<FusionPage>;
+    getRecipeDetailsPage(recipeId: string, portions?: number): Promise<FusionPage>;
+    /**
+     * Lists saved recipes from the cookbook's SAVED_RECIPES segment.
+     * Returns the same summary shape as {@link getUserDefinedRecipes}; use
+     * {@link getRecipe} for structured ingredients and other details.
+     * Parses dynamic Fusion/PML tiles and may need updates if Picnic changes them.
+     */
+    getSavedRecipes(): Promise<RecipeSummary[]>;
+    /**
+     * Returns structured catalog or user-defined recipe details at the requested
+     * portions, or the stored default when omitted. If the app initially renders a
+     * different count, refetches the full page so names, product ids and quantities
+     * come from the same response. Products may change with the portion count.
+     * `defaultPortions` retains the stored default; `portions` describes the result.
+     *
+     * Ingredient names come from recipe tiles. Set `resolveIngredientNames` to true
+     * to fetch missing names from product pages concurrently; otherwise they remain
+     * null. These extra requests can fail the call. Quantities are selling-unit
+     * counts, not weights or volumes. The image id includes its namespace.
+     *
+     * Parses dynamic Fusion/PML and may need updates when Picnic changes its pages.
+     * Use {@link getRecipeDetailsPage} for raw cooking steps, time and pricing.
+     * The backend can briefly fail after mutations; deleted recipes fail persistently.
+     * Some recipes reject particular portion counts with a page-rendering error.
+     * @param {string} recipeId The selling group id of either kind of recipe.
+     * @param {number} [portions] Positive integer portion count; defaults to the stored count.
+     * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
+     */
+    getRecipe(recipeId: string, portions?: number, options?: RecipeDetailsOptions): Promise<RecipeDetails>;
     /**
      * Saves a recipe to the user's saved recipes list.
      * Sends the current timestamp as `saved_at` to mark the recipe as saved.
@@ -66,24 +95,18 @@ export declare class RecipeService {
     /**
      * Lists the user's own (user defined) recipes.
      * Fetches the cookbook page and extracts the tiles of the `USER_DEFINED_RECIPES`
-     * ("Eigen recepten") segment.
+     * ("Eigen recepten") segment, with the same summary shape as {@link getSavedRecipes}.
      */
     getUserDefinedRecipes(): Promise<UserDefinedRecipeSummary[]>;
     /**
-     * Returns structured details (name, portions, ingredients, note) of a user
-     * defined recipe. Fetches {@link getRecipeDetailsPage} and extracts the data.
-     *
-     * The details page renders the recipe at a multiple of its default portions
-     * with scaled quantities. When that happens, the ingredient list sub-page
-     * (`selling-group-content-wrapper`) is fetched once more at the default
-     * portions so that `ingredients[].quantity` reflects the stored values.
-     *
-     * Note: the page may answer `Error rendering page_id='selling-group-details-page'`
-     * for a second or so right after a mutation; retry in that case. A deleted recipe
-     * answers with this error on every request, so bound your retries.
-     * @param {string} recipeId The recipe id (a `selling_group_id`, 32 hex chars).
+     * Returns the same structured details as {@link getRecipe}, including ingredient
+     * names and quantities for the requested or default portions. Extra product-name
+     * requests are opt-in, as with getRecipe.
+     * @param {string} recipeId The user-defined recipe's selling group id.
+     * @param {number} [portions] Requested count; defaults to the stored count.
+     * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
      */
-    getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails>;
+    getUserDefinedRecipe(recipeId: string, portions?: number, options?: RecipeDetailsOptions): Promise<UserDefinedRecipeDetails>;
     /**
      * Returns the image selection page for a user defined recipe, listing the
      * suggested images the user can pick from with {@link selectUserDefinedRecipeImage}.

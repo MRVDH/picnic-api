@@ -93,6 +93,23 @@ The client exposes the following domain services, each grouping a set of related
 
 Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
 
+Catalog and user-defined recipes share `RecipeSummary`, `RecipeDetails`, and
+`RecipeIngredient` types:
+
+```ts
+const saved = await picnicClient.recipe.getSavedRecipes();
+const own = await picnicClient.recipe.getUserDefinedRecipes();
+if (saved.length) {
+  const recipe = await picnicClient.recipe.getRecipe(saved[0].id, 2);
+  // recipe.name, recipe.imageId, recipe.ingredients; quantities are for 2 portions.
+}
+// getUserDefinedRecipe(id, portions?) returns the same detail structure.
+```
+
+Omit portions to use the stored default. Pass `{ resolveIngredientNames: true }` as
+the third argument to look up names missing from recipe tiles. Raw pages remain
+available through `getCookbookPage()` and `getRecipeDetailsPage(id, portions?)`.
+
 ## Contributing
 
 Contributions are welcome! Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file for guidelines.

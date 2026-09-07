@@ -1,26 +1,17 @@
 import { FusionPage } from "../../types/fusion";
 import {
-  UserDefinedRecipeDetails,
-  UserDefinedRecipeIngredient,
+  RecipeDetails,
+  RecipeIngredient,
+  RecipeSegment,
+  RecipeSummary,
   UserDefinedRecipeReferenceImage,
   UserDefinedRecipeSuggestedImage,
-  UserDefinedRecipeSummary,
 } from "./types";
 
 const RECIPE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/";
 const SEGMENT_SCHEMA = "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/";
 
 type AnalyticsContext = { schema?: string; data?: Record<string, any> };
-
-/** Recursively visit every array in a JSON tree. */
-const walkArrays = (node: unknown, visit: (arr: unknown[]) => void): void => {
-  if (Array.isArray(node)) {
-    visit(node);
-    node.forEach((child) => walkArrays(child, visit));
-  } else if (node && typeof node === "object") {
-    Object.values(node as Record<string, unknown>).forEach((child) => walkArrays(child, visit));
-  }
-};
 
 /** Recursively visit every object in a JSON tree. */
 const walkObjects = (node: unknown, visit: (obj: Record<string, any>) => void): void => {
@@ -32,39 +23,74 @@ const walkObjects = (node: unknown, visit: (obj: Record<string, any>) => void): 
   }
 };
 
-const isContextArray = (arr: unknown[]): arr is AnalyticsContext[] =>
-  arr.length > 0 && arr.every((item) => item && typeof item === "object" && typeof (item as AnalyticsContext).schema === "string");
+const plainText = (markdown: string): string =>
+  markdown.replace(/#\([^)]*\)/g, "").replace(/\*\*/g, "").replace(/\u00a0/g, " ").trim();
+
+const textByType = (node: unknown, textType: string): string | null => {
+  let result: string | null = null;
+  walkObjects(node, (obj) => {
+    if (!result && obj.type === "RICH_TEXT" && obj.textType === textType && typeof obj.markdown === "string") {
+      result = plainText(obj.markdown) || null;
+    }
+  });
+  return result;
+};
 
 /**
- * Extracts the user's own recipes from the cookbook page.
- *
- * The cookbook page has no structured list of recipes; each tile carries
- * analytics contexts, and tiles in the "Eigen recepten" segment have a
- * `segment` context with `segment_type: "USER_DEFINED_RECIPES"` next to a
- * `recipe` context holding `recipe_id`, `recipe_name` and `recipe_image_type`.
- * @param {FusionPage} page The raw `cookbook-page-content` response.
+ * Extracts a cookbook segment in tile order, deduplicated by recipe id.
+ * Catalog tiles often omit recipe_name in analytics; their SUBTITLE1 contains it.
+ * Image source is null when the tile does not supply that metadata.
  */
-export function extractUserDefinedRecipes(page: FusionPage): UserDefinedRecipeSummary[] {
-  const byId = new Map<string, UserDefinedRecipeSummary>();
-
-  walkArrays(page, (arr) => {
-    if (!isContextArray(arr)) return;
-    const segment = arr.find((c) => c.schema?.startsWith(SEGMENT_SCHEMA));
-    if (segment?.data?.segment_type !== "USER_DEFINED_RECIPES") return;
-    const recipe = arr.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
-    if (!recipe?.recipe_id || byId.has(recipe.recipe_id)) return;
+export function extractRecipes(page: FusionPage, segmentType: RecipeSegment): RecipeSummary[] {
+  const byId = new Map<string, RecipeSummary>();
+  walkObjects(page, (obj) => {
+    const contexts: AnalyticsContext[] | undefined = obj.analytics?.contexts ?? obj.contexts;
+    if (!Array.isArray(contexts)) return;
+    const segment = contexts.find((c) => c.schema?.startsWith(SEGMENT_SCHEMA));
+    if (segment?.data?.segment_type !== segmentType) return;
+    const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
+    if (typeof recipe?.recipe_id !== "string") return;
+    const previous = byId.get(recipe.recipe_id);
     byId.set(recipe.recipe_id, {
       id: recipe.recipe_id,
-      name: recipe.recipe_name ?? "",
-      imageType: recipe.recipe_image_type ?? null,
+      name: previous?.name || recipe.recipe_name || textByType(obj.pml, "SUBTITLE1") || "",
+      imageType: previous?.imageType ?? recipe.recipe_image_type ?? recipe.image_type ?? null,
     });
   });
-
   return [...byId.values()];
 }
 
+/** Compatibility helper for the user's own cookbook segment. */
+export function extractUserDefinedRecipes(page: FusionPage): RecipeSummary[] {
+  return extractRecipes(page, "USER_DEFINED_RECIPES");
+}
+
+/** Ingredient names keyed by component id, including discontinued products. */
+function extractIngredientNames(page: unknown): Map<string, string> {
+  const names = new Map<string, string>();
+  walkObjects(page, (obj) => {
+    if (obj.type !== "PML" || typeof obj.id !== "string" || !obj.id.includes("selling-unit-tile")) return;
+    const contexts: AnalyticsContext[] = obj.analytics?.contexts ?? [];
+    const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
+    const units = recipe?.selling_units;
+    // Discontinued tiles omit analytics. Their edit link still carries the
+    // component id; read the URL as text without executing its JavaScript.
+    const ingredientId = Array.isArray(units) && units.length === 1
+      ? units[0].ingredient_id
+      : JSON.stringify(obj.pml ?? {}).match(/ingredient_id=([a-f0-9-]+)&/)?.[1];
+    const name = textByType(obj.pml, "SUBTITLE1");
+    if (typeof ingredientId === "string" && name) names.set(ingredientId, name);
+  });
+  return names;
+}
+
+/** Product-page fallback for ingredients without a visible tile, such as pantry staples. */
+export function extractIngredientProductName(page: FusionPage): string | null {
+  return textByType(page, "HEADER1");
+}
+
 /**
- * Extracts structured details of a user defined recipe from its
+ * Extracts structured details of a catalog or user-defined recipe from its
  * `selling-group-details-page` response.
  *
  * The page embeds the recipe as an analytics `recipe` context (name, displayed
@@ -72,22 +98,25 @@ export function extractUserDefinedRecipes(page: FusionPage): UserDefinedRecipeSu
  * `creator_type` / `default_portions` / `is_saved`, an `is_recipe_owner` flag
  * and, when present, the note as the `initialContent` of a `TEXT_EDITOR` component.
  *
- * The page renders the recipe at a display portion count that is a multiple of
- * the stored default (e.g. a 2-portion recipe is shown at 4 portions with doubled
- * quantities), so the ingredient quantities returned here are for
- * `displayedPortions`. Use {@link extractIngredientQuantities} on the
- * `selling-group-content-wrapper` sub-page requested with `portions=<default>`
- * to get the stored quantities; `RecipeService.getUserDefinedRecipe` does this.
+ * Names, product ids and quantities all come from this response at `portions`.
+ * The stored default is exposed separately as `defaultPortions`; changing the
+ * portion count may select different products, not merely scale quantities.
  * @param {string} recipeId The recipe id that was requested.
  * @param {FusionPage} page The raw page response.
  */
-export function extractUserDefinedRecipeDetails(recipeId: string, page: FusionPage): UserDefinedRecipeDetails {
+export function extractRecipeDetails(recipeId: string, page: FusionPage): RecipeDetails {
   let recipeContext: Record<string, any> | undefined;
   let header: Record<string, any> | undefined;
   let owner: Record<string, any> | undefined;
   let note: string | null = null;
+  let imageId: string | null = null;
 
   walkObjects(page, (obj) => {
+    if (obj.id === "selling-group-details-image") {
+      walkObjects(obj, (image) => {
+        if (!imageId && image.type === "IMAGE" && typeof image.source?.id === "string") imageId = image.source.id;
+      });
+    }
     if (!recipeContext && obj.recipe_id === recipeId && Array.isArray(obj.selling_units) && typeof obj.recipe_name === "string") {
       recipeContext = obj;
     }
@@ -102,9 +131,12 @@ export function extractUserDefinedRecipeDetails(recipeId: string, page: FusionPa
     }
   });
 
-  const ingredients: UserDefinedRecipeIngredient[] = (recipeContext?.selling_units ?? []).map((unit: Record<string, any>) => ({
+  if (!recipeContext) throw new Error(`Could not extract recipe ${recipeId}: recipe context missing from details page`);
+  const names = extractIngredientNames(page);
+  const ingredients: RecipeIngredient[] = recipeContext.selling_units.map((unit: Record<string, any>) => ({
     ingredientId: unit.ingredient_id,
-    sellingUnitId: unit.selling_unit_id,
+    name: names.get(unit.ingredient_id) ?? null,
+    sellingUnitId: unit.selling_unit_id ?? "",
     quantity: unit.quantity ?? 1,
     status: unit.status ?? "ACTIVE",
     swapType: unit.swap_type ?? null,
@@ -114,16 +146,21 @@ export function extractUserDefinedRecipeDetails(recipeId: string, page: FusionPa
   return {
     id: recipeId,
     name: recipeContext?.recipe_name ?? header?.sellable_name ?? owner?.name ?? "",
-    portions: header?.default_portions ?? recipeContext?.portions ?? 0,
+    portions: recipeContext.portions ?? header?.default_portions ?? 0,
+    defaultPortions: header?.default_portions ?? recipeContext.portions ?? 0,
     displayedPortions: recipeContext?.portions ?? header?.default_portions ?? 0,
-    creatorType: header?.creator_type ?? "USER",
+    creatorType: header?.creator_type ?? "UNKNOWN",
     isRecipeOwner: owner?.is_recipe_owner ?? false,
     isSaved: header?.is_saved ?? false,
     imageType: recipeContext?.image_type ?? null,
+    imageId,
     ingredients,
     note,
   };
 }
+
+/** Compatibility name for the shared extractor; quantities match portions. */
+export const extractUserDefinedRecipeDetails = extractRecipeDetails;
 
 /**
  * Extracts the required amount per selling unit for every ingredient from a

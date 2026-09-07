@@ -65,6 +65,62 @@ export type RemoveSellingGroupFromBasketResult = {
         selling_unit_id: string;
     }[];
 };
+/** Cookbook segments exposed by the structured recipe list methods. */
+export type RecipeSegment = "SAVED_RECIPES" | "USER_DEFINED_RECIPES";
+/** Image sources observed on recipe pages; open to additional backend values. */
+export type RecipeImageType = "COMPOSED" | "CUSTOM" | "SUGGESTED" | "GALLERY" | string;
+/** A catalog or user-defined recipe as listed in the cookbook. */
+export type RecipeSummary = {
+    /** The recipe's selling group id. */
+    id: string;
+    name: string;
+    /**
+     * Image type from tile analytics, or null when absent. Tiles can report GALLERY
+     * when details report COMPOSED, so prefer RecipeDetails.imageType when available.
+     */
+    imageType: RecipeImageType | null;
+};
+/** One ingredient (a selling group component) of either kind of recipe. */
+export type RecipeIngredient = {
+    ingredientId: string;
+    /** Readable product name, or null when neither recipe nor product page supplies it. */
+    name: string | null;
+    /** Product id, e.g. s1143210; empty for some discontinued products. */
+    sellingUnitId: string;
+    /** Selling-unit count for RecipeDetails.portions, not a weight or volume. */
+    quantity: number;
+    /** Backend status; discontinued products can still report ACTIVE. */
+    status: "ACTIVE" | "UNAVAILABLE" | string;
+    swapType: SellingGroupSwapType | null;
+    /** Whether selected by default when adding the recipe to the basket. */
+    checked: boolean;
+};
+/** Shared structured details for catalog and user-defined recipes. */
+export type RecipeDetails = RecipeSummary & {
+    /** Portion count for the returned products and quantities. */
+    portions: number;
+    /** Stored default portion count, which can differ from a requested count. */
+    defaultPortions: number;
+    /** Portion count of the returned page; the same as portions. */
+    displayedPortions: number;
+    creatorType: "USER" | "PIM" | string;
+    isRecipeOwner: boolean;
+    isSaved: boolean;
+    /** Main image source id including its namespace (e.g. recipes/abc); null if absent or hidden. */
+    imageId: string | null;
+    ingredients: RecipeIngredient[];
+    /** Free-text note as HTML, or null; not the catalog recipe's cooking steps. */
+    note: string | null;
+};
+/** Optional extra requests when retrieving structured recipe details. */
+export type RecipeDetailsOptions = {
+    /**
+     * Fetch product pages for names missing from recipe tiles. Defaults to false.
+     * Requests run concurrently, once per distinct product; request failures reject
+     * the detail call. A missing name on a successful page remains null.
+     */
+    resolveIngredientNames?: boolean;
+};
 /** Where an ingredient was picked from while composing a new recipe (analytics only). */
 export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" | string;
 /**
@@ -74,56 +130,14 @@ export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" |
  * `POPULAR_SELECTION`, anything else came from search.
  */
 export type SellingGroupSwapType = "WITHIN_SELLING_GROUP_COMPONENT" | "POPULAR_SELECTION" | "SEARCH_SELECTION";
-/**
- * Image type of a user defined recipe. Values seen so far: `COMPOSED` (image composed
- * by Picnic), `CUSTOM` (customer-uploaded photo), `SUGGESTED` (picked from the
- * suggestions) and `GALLERY` (reported by the cookbook tiles). Kept open for values
- * not observed yet.
- */
-export type UserDefinedRecipeImageType = "COMPOSED" | "CUSTOM" | "SUGGESTED" | "GALLERY" | string;
-/** A summary of one of the user's own recipes, as listed in the cookbook "Eigen recepten" segment. */
-export type UserDefinedRecipeSummary = {
-    /** The recipe id (a `selling_group_id`, 32 hex chars). */
-    id: string;
-    name: string;
-    /**
-     * Image type from the tile's analytics context. Observed as `GALLERY` for recipes
-     * whose details page reports `COMPOSED`, so prefer {@link UserDefinedRecipeDetails.imageType}.
-     */
-    imageType: UserDefinedRecipeImageType | null;
-};
-/** One ingredient (a "selling group component") of a user defined recipe. */
-export type UserDefinedRecipeIngredient = {
-    /** The ingredient / selling group component id (32 hex chars). */
-    ingredientId: string;
-    /** The product (selling unit) id, e.g. `s1143210`. */
-    sellingUnitId: string;
-    /** Number of selling units needed for the recipe's default `portions`. */
-    quantity: number;
-    status: "ACTIVE" | "UNAVAILABLE" | string;
-    swapType: SellingGroupSwapType | null;
-    /** Whether the ingredient is selected by default when adding the recipe to the basket. */
-    checked: boolean;
-};
-/** Structured details of a user defined recipe, extracted from `selling-group-details-page`. */
-export type UserDefinedRecipeDetails = {
-    id: string;
-    name: string;
-    /** The stored default number of portions; ingredient quantities are for this count. */
-    portions: number;
-    /**
-     * The portion count the details page rendered the recipe at. The page uses a
-     * multiple of `portions` (e.g. 4 for a 2-portion recipe); raw page data is scaled to it.
-     */
-    displayedPortions: number;
-    creatorType: "USER" | "PIM" | string;
-    isRecipeOwner: boolean;
-    isSaved: boolean;
-    imageType: UserDefinedRecipeImageType | null;
-    ingredients: UserDefinedRecipeIngredient[];
-    /** The free-text note (ingredients/instructions) as HTML, or `null` when no note exists. */
-    note: string | null;
-};
+/** Compatibility name for the shared recipe image type. */
+export type UserDefinedRecipeImageType = RecipeImageType;
+/** Compatibility name for the shared recipe summary. */
+export type UserDefinedRecipeSummary = RecipeSummary;
+/** Compatibility name for the shared recipe ingredient. */
+export type UserDefinedRecipeIngredient = RecipeIngredient;
+/** Compatibility name for the shared recipe details. */
+export type UserDefinedRecipeDetails = RecipeDetails;
 /** Payload for `POST /pages/task/create-user-defined-recipe`. */
 export type CreateUserDefinedRecipePayload = {
     /** Client-side id; the app sends `undefined` and lets the backend generate one. */
