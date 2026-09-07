@@ -68,10 +68,13 @@ sendRequest<TRequestData, TResponseData>(
   data: TRequestData | null = null,             // Request body (for POST/PUT)
   includePicnicHeaders: boolean = false,        // When true, adds x-picnic-agent and x-picnic-did headers
   isImageRequest: boolean = false,              // When true, returns ArrayBuffer instead of JSON
+  contentType?: string,                         // MIME type for a raw (non-JSON) body, e.g. image/jpeg
 ): Promise<TResponseData>
 ```
 
 Some routes require Picnic headers to be sent. You can enable these by setting `includePicnicHeaders` to `true` (the fourth parameter).
+
+Objects passed as `data` are sent as JSON. To send raw bytes (for example the recipe image upload), pass a `Blob`, `ArrayBuffer` or `Uint8Array` as `data` and the MIME type as `contentType`. Always go through `sendRequest`; do not call `fetch` directly from a service.
 
 ## Searching the Decompiled App
 

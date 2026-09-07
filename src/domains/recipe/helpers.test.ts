@@ -1,4 +1,4 @@
-import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities } from "./helpers";
+import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
 import { FusionPage } from "../../types/fusion";
 
 const page = (body: unknown): FusionPage => ({ script: {}, layout: { id: "p", presentation: { type: "FULL_SCREEN" }, header: null, body } as any });
@@ -81,6 +81,25 @@ describe("recipe helpers", () => {
       },
     };
     expect(extractIngredientQuantities({ child: wrapper })).toEqual({ "ing-1": { s1: 1 }, "ing-2": { s2: 2, s3: 5 } });
+  });
+
+  it("extractSuggestedImages reads referenceImagesById from ImageSelectionState", () => {
+    const first = { id: "1".repeat(64), namespace: "recipes", primary_image: true, rank_value: 1, sellable_id: "69738f92ca0c63178b4a67a9", type: "GALLERY" };
+    const second = { id: "2".repeat(64), namespace: "recipes", primary_image: true, rank_value: 10, sellable_id: "6a1ee3b78d45fb1080af7898", type: "GALLERY" };
+    const layout = {
+      body: {
+        children: [
+          { type: "STATE_BOUNDARY", id: "GlobalState", state: {} },
+          { type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { composedImage: { isLoading: false, url: null }, referenceImagesById: { [first.id]: first, [second.id]: second } } },
+        ],
+      },
+    };
+
+    expect(extractSuggestedImages(layout)).toEqual([
+      { id: first.id, referenceImage: first },
+      { id: second.id, referenceImage: second },
+    ]);
+    expect(extractSuggestedImages({ body: {} })).toEqual([]);
   });
 
   it("extractUserDefinedRecipeDetails returns empty defaults when the page has no recipe data", () => {

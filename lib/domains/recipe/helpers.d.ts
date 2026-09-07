@@ -1,5 +1,5 @@
 import { FusionPage } from "../../types/fusion";
-import { UserDefinedRecipeDetails, UserDefinedRecipeSummary } from "./types";
+import { UserDefinedRecipeDetails, UserDefinedRecipeSuggestedImage, UserDefinedRecipeSummary } from "./types";
 /**
  * Extracts the user's own recipes from the cookbook page.
  *
@@ -37,4 +37,12 @@ export declare function extractUserDefinedRecipeDetails(recipeId: string, page: 
  * @returns Ingredient id → (selling unit id → required amount).
  */
 export declare function extractIngredientQuantities(page: unknown): Record<string, Record<string, number>>;
+/**
+ * Extracts the suggested images from a `sellable-image-selection-page-root`
+ * response. The page keeps them in the `ImageSelectionState` state boundary as
+ * `referenceImagesById`; each entry is what the save button sends as
+ * `reference_image`, with its id as `selected_image_id`.
+ * @param {unknown} page The raw page response.
+ */
+export declare function extractSuggestedImages(page: unknown): UserDefinedRecipeSuggestedImage[];
 //# sourceMappingURL=helpers.d.ts.map

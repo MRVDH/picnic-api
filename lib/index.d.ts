@@ -34,7 +34,7 @@ declare const _default: {
         agent: string;
         get baseHeaders(): Record<string, string>;
         get picnicHeaders(): Record<string, string>;
-        sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean): Promise<TResponseData>;
+        sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean, contentType?: string): Promise<TResponseData>;
     };
     /**
      * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).

@@ -40,11 +40,15 @@ export default class HttpClient {
 
   /**
    * Can be used to send custom requests that are not covered by the domain services.
+   *
+   * Objects passed as `data` are sent as JSON. A `Blob`, `ArrayBuffer` or typed array
+   * (e.g. `Uint8Array`) is sent as-is, with `Content-Type` set to `contentType`.
    * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.
    * @param {string} path The path, optionally including query params. Example: `/cart/set_delivery_slot` or `/my_store?depth=0`.
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
    * @param {boolean} [includePicnicHeaders=false] Whether to include x-picnic-agent and x-picnic-did headers.
    * @param {boolean} [isImageRequest=false] When true, returns an ArrayBuffer instead of JSON.
+   * @param {string} [contentType="application/octet-stream"] The MIME type of a raw (non-JSON) `data` body, e.g. `image/jpeg`.
    */
   async sendRequest<TRequestData, TResponseData>(
     method: "GET" | "POST" | "PUT" | "DELETE",
@@ -52,11 +56,17 @@ export default class HttpClient {
     data: TRequestData | null = null,
     includePicnicHeaders: boolean = false,
     isImageRequest: boolean = false,
+    contentType?: string,
   ): Promise<TResponseData> {
+    const isRawBody = data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
+
     const headers = new Headers({
       ...this.baseHeaders,
       ...(includePicnicHeaders && this.picnicHeaders),
+      ...(isRawBody && { "Content-Type": contentType ?? "application/octet-stream" }),
     });
+
+    const body: RequestInit["body"] = data === null ? null : isRawBody ? (data as unknown as NonNullable<RequestInit["body"]>) : JSON.stringify(data);
 
     // `path` may be an absolute URL (e.g. image requests target a different base
     // than the API), in which case it must be used as-is rather than prefixed.
@@ -65,14 +75,14 @@ export default class HttpClient {
     const response = await fetch(requestUrl, {
       method,
       headers,
-      body: data ? JSON.stringify(data) : null,
+      body,
     });
 
     if (!response.ok) {
-      const body = await response.text();
+      const responseBody = await response.text();
 
       try {
-        const errorData: unknown = JSON.parse(body);
+        const errorData: unknown = JSON.parse(responseBody);
         const checkoutIssue = parseCheckoutIssueError(errorData);
         if (checkoutIssue) throw checkoutIssue;
 
@@ -80,7 +90,7 @@ export default class HttpClient {
         throw new Error(`${parsed.error?.message || response.statusText}`);
       } catch (e) {
         if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
-        throw new Error(`${response.status} ${response.statusText}${body ? ` - ${body}` : ""}`);
+        throw new Error(`${response.status} ${response.statusText}${responseBody ? ` - ${responseBody}` : ""}`);
       }
     }
 

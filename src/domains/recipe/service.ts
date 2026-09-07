@@ -4,6 +4,8 @@ import type {
   AssignSellingGroupInput,
   UpdateSellingGroupPortionsInput,
   RemoveSellingGroupInput,
+  AssignSellingGroupToBasketResult,
+  RemoveSellingGroupFromBasketResult,
   UserDefinedRecipeSummary,
   UserDefinedRecipeDetails,
   NewUserDefinedRecipeIngredient,
@@ -18,6 +20,12 @@ import type {
   UpdateUserDefinedRecipeIngredientInput,
   UpdateUserDefinedRecipeIngredientResult,
   RemoveUserDefinedRecipeIngredientInput,
+  RemoveUserDefinedRecipeIngredientResult,
+  AssignSellableComponentToDayInput,
+  AssignSellableComponentToDayResult,
+  SellingGroupSwapType,
+  UserDefinedRecipeReferenceImage,
+  UserDefinedRecipeSuggestedImage,
   UpdateUserDefinedRecipeNoteInput,
   DeleteUserDefinedRecipeNoteInput,
   SelectUserDefinedRecipeImageInput,
@@ -25,7 +33,7 @@ import type {
   UserDefinedRecipeImageUploadResult,
 } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
-import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities } from "./helpers";
+import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
 
 export class RecipeService {
   constructor(private http: HttpClient) {}
@@ -111,8 +119,8 @@ export class RecipeService {
    * @param {number} [dayOffset] Which delivery day to plan for (relative to the selected slot).
    * @param {number} [portions] Number of servings.
    */
-  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<Record<string, never>> {
-    return this.http.sendRequest<AssignSellingGroupInput, Record<string, never>>(
+  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<AssignSellingGroupToBasketResult> {
+    return this.http.sendRequest<AssignSellingGroupInput, AssignSellingGroupToBasketResult>(
       "POST",
       `/pages/task/assign-selling-group-to-basket`,
       {
@@ -151,8 +159,8 @@ export class RecipeService {
    * Removes a selling group (recipe bundle) from the basket.
    * @param {string} sellingGroupId The selling group / recipe id to remove.
    */
-  removeSellingGroupFromBasket(sellingGroupId: string): Promise<Record<string, never>> {
-    return this.http.sendRequest<RemoveSellingGroupInput, Record<string, never>>(
+  removeSellingGroupFromBasket(sellingGroupId: string): Promise<RemoveSellingGroupFromBasketResult> {
+    return this.http.sendRequest<RemoveSellingGroupInput, RemoveSellingGroupFromBasketResult>(
       "POST",
       `/pages/task/remove-selling-group-from-basket`,
       {
@@ -191,7 +199,8 @@ export class RecipeService {
    * portions so that `ingredients[].quantity` reflects the stored values.
    *
    * Note: the page may answer `Error rendering page_id='selling-group-details-page'`
-   * for a second or so right after a mutation; retry in that case.
+   * for a second or so right after a mutation; retry in that case. A deleted recipe
+   * answers with this error on every request, so bound your retries.
    * @param {string} recipeId The recipe id (a `selling_group_id`, 32 hex chars).
    */
   async getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails> {
@@ -228,6 +237,17 @@ export class RecipeService {
       null,
       true,
     );
+  }
+
+  /**
+   * Returns the suggested images for a user defined recipe, extracted from
+   * {@link getUserDefinedRecipeImageSelectionPage}. Pass an entry's `id` and
+   * `referenceImage` to {@link selectUserDefinedRecipeImage}.
+   * @param {string} recipeId The recipe id.
+   */
+  async getUserDefinedRecipeSuggestedImages(recipeId: string): Promise<UserDefinedRecipeSuggestedImage[]> {
+    const page = await this.getUserDefinedRecipeImageSelectionPage(recipeId);
+    return extractSuggestedImages(page);
   }
 
   /**
@@ -336,14 +356,20 @@ export class RecipeService {
   /**
    * Updates an ingredient of a user defined recipe: change its quantity, or swap
    * the product by passing a different selling unit id.
-   * Mirrors the save button of `selling-group-component-edit-page?is_udr=true`.
+   * Mirrors the save button of `selling-group-component-edit-page?is_udr=true`. When
+   * swapping an ingredient that has more than one selling unit, include each of its
+   * current selling unit ids with quantity `0` next to the new selection.
+   *
+   * A response with `shouldUpdateCart: true` means the recipe is in the basket with a
+   * selection that differs from this one; call {@link assignSellableComponentToDay}
+   * with the same selection to update the basket.
    * @param {string} recipeId The recipe id.
    * @param {string} ingredientId The ingredient (selling group component) id.
    * @param {Record<string, number>} sellingUnitQuantities Selling unit id → quantity for this ingredient.
    * @param {number} [portions=4] The recipe's number of portions the quantities are based on.
-   * @param {string|null} [swapType] Swap type, when the product was swapped.
+   * @param {SellingGroupSwapType|null} [swapType] Swap type, when the product was swapped.
    */
-  updateUserDefinedRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number = 4, swapType?: string | null): Promise<UpdateUserDefinedRecipeIngredientResult> {
+  updateUserDefinedRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number = 4, swapType?: SellingGroupSwapType | null): Promise<UpdateUserDefinedRecipeIngredientResult> {
     return this.http.sendRequest<UpdateUserDefinedRecipeIngredientInput, UpdateUserDefinedRecipeIngredientResult>(
       "POST",
       `/pages/task/save-selling-group-edit-task`,
@@ -361,12 +387,41 @@ export class RecipeService {
   }
 
   /**
+   * Pushes an updated ingredient selection of a recipe that is in the basket to the
+   * basket. The app calls this after {@link updateUserDefinedRecipeIngredient}
+   * returned `shouldUpdateCart: true`. The edit task itself removes the replaced
+   * product from the basket; this call adds the new selection, so without it the
+   * basket lacks that ingredient.
+   * @param {string} recipeId The recipe id.
+   * @param {string} ingredientId The ingredient (selling group component) id.
+   * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).
+   * @param {number} portions The recipe's number of portions the quantities are based on.
+   * @param {SellingGroupSwapType} swapType The swap type that was sent to the edit task.
+   */
+  assignSellableComponentToDay(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number, swapType: SellingGroupSwapType): Promise<AssignSellableComponentToDayResult> {
+    return this.http.sendRequest<AssignSellableComponentToDayInput, AssignSellableComponentToDayResult>(
+      "POST",
+      `/pages/task/assign-sellable-component-to-day`,
+      {
+        payload: {
+          component_swap_type: swapType,
+          portions: String(portions),
+          required_amount_by_selling_unit_id: sellingUnitQuantities,
+          selected_component_id: ingredientId,
+          selling_group_id: recipeId,
+        },
+      },
+      true,
+    );
+  }
+
+  /**
    * Removes an ingredient from a user defined recipe.
    * @param {string} recipeId The recipe id.
    * @param {string} ingredientId The ingredient (selling group component) id.
    */
-  removeUserDefinedRecipeIngredient(recipeId: string, ingredientId: string): Promise<Record<string, never>> {
-    return this.http.sendRequest<RemoveUserDefinedRecipeIngredientInput, Record<string, never>>(
+  removeUserDefinedRecipeIngredient(recipeId: string, ingredientId: string): Promise<RemoveUserDefinedRecipeIngredientResult> {
+    return this.http.sendRequest<RemoveUserDefinedRecipeIngredientInput, RemoveUserDefinedRecipeIngredientResult>(
       "POST",
       `/pages/task/delete-selling-group-component`,
       { payload: { selling_group_component_id: ingredientId, selling_group_id: recipeId } },
@@ -412,28 +467,18 @@ export class RecipeService {
    * @param {string} recipeId The recipe id.
    * @param {UserDefinedRecipeImageUpload} image The image to upload.
    */
-  async uploadUserDefinedRecipeImage(recipeId: string, image: UserDefinedRecipeImageUpload): Promise<UserDefinedRecipeImageUploadResult> {
+  uploadUserDefinedRecipeImage(recipeId: string, image: UserDefinedRecipeImageUpload): Promise<UserDefinedRecipeImageUploadResult> {
     const type = (image.type ?? "image/jpeg").replace(/jpg/gi, "jpeg");
-    const body = image.data instanceof Blob ? image.data : image.data instanceof ArrayBuffer ? new Uint8Array(image.data) : Uint8Array.from(image.data as Uint8Array);
+    const body: Blob | Uint8Array<ArrayBuffer> = image.data instanceof Blob ? image.data : new Uint8Array(image.data as ArrayBuffer | Uint8Array);
 
-    const response = await fetch(`${this.http.url}/user-defined-sellable/${encodeURIComponent(recipeId)}`, {
-      method: "POST",
-      headers: { ...this.http.baseHeaders, ...this.http.picnicHeaders, "Content-Type": type },
+    return this.http.sendRequest<Blob | Uint8Array, UserDefinedRecipeImageUploadResult>(
+      "POST",
+      `/user-defined-sellable/${encodeURIComponent(recipeId)}`,
       body,
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      let message = response.statusText;
-      try {
-        message = (JSON.parse(text) as { error?: { message?: string } }).error?.message || message;
-      } catch {
-        // not JSON
-      }
-      throw new Error(`Image upload failed: ${response.status} ${message}`);
-    }
-
-    return (await response.json()) as UserDefinedRecipeImageUploadResult;
+      true,
+      false,
+      type,
+    );
   }
 
   /**
@@ -442,9 +487,9 @@ export class RecipeService {
    * {@link uploadUserDefinedRecipeImage}.
    * @param {string} recipeId The recipe id.
    * @param {string} imageId The image id to select.
-   * @param {unknown} [referenceImage] Reference image metadata, for suggested images.
+   * @param {UserDefinedRecipeReferenceImage} [referenceImage] Reference image metadata, for suggested images (see {@link getUserDefinedRecipeSuggestedImages}).
    */
-  selectUserDefinedRecipeImage(recipeId: string, imageId: string, referenceImage?: unknown): Promise<Record<string, never>> {
+  selectUserDefinedRecipeImage(recipeId: string, imageId: string, referenceImage?: UserDefinedRecipeReferenceImage): Promise<Record<string, never>> {
     return this.http.sendRequest<SelectUserDefinedRecipeImageInput, Record<string, never>>(
       "POST",
       `/pages/task/select-sellable-image`,

@@ -60,6 +60,22 @@ export type RemoveSellingGroupInput = {
   payload: RemoveSellingGroupPayload;
 };
 
+/** Response of `assign-selling-group-to-basket`. */
+export type AssignSellingGroupToBasketResult = {
+  anyUnavailableIngredient: boolean;
+  assignedNumberOfPortions: number;
+  cart: SellingGroupCartSnapshot;
+};
+
+/** Response of `remove-selling-group-from-basket`. */
+export type RemoveSellingGroupFromBasketResult = {
+  cart: SellingGroupCartSnapshot;
+  /** The ingredient (selling group component) ids that were in the basket. */
+  selectedSellableComponentIds: string[];
+  /** The selling units removed from the basket. */
+  SURemoved: { quantity: number; selling_unit_id: string }[];
+};
+
 // ─── User Defined Recipe (custom recipe) types ───────────────────────────────
 //
 // Custom recipes are called "user defined recipes" (UDR) / "user defined
@@ -76,13 +92,32 @@ export type RemoveSellingGroupInput = {
 /** Where an ingredient was picked from while composing a new recipe (analytics only). */
 export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" | string;
 
+/**
+ * How the product of an ingredient was chosen when it was swapped. The app derives
+ * it on `selling-group-component-edit-page`: staying within the ingredient's own
+ * products is `WITHIN_SELLING_GROUP_COMPONENT`, one of the suggestions below it is
+ * `POPULAR_SELECTION`, anything else came from search.
+ */
+export type SellingGroupSwapType = "WITHIN_SELLING_GROUP_COMPONENT" | "POPULAR_SELECTION" | "SEARCH_SELECTION";
+
+/**
+ * Image type of a user defined recipe. Values seen so far: `COMPOSED` (image composed
+ * by Picnic), `CUSTOM` (customer-uploaded photo), `SUGGESTED` (picked from the
+ * suggestions) and `GALLERY` (reported by the cookbook tiles). Kept open for values
+ * not observed yet.
+ */
+export type UserDefinedRecipeImageType = "COMPOSED" | "CUSTOM" | "SUGGESTED" | "GALLERY" | string;
+
 /** A summary of one of the user's own recipes, as listed in the cookbook "Eigen recepten" segment. */
 export type UserDefinedRecipeSummary = {
   /** The recipe id (a `selling_group_id`, 32 hex chars). */
   id: string;
   name: string;
-  /** `GALLERY` for a customer-uploaded photo, `SUGGESTED` for a Picnic-composed image. */
-  imageType: "GALLERY" | "SUGGESTED" | string | null;
+  /**
+   * Image type from the tile's analytics context. Observed as `GALLERY` for recipes
+   * whose details page reports `COMPOSED`, so prefer {@link UserDefinedRecipeDetails.imageType}.
+   */
+  imageType: UserDefinedRecipeImageType | null;
 };
 
 /** One ingredient (a "selling group component") of a user defined recipe. */
@@ -94,7 +129,7 @@ export type UserDefinedRecipeIngredient = {
   /** Number of selling units needed for the recipe's default `portions`. */
   quantity: number;
   status: "ACTIVE" | "UNAVAILABLE" | string;
-  swapType: string | null;
+  swapType: SellingGroupSwapType | null;
   /** Whether the ingredient is selected by default when adding the recipe to the basket. */
   checked: boolean;
 };
@@ -113,7 +148,7 @@ export type UserDefinedRecipeDetails = {
   creatorType: "USER" | "PIM" | string;
   isRecipeOwner: boolean;
   isSaved: boolean;
-  imageType: "GALLERY" | "SUGGESTED" | string | null;
+  imageType: UserDefinedRecipeImageType | null;
   ingredients: UserDefinedRecipeIngredient[];
   /** The free-text note (ingredients/instructions) as HTML, or `null` when no note exists. */
   note: string | null;
@@ -229,16 +264,80 @@ export type UpdateUserDefinedRecipeIngredientPayload = {
   selling_group_id: string;
   /** Selling unit id → quantity. Use a different selling unit id to swap the product. */
   selling_unit_quantity_by_id: Record<string, number>;
-  swapType?: string | null;
+  swapType?: SellingGroupSwapType | null;
 };
 
 export type UpdateUserDefinedRecipeIngredientInput = {
   payload: UpdateUserDefinedRecipeIngredientPayload;
 };
 
+/** A basket line's link to the recipe it was added for. */
+export type SellingGroupCartLineContext = {
+  quantity: number;
+  details: (
+    | {
+        type: "SELLING_GROUP";
+        sellingGroupId: string;
+        sellingGroupComponentId: string;
+        sellingGroupComponentType: string;
+        sellingGroupComponentSwapType: SellingGroupSwapType | null;
+      }
+    | { type: "MEAL_PLAN"; dayRelativeToSlot: number; numberOfServings: number }
+    | { type: string; [key: string]: unknown }
+  )[];
+};
+
+/** Basket snapshot returned by the recipe basket tasks. */
+export type SellingGroupCartSnapshot = {
+  checkoutTotalPrice: number | null;
+  generatedAt: number;
+  /** Selling unit id → quantity, availability and, for recipe lines, the recipe contexts. */
+  sellingUnits: Record<
+    string,
+    {
+      availabilityStatus: { type: string };
+      quantity: number;
+      contexts?: SellingGroupCartLineContext[];
+    }
+  >;
+  sellingUnitsTotalPrice: number;
+};
+
 /** Response of `save-selling-group-edit-task`. */
 export type UpdateUserDefinedRecipeIngredientResult = {
+  cart?: SellingGroupCartSnapshot;
+  /**
+   * `true` when the recipe is in the basket and the basket still holds the old
+   * selection. The app then posts `assign-sellable-component-to-day`; see
+   * {@link AssignSellableComponentToDayPayload}.
+   */
   shouldUpdateCart?: boolean;
+};
+
+/**
+ * Payload for `POST /pages/task/assign-sellable-component-to-day`.
+ * Extracted from the save button of `selling-group-component-edit-page`. The app
+ * sends it after `save-selling-group-edit-task` answered `shouldUpdateCart: true`,
+ * so the basket picks up the new ingredient selection.
+ */
+export type AssignSellableComponentToDayPayload = {
+  component_swap_type: SellingGroupSwapType;
+  /** The recipe's number of portions, sent as a string like the app does. */
+  portions: string;
+  /** Selling unit id → quantity for this ingredient. */
+  required_amount_by_selling_unit_id: Record<string, number>;
+  /** The ingredient (selling group component) id. */
+  selected_component_id: string;
+  selling_group_id: string;
+};
+
+export type AssignSellableComponentToDayInput = {
+  payload: AssignSellableComponentToDayPayload;
+};
+
+/** Response of `assign-sellable-component-to-day`. */
+export type AssignSellableComponentToDayResult = {
+  cart?: SellingGroupCartSnapshot;
 };
 
 /**
@@ -252,6 +351,11 @@ export type RemoveUserDefinedRecipeIngredientPayload = {
 
 export type RemoveUserDefinedRecipeIngredientInput = {
   payload: RemoveUserDefinedRecipeIngredientPayload;
+};
+
+/** Response of `delete-selling-group-component`. */
+export type RemoveUserDefinedRecipeIngredientResult = {
+  cart?: SellingGroupCartSnapshot;
 };
 
 /**
@@ -278,6 +382,29 @@ export type DeleteUserDefinedRecipeNoteInput = {
 };
 
 /**
+ * Metadata of a suggested image on `sellable-image-selection-page-root`, taken from
+ * the page's `ImageSelectionState.referenceImagesById`.
+ */
+export type UserDefinedRecipeReferenceImage = {
+  id: string;
+  /** Image namespace, e.g. `recipes`. */
+  namespace: string;
+  primary_image: boolean;
+  rank_value: number;
+  /** The Picnic recipe the image belongs to. */
+  sellable_id: string;
+  type: string;
+};
+
+/** A suggested image the user can pick with `selectUserDefinedRecipeImage`. */
+export type UserDefinedRecipeSuggestedImage = {
+  /** The image id, which is also the `selected_image_id` to send. */
+  id: string;
+  /** The metadata to send along as `reference_image`. */
+  referenceImage: UserDefinedRecipeReferenceImage;
+};
+
+/**
  * Payload for `POST /pages/task/select-sellable-image`.
  * Extracted from `sellable-image-selection-page-root?origin=RECIPE_DETAILS&sellable_id=<id>`.
  */
@@ -286,7 +413,7 @@ export type SelectUserDefinedRecipeImagePayload = {
   /** The id of a suggested image or of a customer-uploaded image. */
   selected_image_id?: string;
   /** Reference image metadata for suggested images, as provided by the image selection page. */
-  reference_image?: unknown;
+  reference_image?: UserDefinedRecipeReferenceImage;
 };
 
 export type SelectUserDefinedRecipeImageInput = {
@@ -299,7 +426,6 @@ export type UserDefinedRecipeImageUpload = {
   data: Blob | ArrayBuffer | Uint8Array;
   /** MIME type, e.g. `image/jpeg`. The app normalises `jpg` to `jpeg`. */
   type?: string;
-  filename?: string;
 };
 
 /** Response of `POST /user-defined-sellable/{sellableId}` (raw image body upload). */
