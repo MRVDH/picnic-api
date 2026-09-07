@@ -471,12 +471,13 @@ export class RecipeService {
     const type = (image.type ?? "image/jpeg").replace(/jpg/gi, "jpeg");
     const body: Blob | Uint8Array<ArrayBuffer> = image.data instanceof Blob ? image.data : new Uint8Array(image.data as ArrayBuffer | Uint8Array);
 
-    return this.http.sendRawRequest<UserDefinedRecipeImageUploadResult>(
+    return this.http.sendRequest<Blob | Uint8Array, UserDefinedRecipeImageUploadResult>(
       "POST",
       `/user-defined-sellable/${encodeURIComponent(recipeId)}`,
       body,
-      type,
       true,
+      false,
+      type,
     );
   }
 
