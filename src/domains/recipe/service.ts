@@ -1,6 +1,8 @@
 import type HttpClient from "../../http-client";
 import type {
   RecipeSavingInput,
+  RecipeSummary,
+  RecipeDetails,
   AssignSellingGroupInput,
   UpdateSellingGroupPortionsInput,
   RemoveSellingGroupInput,
@@ -33,7 +35,8 @@ import type {
   UserDefinedRecipeImageUploadResult,
 } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
-import { extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
+import { CatalogService } from "../catalog/service";
+import { extractRecipes, extractRecipeDetails, extractIngredientProductName, normalizeRecipeQuantities, extractSuggestedImages } from "./helpers";
 
 export class RecipeService {
   constructor(private http: HttpClient) {}
@@ -73,6 +76,55 @@ export class RecipeService {
    */
   getRecipeDetailsPage(recipeId: string): Promise<FusionPage> {
     return this.http.sendRequest<null, FusionPage>("GET", `/pages/selling-group-details-page?selling_group_id=${encodeURIComponent(recipeId)}`, null, true);
+  }
+
+  /**
+   * Lists saved recipes from the cookbook's SAVED_RECIPES segment.
+   * Returns the same summary shape as {@link getUserDefinedRecipes}; use
+   * {@link getRecipe} for structured ingredients and other details.
+   * Parses dynamic Fusion/PML tiles and may need updates if Picnic changes them.
+   */
+  async getSavedRecipes(): Promise<RecipeSummary[]> {
+    return extractRecipes(await this.getCookbookPage(), "SAVED_RECIPES");
+  }
+
+  /**
+   * Returns structured details for a catalog or user-defined recipe.
+   * Ingredient quantities are selling-unit counts for the default `portions`.
+   * If the initial page renders different portions, fetches the content wrapper
+   * at the defaults to obtain quantities without approximating package rounding.
+   * Ingredient names come from recipe tiles, with product-page GETs as needed;
+   * names remain null if neither page supplies them.
+   *
+   * Parses dynamic Fusion/PML pages. Use {@link getRecipeDetailsPage} for the
+   * raw page, including catalog cooking steps, cooking time, and pricing.
+   * The backend may briefly fail to render details immediately after a mutation.
+   * Deleted recipes fail persistently, so bound any retries.
+   * @param {string} recipeId The selling group id of either kind of recipe.
+   */
+  async getRecipe(recipeId: string): Promise<RecipeDetails> {
+    let details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId));
+    if (details.portions > 0 && details.displayedPortions !== details.portions) {
+      const wrapper = await this.http.sendRequest<null, unknown>(
+        "GET",
+        `/pages/selling-group-content-wrapper?portions=${details.portions}&selling_group_creator_type=${encodeURIComponent(details.creatorType)}&selling_group_id=${encodeURIComponent(recipeId)}`,
+        null,
+        true,
+      );
+      details = normalizeRecipeQuantities(details, wrapper);
+    }
+
+    const catalog = new CatalogService(this.http);
+    const names = new Map<string, string | null>();
+    for (const ingredient of details.ingredients) {
+      if (ingredient.name !== null || !ingredient.sellingUnitId) continue;
+      if (!names.has(ingredient.sellingUnitId)) {
+        const productPage = await catalog.getProductDetailsPage(ingredient.sellingUnitId);
+        names.set(ingredient.sellingUnitId, extractIngredientProductName(productPage));
+      }
+      ingredient.name = names.get(ingredient.sellingUnitId) ?? null;
+    }
+    return details;
   }
 
   /**
@@ -182,46 +234,20 @@ export class RecipeService {
   /**
    * Lists the user's own (user defined) recipes.
    * Fetches the cookbook page and extracts the tiles of the `USER_DEFINED_RECIPES`
-   * ("Eigen recepten") segment.
+   * ("Eigen recepten") segment, with the same summary shape as {@link getSavedRecipes}.
    */
   async getUserDefinedRecipes(): Promise<UserDefinedRecipeSummary[]> {
-    const page = await this.getCookbookPage();
-    return extractUserDefinedRecipes(page);
+    return extractRecipes(await this.getCookbookPage(), "USER_DEFINED_RECIPES");
   }
 
   /**
-   * Returns structured details (name, portions, ingredients, note) of a user
-   * defined recipe. Fetches {@link getRecipeDetailsPage} and extracts the data.
-   *
-   * The details page renders the recipe at a multiple of its default portions
-   * with scaled quantities. When that happens, the ingredient list sub-page
-   * (`selling-group-content-wrapper`) is fetched once more at the default
-   * portions so that `ingredients[].quantity` reflects the stored values.
-   *
-   * Note: the page may answer `Error rendering page_id='selling-group-details-page'`
-   * for a second or so right after a mutation; retry in that case. A deleted recipe
-   * answers with this error on every request, so bound your retries.
-   * @param {string} recipeId The recipe id (a `selling_group_id`, 32 hex chars).
+   * Returns the same structured details as {@link getRecipe}, including ingredient
+   * names and quantities for the default portions. Kept as a convenience method
+   * for callers working with the user's own recipes.
+   * @param {string} recipeId The user-defined recipe's selling group id.
    */
-  async getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails> {
-    const page = await this.getRecipeDetailsPage(recipeId);
-    const details = extractUserDefinedRecipeDetails(recipeId, page);
-
-    if (details.portions > 0 && details.displayedPortions !== details.portions) {
-      const wrapper = await this.http.sendRequest<null, unknown>(
-        "GET",
-        `/pages/selling-group-content-wrapper?portions=${details.portions}&selling_group_creator_type=${encodeURIComponent(details.creatorType)}&selling_group_id=${encodeURIComponent(recipeId)}`,
-        null,
-        true,
-      );
-      const quantities = extractIngredientQuantities(wrapper);
-      for (const ingredient of details.ingredients) {
-        const amount = quantities[ingredient.ingredientId]?.[ingredient.sellingUnitId];
-        if (typeof amount === "number") ingredient.quantity = amount;
-      }
-    }
-
-    return details;
+  getUserDefinedRecipe(recipeId: string): Promise<UserDefinedRecipeDetails> {
+    return this.getRecipe(recipeId);
   }
 
   /**

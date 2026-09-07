@@ -93,6 +93,33 @@ The client exposes the following domain services, each grouping a set of related
 
 Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
 
+Recipe lists and details use shared structured types for catalog and user-defined recipes:
+
+```ts
+const savedRecipes = await picnicClient.recipe.getSavedRecipes(); // RecipeSummary[]
+const ownRecipes = await picnicClient.recipe.getUserDefinedRecipes(); // RecipeSummary[]
+
+if (savedRecipes.length) {
+  const recipe = await picnicClient.recipe.getRecipe(savedRecipes[0].id); // RecipeDetails
+}
+if (ownRecipes.length) {
+  const recipe = await picnicClient.recipe.getUserDefinedRecipe(ownRecipes[0].id); // RecipeDetails
+}
+```
+
+Both detail methods return names, default and displayed portions, creator/ownership and
+saved status, image type, ingredients, and an optional HTML note. Each ingredient includes
+its name, component and product IDs, quantity, backend status, swap type, and selection
+state. Quantities are product-unit counts for the default `portions`, not weights or
+volumes. Names are nullable when unavailable; discontinued ingredients can have an empty
+product ID. The `UserDefinedRecipe*` response type names alias the shared types.
+
+These methods parse Picnic's Fusion/PML pages and may fetch additional pages for default
+portion quantities or ingredient names. Parsing may need updating when Picnic changes
+its page structure. `getCookbookPage()` and `getRecipeDetailsPage(id)` still return raw
+pages, including catalog cooking steps, cooking time, and pricing that are not extracted
+into `RecipeDetails`.
+
 ## Contributing
 
 Contributions are welcome! Please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file for guidelines.
