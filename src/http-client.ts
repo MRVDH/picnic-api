@@ -19,7 +19,7 @@ export default class HttpClient {
     this.authKey = options?.authKey || null;
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
     this.deviceId = options?.deviceId || "3C417201548B2E3B";
-    this.agent = options?.agent || "30100;1.236.1-15553;";
+    this.agent = options?.agent || "30100;1.246.1-15599;";
   }
 
   get baseHeaders(): Record<string, string> {
@@ -48,6 +48,9 @@ export default class HttpClient {
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
    * @param {boolean} [includePicnicHeaders=false] Whether to include x-picnic-agent and x-picnic-did headers.
    * @param {boolean} [isImageRequest=false] When true, returns an ArrayBuffer instead of JSON.
+   *
+   * Responses served as a React Server Components payload (`text/x-component`) are
+   * returned as the raw text instead of being parsed as JSON.
    * @param {string} [contentType="application/octet-stream"] The MIME type of a raw (non-JSON) `data` body, e.g. `image/jpeg`.
    */
   async sendRequest<TRequestData, TResponseData>(
@@ -96,6 +99,10 @@ export default class HttpClient {
 
     if (isImageRequest) {
       return response.arrayBuffer() as Promise<TResponseData>;
+    }
+
+    if (response.headers?.get("content-type")?.includes("text/x-component")) {
+      return response.text() as Promise<TResponseData>;
     }
 
     if (response.body !== null) {

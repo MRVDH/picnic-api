@@ -12,6 +12,7 @@ import { ContentService } from "./domains/content/service";
 import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
+import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
 declare const _default: {
     new (options?: ApiConfig): {
         readonly app: AppService;
@@ -42,6 +43,9 @@ declare const _default: {
      */
     readonly CheckoutIssueError: typeof CheckoutIssueError;
     readonly isCheckoutIssueError: typeof isCheckoutIssueError;
+    /** Error thrown when a page is served in a different format (Fusion or RSC) than the method expects. */
+    readonly UnexpectedPageFormatError: typeof UnexpectedPageFormatError;
+    readonly isUnexpectedPageFormatError: typeof isUnexpectedPageFormatError;
 };
 export = _default;
 //# sourceMappingURL=index.d.ts.map
