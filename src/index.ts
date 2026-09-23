@@ -14,6 +14,7 @@ import { ContentService } from "./domains/content/service";
 import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
+import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
 
 export = class PicnicClient extends HttpClient {
   /**
@@ -22,6 +23,9 @@ export = class PicnicClient extends HttpClient {
    */
   static readonly CheckoutIssueError = CheckoutIssueError;
   static readonly isCheckoutIssueError = isCheckoutIssueError;
+  /** Error thrown when a page is served in a different format (Fusion or RSC) than the method expects. */
+  static readonly UnexpectedPageFormatError = UnexpectedPageFormatError;
+  static readonly isUnexpectedPageFormatError = isUnexpectedPageFormatError;
 
   public readonly app: AppService;
   public readonly auth: AuthService;

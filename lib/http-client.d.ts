@@ -23,6 +23,9 @@ export default class HttpClient {
      * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
      * @param {boolean} [includePicnicHeaders=false] Whether to include x-picnic-agent and x-picnic-did headers.
      * @param {boolean} [isImageRequest=false] When true, returns an ArrayBuffer instead of JSON.
+     *
+     * Responses served as a React Server Components payload (`text/x-component`) are
+     * returned as the raw text instead of being parsed as JSON.
      * @param {string} [contentType="application/octet-stream"] The MIME type of a raw (non-JSON) `data` body, e.g. `image/jpeg`.
      */
     sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data?: TRequestData | null, includePicnicHeaders?: boolean, isImageRequest?: boolean, contentType?: string): Promise<TResponseData>;
