@@ -1,6 +1,9 @@
 # Packages
 node_modules/
 
+# Build output (built and published by the publish workflow)
+lib/
+
 # TypeScript cache
 *.tsbuildinfo
 
