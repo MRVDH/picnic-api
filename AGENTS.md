@@ -52,6 +52,7 @@ npx ts-node playground.ts      # Run the playground file
 - If you get a request to update a certain route, check the decompiled app for the latest implementation of that route. The decompiled app is located in the picnic-app folder. Besides that, also call the function using the playground to compare the actual API response with your findings.
 - Do not call mutation routes (like updates, add, delete, create, etc.) without explicit permission.
 - Test files do not need to run unless explicitly mentioned. Use the playground.ts file for testing instead. You can ignore the test files for now, but they will be used in the future to ensure the API wrapper is working correctly.
+- Tests that call the live API go in `*.live.test.ts` files. The publish workflow runs with `CI` set, which skips them, because it has no auth key. Tests that mock `fetch` use the regular `*.test.ts` name.
 - Check if the comments above the function should be updated or not. If the comments are outdated, update them based on the latest implementation.
 - Create a new domain folder (with `service.ts` and `types.ts`) if necessary, and register the new service in `src/index.ts`.
 - If requests fail and you are unable to solve it, clearly indicate this in your report and provide the error message(s).
