@@ -55,12 +55,6 @@ await picnicClient.cart.addProductsToCart([
   { productId: "s11295810", quantity: 2 },
   { productId: "s10000123", quantity: 1 },
 ]);
-
-// Get available delivery slots
-const slots = await picnicClient.cart.getDeliverySlots();
-
-// Get details of a specific delivery
-const delivery = await picnicClient.delivery.getDelivery("delivery-id");
 ```
 
 ### Pages (Fusion and RSC)

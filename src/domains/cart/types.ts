@@ -200,6 +200,40 @@ export type GetDeliverySlotsResult = {
   selected_slot: SelectedSlot;
 };
 
+/** A delivery slot as returned by `cart.getDeliverySlotOverview`. */
+export type DeliverySlotSummary = {
+  slotId: string;
+  windowStart: string;
+  windowEnd: string;
+  cutOffTime: string;
+  isAvailable: boolean;
+  isSelected: boolean;
+  /**
+   * True for the longer slot when two slots start at the same time (e.g. 120 instead of 60 minutes), which Picnic
+   * offers as the green choice. The API has no field for this, so it is derived from the windows.
+   */
+  isGreenChoice: boolean;
+  /** Null when the API sends no minimum order value for the slot. */
+  minimumOrderValue: number | null;
+};
+
+export type SelectedSlotSummary = {
+  slotId: string;
+  /** E.g. "IMPLICIT" | "ACTIVE" | "EXPLICIT" */
+  state: string;
+  /** Null when the selected slot is not in the list of delivery slots. */
+  windowStart: string | null;
+  windowEnd: string | null;
+  /** False when Picnic preselected the slot (state "IMPLICIT"), true when the user picked it. */
+  isExplicitSelection: boolean;
+};
+
+export type DeliverySlotOverview = {
+  /** In the order of the API response. */
+  slots: DeliverySlotSummary[];
+  selectedSlot: SelectedSlotSummary | null;
+};
+
 export type SetDeliverySlotInput = {
   slot_id: string;
 };

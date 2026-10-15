@@ -8,6 +8,7 @@ import {
   CheckoutStartInput,
   CheckoutStartResult,
   CheckoutStatusResult,
+  DeliverySlotOverview,
   GetDeliverySlotsResult,
   InitiatePaymentInput,
   InitiatePaymentResult,
@@ -17,6 +18,7 @@ import {
   SetDeliverySlotInput,
   UserSlotMinimumOrderValue,
 } from "./types";
+import { extractDeliverySlots } from "./helpers";
 
 export class CartService {
   constructor(private http: HttpClient) {}
@@ -80,6 +82,14 @@ export class CartService {
    */
   getDeliverySlots(): Promise<GetDeliverySlotsResult> {
     return this.http.sendRequest<any, GetDeliverySlotsResult>("GET", `/cart/delivery_slots`);
+  }
+
+  /**
+   * Returns all delivery slots with camelCase fields and a green-choice flag, and the selected slot with its window.
+   * This is a convenience wrapper around {@link getDeliverySlots}.
+   */
+  async getDeliverySlotOverview(): Promise<DeliverySlotOverview> {
+    return extractDeliverySlots(await this.getDeliverySlots());
   }
 
   /**
