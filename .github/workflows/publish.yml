@@ -1,0 +1,36 @@
+name: Publish
+
+# Stages a new npm version when a GitHub release is published. The release tag must match the version
+# in package.json, e.g. v4.11.0 for 4.11.0.
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false # no cache in release builds
+
+      - name: Check that the tag matches package.json
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match package.json version ($expected)."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      # Staged: the version goes live after a maintainer approves it on npmjs.com with 2FA.
+      - run: npm stage publish
