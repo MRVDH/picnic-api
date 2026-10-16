@@ -15,8 +15,9 @@ import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
+import * as PublicTypes from "./types/public";
 
-export = class PicnicClient extends HttpClient {
+class PicnicClient extends HttpClient {
   /**
    * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).
    * Exposed so consumers can catch it by type without deep-importing internals.
@@ -64,4 +65,11 @@ export = class PicnicClient extends HttpClient {
     this.userOnboarding = new UserOnboardingService(this);
     this.recipe = new RecipeService(this);
   }
-};
+}
+
+declare namespace PicnicClient {
+  /** Public types by domain, e.g. PicnicClient.Types.delivery.DeliverySummary. */
+  export import Types = PublicTypes;
+}
+
+export = PicnicClient;
