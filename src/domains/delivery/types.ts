@@ -54,6 +54,23 @@ export type DeliveryDetail = Omit<Delivery, "orders"> & {
   parcels: any[];
 };
 
+// ─── Delivery Summary ─────────────────────────────────────────────────────────
+
+/**
+ * One entry of the deliveries list, as returned by getDeliverySummaries().
+ * Totals are summed over the delivery's orders, in the same unit as Picnic's raw prices.
+ */
+export type DeliverySummary = {
+  id: string;
+  status: DeliveryStatus;
+  creationTime: string;
+  windowStart: string | null;
+  windowEnd: string | null;
+  orderCount: number;
+  totalPrice: number;
+  itemCount: number;
+};
+
 // ─── Delivery Tracking ────────────────────────────────────────────────────────
 
 export type Vehicle = {
