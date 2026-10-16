@@ -7,6 +7,7 @@ import {
   CheckoutConfirmation,
   CheckoutStartInput,
   CheckoutStartResult,
+  CartFooter,
   CheckoutStatusResult,
   DeliverySlotOverview,
   GetDeliverySlotsResult,
@@ -19,9 +20,25 @@ import {
   UserSlotMinimumOrderValue,
 } from "./types";
 import { extractDeliverySlots } from "./helpers";
+import { extractCartFooter } from "./footer-helpers";
+import { UnexpectedPageFormatError } from "../../errors/page-format-error";
+
+/** The app's basket footer page. */
+const BASKET_FOOTER_PAGE_ID = "basket-footer-section-root";
 
 export class CartService {
   constructor(private http: HttpClient) {}
+
+  /**
+   * Returns the basket footer: the loyalty points line and the "Niets vergeten?" recommendation tiles.
+   * The rest of the basket comes from {@link getCart}.
+   * Throws {@link UnexpectedPageFormatError} when Picnic serves the page as an RSC payload.
+   */
+  async getBasketFooter(): Promise<CartFooter> {
+    const page = await this.http.sendRequest<null, unknown>("GET", `/pages/${BASKET_FOOTER_PAGE_ID}`, null, true);
+    if (typeof page === "string") throw new UnexpectedPageFormatError(BASKET_FOOTER_PAGE_ID, "rsc");
+    return extractCartFooter(page);
+  }
 
   /**
    * Returns the cart of the current user.
