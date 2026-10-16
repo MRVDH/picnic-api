@@ -234,6 +234,36 @@ export type DeliverySlotOverview = {
   selectedSlot: SelectedSlotSummary | null;
 };
 
+// ─── Basket footer ────────────────────────────────────────────────────────────
+
+/** A text from the basket footer, with its color when Picnic sets one. */
+export type CartFooterText = {
+  text: string;
+  color: string | null;
+};
+
+/** A product tile in the "Niets vergeten?" row. */
+export type CartRecommendationTile = {
+  productId: string;
+  imageId: string;
+  backgroundColor: string | null;
+  /** Whether the tile shows the promotion marker. */
+  hasPromo: boolean;
+};
+
+export type CartRecommendations = {
+  title: string;
+  /** The page that lists all recommendations. */
+  pageId: string;
+  tiles: CartRecommendationTile[];
+};
+
+/** The basket footer. Loyalty points and recommendations are null when Picnic omits them. */
+export type CartFooter = {
+  loyaltyPoints: { label: CartFooterText; value: CartFooterText } | null;
+  recommendations: CartRecommendations | null;
+};
+
 export type SetDeliverySlotInput = {
   slot_id: string;
 };
