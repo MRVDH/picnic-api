@@ -1,16 +1,28 @@
 import type HttpClient from "../../http-client";
-import { Delivery, DeliveryDetail, DeliveryPosition, DeliveryScenario } from "./types";
+import { Delivery, DeliveryDetail, DeliveryPosition, DeliveryScenario, DeliverySummary } from "./types";
 import { DeliveryStatus } from "../cart/types";
+import { extractDeliverySummaries } from "./helpers";
 
 export class DeliveryService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Returns all past and current deliveries.
+   * Returns all past and current deliveries, as returned by the API.
+   * @deprecated use getDeliverySummaries, which returns typed, summed entries.
    * @param {DeliveryStatus[]} [filter=[]] An array of delivery statuses to filter on.
    */
   getDeliveries(filter: DeliveryStatus[] = []): Promise<Delivery[]> {
     return this.http.sendRequest<any, Delivery[]>("POST", `/deliveries/summary`, filter);
+  }
+
+  /**
+   * Returns all past and current deliveries as summaries, newest first.
+   * Totals are summed over each delivery's orders.
+   * @param {DeliveryStatus[]} [filter=[]] An array of delivery statuses to filter on.
+   */
+  async getDeliverySummaries(filter: DeliveryStatus[] = []): Promise<DeliverySummary[]> {
+    const raw = await this.http.sendRequest<DeliveryStatus[], unknown>("POST", `/deliveries/summary`, filter);
+    return extractDeliverySummaries(raw);
   }
 
   /**
