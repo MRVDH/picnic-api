@@ -1,3 +1,6 @@
+import type { PriceRange } from "../../types/fusion";
+import type { NutritionRow } from "../catalog/types";
+
 // ─── Recipe Saving types ─────────────────────────────────────────────────────
 
 /**
@@ -110,6 +113,44 @@ export type RecipeIngredient = {
   swapType: SellingGroupSwapType | null;
   /** Whether selected by default when adding the recipe to the basket. */
   checked: boolean;
+  /**
+   * "CORE" for the recipe's own ingredients, "CORE_STOCKABLE" for ones that keep (e.g. stock cubes),
+   * "CUPBOARD" for staples from the user's own kitchen. The last two aren't `checked` by default.
+   */
+  type: "CORE" | "CORE_STOCKABLE" | "CUPBOARD" | string;
+  /** Whether the product can be ordered. */
+  isAvailable: boolean;
+  /** Why the product can't be ordered, as the tile shows it (e.g. "Morgen niet op voorraad"), or null. */
+  unavailableReason: string | null;
+  /** The product's brand as shown on the ingredient tile, or null. */
+  brand: string | null;
+  /** The product image id, or null when the tile shows another product of the ingredient. */
+  imageId: string | null;
+  /** The package size, e.g. "150 gram", or null when the tile shows another product of the ingredient. */
+  unitQuantity: string | null;
+  /** The amount the recipe needs as the app shows it, e.g. "(150 g nodig)", or null. */
+  neededText: string | null;
+  /** Price in cents, or null when the page has none. */
+  price: number | null;
+  /** The regular price in cents when the product is discounted, or null. */
+  originalPrice: number | null;
+  /** Price tiers, or null when the price doesn't depend on the quantity. */
+  priceRanges: PriceRange[] | null;
+  /** The promotion label on the tile, e.g. "Family", or null. */
+  promotionLabel: string | null;
+  allergens: RecipeAllergens;
+};
+
+/** Allergens as the app names them (e.g. "Gluten"). */
+export type RecipeAllergens = {
+  contains: string[];
+  mayContain: string[];
+};
+
+/** A preparation time, e.g. `{ label: "Totaal", value: "20 min" }`. */
+export type RecipeTime = {
+  label: string;
+  value: string;
 };
 
 /** Shared structured details for catalog and user-defined recipes. */
@@ -128,6 +169,23 @@ export type RecipeDetails = RecipeSummary & {
   ingredients: RecipeIngredient[];
   /** Free-text note as HTML, or null; not the catalog recipe's cooking steps. */
   note: string | null;
+  /** The label above the name, e.g. "Alles uit één pan", or null. */
+  tag: string | null;
+  description: string | null;
+  /** The times shown below the heading, e.g. the total time. */
+  times: RecipeTime[];
+  /** The first time in minutes, or null when there is none. */
+  cookingTimeMinutes: number | null;
+  /** The preparation steps as markdown (bold for ingredients); empty for user-defined recipes. */
+  steps: string[];
+  /** The portion count the steps are written for, or null. */
+  stepsPortions: number | null;
+  /** The notice shown when the steps are written for another portion count, or null. */
+  stepsWarning: string | null;
+  /** Nutrition per portion of the original recipe. */
+  nutritionRows: NutritionRow[];
+  /** The allergens of the ingredients that are selected by default (`checked`). */
+  allergens: RecipeAllergens;
 };
 
 /** Optional extra requests when retrieving structured recipe details. */

@@ -2,7 +2,8 @@ import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
 import { ProductDetails, SearchOptions, SearchResults, SearchSuggestion } from "./types";
 import { FusionPage } from "../../types/fusion";
-import { extractProductDetails, extractSearchResults } from "./helpers";
+import { extractSearchResults } from "./helpers";
+import { extractProductDetails } from "./product-details";
 import type { RscPageClient } from "../app/rsc-client";
 import { decodeRscValue, findRscElementProps } from "../app/rsc";
 
@@ -85,6 +86,7 @@ export class CatalogService {
    * for a stable alternative.
    *
    * @param {string} productId The product ID to fetch details for.
+   * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.
    */
   async getProductDetails(productId: string): Promise<ProductDetails> {
     const page = await this.getProductDetailsPage(productId);

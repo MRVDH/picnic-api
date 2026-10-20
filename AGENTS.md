@@ -11,6 +11,9 @@ src/
   types/
     common.ts           # Shared types (ApiConfig, CountryCode, etc.)
     fusion.ts           # Types for Fusion/PML page responses
+  helpers/
+    pml.ts              # Shared readers for Fusion/PML trees (find nodes, texts, prices, badges, tables)
+  errors/               # Error classes exposed on PicnicClient
   domains/
     app/                # Bootstrap data, pages, announcements
     auth/               # Login/authentication
@@ -29,7 +32,7 @@ src/
 Each domain folder contains:
 - `service.ts` — Service class with methods that call API endpoints via `this.http.sendRequest(...)`. Should only contain route definitions and minimal glue logic.
 - `types.ts` — TypeScript interfaces/types for the domain's request and response data.
-- `helpers.ts` *(optional)* — Pure helper/extraction functions used by the service (e.g. parsing Fusion page responses into typed models). Created when a service needs non-trivial data transformation logic that would clutter the service file.
+- `helpers.ts` *(optional)* — Pure helper/extraction functions used by the service (e.g. parsing Fusion page responses into typed models). Created when a service needs non-trivial data transformation logic that would clutter the service file. Read pages by their structure (component ids, layout, `textType`, state boundaries) with `src/helpers/pml.ts`, not by matching the text in them: texts differ per country and a text pattern also matches other products on the page.
 
 ## Initial Setup
 

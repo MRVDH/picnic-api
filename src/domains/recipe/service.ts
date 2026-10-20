@@ -97,32 +97,34 @@ export class RecipeService {
 
   /**
    * Returns structured catalog or user-defined recipe details at the requested
-   * portions, or the stored default when omitted. If the app initially renders a
-   * different count, refetches the full page so names, product ids and quantities
-   * come from the same response. Products may change with the portion count.
-   * `defaultPortions` retains the stored default; `portions` describes the result.
+   * portions, or, when omitted, at the count Picnic renders the page with (as the
+   * app shows it). If the page renders a different count than requested, refetches
+   * it once so names, product ids and quantities come from the same response.
+   * Products may change with the portion count. `defaultPortions` is the recipe's
+   * stored count (for catalog recipes, the portions of the original recipe);
+   * `portions` describes the result.
    *
-   * Ingredient names come from recipe tiles. Set `resolveIngredientNames` to true
-   * to fetch missing names from product pages concurrently; otherwise they remain
-   * null. These extra requests can fail the call. Quantities are selling-unit
-   * counts, not weights or volumes. The image id includes its namespace.
+   * Includes the steps, times, nutrition and allergens, and per ingredient the
+   * product, prices and allergens shown on the page. Ingredient names come from
+   * recipe tiles. Set `resolveIngredientNames` to true to fetch missing names from
+   * product pages concurrently; otherwise they remain null. These extra requests can
+   * fail the call. Quantities are selling-unit counts, not weights or volumes. The
+   * image id includes its namespace.
    *
    * Parses dynamic Fusion/PML and may need updates when Picnic changes its pages.
-   * Use {@link getRecipeDetailsPage} for raw cooking steps, time and pricing.
    * The backend can briefly fail after mutations; deleted recipes fail persistently.
    * Some recipes reject particular portion counts with a page-rendering error.
    * @param {string} recipeId The selling group id of either kind of recipe.
-   * @param {number} [portions] Positive integer portion count; defaults to the stored count.
+   * @param {number} [portions] Positive integer portion count; defaults to the count Picnic renders.
    * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
    */
   async getRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<RecipeDetails> {
     let details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, portions));
-    const requestedPortions = portions ?? details.defaultPortions;
-    if (details.portions !== requestedPortions) {
-      details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, requestedPortions));
-    }
-    if (details.portions !== requestedPortions) {
-      throw new Error(`Recipe ${recipeId} rendered ${details.portions} portions instead of ${requestedPortions}`);
+    if (portions !== undefined && details.portions !== portions) {
+      details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, portions));
+      if (details.portions !== portions) {
+        throw new Error(`Recipe ${recipeId} rendered ${details.portions} portions instead of ${portions}`);
+      }
     }
 
     if (options.resolveIngredientNames) {
@@ -259,7 +261,7 @@ export class RecipeService {
    * names and quantities for the requested or default portions. Extra product-name
    * requests are opt-in, as with getRecipe.
    * @param {string} recipeId The user-defined recipe's selling group id.
-   * @param {number} [portions] Requested count; defaults to the stored count.
+   * @param {number} [portions] Requested count; defaults to the count Picnic renders.
    * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
    */
   getUserDefinedRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<UserDefinedRecipeDetails> {
