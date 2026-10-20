@@ -37,6 +37,7 @@ import type {
 } from "./types";
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 import { CatalogService } from "../catalog/service";
+import { RscPageClient } from "../app/rsc-client";
 import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./helpers";
 
 export class RecipeService {
@@ -125,7 +126,7 @@ export class RecipeService {
     }
 
     if (options.resolveIngredientNames) {
-      const catalog = new CatalogService(this.http);
+      const catalog = new CatalogService(this.http, new RscPageClient(this.http));
       const names = new Map<string, Promise<string | null>>();
       await Promise.all(details.ingredients.map(async (ingredient) => {
         if (ingredient.name !== null || !ingredient.sellingUnitId) return;

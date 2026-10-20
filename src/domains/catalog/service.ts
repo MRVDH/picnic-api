@@ -1,20 +1,57 @@
-import { JSONPath } from "jsonpath-plus";
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { ProductDetails, SearchSuggestion } from "./types";
-import { FusionPage, SellingUnit } from "../../types/fusion";
-import { extractProductDetails } from "./helpers";
+import { ProductDetails, SearchOptions, SearchResults, SearchSuggestion } from "./types";
+import { FusionPage } from "../../types/fusion";
+import { extractProductDetails, extractSearchResults } from "./helpers";
+import type { RscPageClient } from "../app/rsc-client";
+import { decodeRscValue, findRscElementProps } from "../app/rsc";
+
+/** The search page component that holds the search parameters (search id, session id). */
+const SEARCH_PARAMS_MODULE = "search-page-params/search-page-params-provider.tsx";
+/** The search page component that loads the results with the `fetchSearchResults` action. */
+const SEARCH_RESULTS_MODULE = "search-page-content/results/index.tsx";
 
 export class CatalogService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private rsc: RscPageClient,
+  ) {}
 
   /**
-   * Searches for Picnic products matching the query.
+   * Searches for products and recipes the way the app does: it fetches the search page (an RSC
+   * page with the search parameters), then runs the page's `fetchSearchResults` server action,
+   * which returns the results.
    * @param {string} query The keywords to search for.
+   * @param {SearchOptions} [options] The sort order and the context the search is opened from.
    */
-  async search(query: string): Promise<SellingUnit[]> {
-    const rawResults = await this.http.sendRequest<any, any>("GET", `/pages/search-page-results?search_term=${encodeURIComponent(query)}`, null, true);
-    return JSONPath({ path: "$..sellingUnit", json: rawResults });
+  async getSearchResults(query: string, options: SearchOptions = {}): Promise<SearchResults> {
+    const contextParams = options.context === "MEALS" ? "&page_context=MEALS&is_recipe=true" : "";
+    const page = await this.rsc.getPage(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
+    const params = findRscElementProps(page, SEARCH_PARAMS_MODULE)[0]?.params as Record<string, unknown> | undefined;
+    if (!params) throw new Error("The search page has no search parameters");
+
+    const actionId = await this.rsc.findServerActionId(page, SEARCH_RESULTS_MODULE, "fetchSearchResults");
+    if (!actionId) throw new Error("The search page has no fetchSearchResults action");
+
+    // The same argument the app's results component passes (search-page-content/results/index.tsx).
+    const results = await this.rsc.runServerAction(
+      actionId,
+      [
+        {
+          dayOffset: params.dayOffset,
+          entityType: params.requestedEntityType,
+          pageNavigationContext: params.pageNavigationContext,
+          requestedSorting: options.sorting ?? "RELEVANCE",
+          searchId: params.searchId,
+          searchQuery: query,
+          searchSessionId: params.searchSessionId,
+        },
+      ],
+      page.version,
+    );
+    const root = decodeRscValue(results, results.rows["0"]);
+    if (!Array.isArray(root) || root[0] !== "$") throw new Error("Unexpected fetchSearchResults response");
+    return extractSearchResults((root[3] ?? {}) as Record<string, unknown>);
   }
 
   /**

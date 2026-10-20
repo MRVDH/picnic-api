@@ -148,6 +148,10 @@ export type TabIconType = "PRESET" | "BASE_64" | "UNSUPPORTED" | string;
 
 export type DynamicIconConfigType = "CART_VALUE" | "UNSUPPORTED" | string;
 
+/**
+ * Preset tab bar icons. App 1.251.0 knows only the `_2` variants, `CHECKMARK`, `TRANSFER_PLANNER`,
+ * `HEART`, `POT`, `SEARCH` and `UNSUPPORTED`; the others are kept because older app versions use them.
+ */
 export type PresetIcon =
   | "BASKET"
   | "BASKET_2"
@@ -167,6 +171,7 @@ export type PresetIcon =
   | "STOREFRONT_2"
   | "TROLLEY"
   | "TROLLEY_2"
+  | "TRANSFER_PLANNER"
   | "UNSUPPORTED"
   | string;
 
@@ -310,6 +315,12 @@ export type CartPreCheckoutUpsellConfig = {
 
 export type InAppFeatureConfig = {
   cart_pre_checkout_upsell_check?: CartPreCheckoutUpsellConfig | null;
+  /**
+   * Base URL of the JavaScript chunks for the client components of RSC pages, e.g.
+   * `https://pages-prod.nl.picnicinternational.com/store`. A chunk id from an RSC module
+   * reference is fetched from `<base>/<chunk id>.script.bundle`.
+   */
+  client_component_cdn_base_url?: string | null;
 };
 
 // ─── Bootstrap Response ───────────────────────────────────────────────────────

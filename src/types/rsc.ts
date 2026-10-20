@@ -18,6 +18,12 @@ export type RscPage = {
    * type like `"$L8"` points to row `"8"` here, e.g. `["./logical-components/sections/vertical-list/vertical-list.tsx", ...]`.
    */
   modules: Record<string, unknown>;
+  /**
+   * The `X-Page-Version` response header: the version of Picnic's page platform that rendered
+   * the page. The app sends it back with server actions run from the page. Absent for payloads
+   * that weren't fetched as a page, such as server action results.
+   */
+  version?: string;
 };
 
 /** The formats Picnic can serve a page in. */

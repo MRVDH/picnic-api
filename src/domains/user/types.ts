@@ -113,3 +113,32 @@ export type ProfileMenu = {
   highlights: any[];
   user: ProfileUser;
 };
+
+/** The profile tab of the app (the `profile-root` RSC page): the user and the account menu. */
+export type Profile = {
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  /** Whether the user has a Family membership. */
+  hasMembership: boolean;
+  /** The preferred delivery address, or `null` when the page has none. */
+  address: ProfileAddress | null;
+  /** The account menu entries in app order, e.g. orders, parcels, payment methods. */
+  menu: ProfileMenuEntry[];
+};
+
+export type ProfileAddress = {
+  street: string;
+  houseNumber: number | null;
+  /** E.g. "A", or `null` when the address has none. */
+  houseNumberExtension: string | null;
+  postcode: string;
+  city: string;
+};
+
+export type ProfileMenuEntry = {
+  /** Picnic's id for the entry, e.g. "orders" or "parcels". The page has no labels; the app has its own. */
+  id: string;
+  /** The app deeplink the entry opens, or `null`. */
+  deeplink: string | null;
+};

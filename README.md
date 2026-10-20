@@ -23,7 +23,7 @@ const picnicClient = new PicnicClient({
   apiVersion: "15",  // The API version (defaults to "15").
   url: "...",        // A custom base URL (defaults to https://storefront-prod.<countryCode>.picnicinternational.com/api/<apiVersion>).
   deviceId: "...",   // Custom device identifier for x-picnic-did header. (defaults to "3C417201548B2E3B")
-  agent: "...",      // Custom agent string for x-picnic-agent header. (defaults to "30100;1.246.1-15599;")
+  agent: "...",      // Custom agent string for x-picnic-agent header. (defaults to a recent app version)
 });
 ```
 
@@ -44,8 +44,8 @@ await picnicClient.auth.verify2FA("123456");
 ### Usage examples
 
 ```ts
-// Search for products
-const results = await picnicClient.catalog.search("Affligem blond");
+// Search for products and recipes
+const results = await picnicClient.catalog.getSearchResults("Affligem blond");
 
 // Add a product to the cart
 await picnicClient.cart.addProductToCart(11295810, 2);
@@ -59,24 +59,19 @@ await picnicClient.cart.addProductsToCart([
 
 ### Pages (Fusion and RSC)
 
-Most pages are Fusion pages (JSON), fetched with `app.getPage(pageId)`. Some pages are served as a
-[React Server Components](https://react.dev/reference/rsc/server-components) payload instead, depending
-on the page and the `agent` version. Fetch those with `app.getRscPage(pageId)`, which splits the
-payload into its JSON rows; the page data is in the props of the React elements (`["$", type, key, props]`).
-
-`getPage` throws an `UnexpectedPageFormatError` when a page comes back as RSC (and `getRscPage` when it
-comes back as a Fusion page), so you can fall back to the other method:
+Most pages are Fusion pages (JSON), fetched with `app.getPage(pageId)`. Some are served as
+[React Server Components](https://react.dev/reference/rsc/server-components) instead; fetch those with
+`app.getRscPageContent(pageId)`, which returns the page as a tree of its components. Each method throws an
+`UnexpectedPageFormatError` for the other format:
 
 ```ts
 try {
   const page = await picnicClient.app.getPage("home_page_root");
 } catch (error) {
   if (!PicnicClient.isUnexpectedPageFormatError(error)) throw error;
-  const rscPage = await picnicClient.app.getRscPage(error.pageId);
+  const content = await picnicClient.app.getRscPageContent(error.pageId);
 }
 ```
-
-Known RSC pages: `category-tree-root`, `profile-root` and `promo-group-deep-dive?promo_group_id=<id>`.
 
 ### Custom requests
 

@@ -1,12 +1,15 @@
 import type HttpClient from "../../http-client";
 import { UnexpectedPageFormatError } from "../../errors/page-format-error";
 import type { BootstrapData, FusionPage } from "../../types/fusion";
-import type { RscPage } from "../../types/rsc";
-import { parseRscPayload } from "./rsc";
-import { DeeplinkResolution } from "./types";
+import { parseRscPageContent } from "./rsc";
+import type { RscPageClient } from "./rsc-client";
+import { DeeplinkResolution, RscPageContent } from "./types";
 
 export class AppService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private rsc: RscPageClient,
+  ) {}
 
   /**
    * Returns the bootstrap data; tab bar configuration, third-party SDK configs, and feature flags.
@@ -20,8 +23,10 @@ export class AppService {
    *
    * Some pages are served as a React Server Components payload instead, depending on the
    * page and the `agent` version; for those this throws an `UnexpectedPageFormatError` and
-   * `getRscPage` should be used. Known RSC pages: `category-tree-root`, `profile-root` and
-   * `promo-group-deep-dive?promo_group_id=<id>`.
+   * `getRscPageContent` should be used. Known RSC pages: `category-tree-root`, `profile-root`,
+   * `promo-group-deep-dive?promo_group_id=<id>`, `search-page-results?search_term=<term>`,
+   * `search-page-index`, `meals-category-page`, `meals-category-group-page` and
+   * `unavailability-replacements-page-root`.
    *
    * Known page IDs (no params required):
    * - `home_page_root`
@@ -32,7 +37,6 @@ export class AppService {
    * - `empty-search-page-root`
    *
    * Pages that require query parameters (append after `?`):
-   * - `search-page-results?search_term=<term>`
    * - `product-details-page-root?id=<selling_unit_id>`
    * - `L1-category-page-root?category_id=<id>`
    * - `L2-category-page-root?category_id=<id>`
@@ -46,18 +50,15 @@ export class AppService {
   }
 
   /**
-   * Returns a page served as a React Server Components (RSC) payload, split into its rows.
-   * The page data is in the props of the React elements (`["$", type, key, props]`) in `rows`.
-   *
-   * Throws an `UnexpectedPageFormatError` when the page is served as a Fusion page instead;
-   * use `getPage` for those. Known RSC pages: `category-tree-root` (search tab shortcuts and
-   * categories), `profile-root` and `promo-group-deep-dive?promo_group_id=<id>`.
-   * @param {string} pageId The page ID, optionally with query params, e.g. `category-tree-root`.
+   * Returns the content of a page served as RSC as a tree of its components (see
+   * `RscPageContent`): props with references resolved, nested components as children, the
+   * theme colors as tokens and product tiles parsed. Throws an `UnexpectedPageFormatError` when
+   * the page is served as a Fusion page; use `getPage` for those. Known RSC pages are listed at
+   * {@link getPage}.
+   * @param {string} pageId The page ID, optionally with query params, e.g. `profile-root`.
    */
-  async getRscPage(pageId: string): Promise<RscPage> {
-    const page = await this.http.sendRequest<null, FusionPage | string>("GET", `/pages/${pageId}`, null, true);
-    if (typeof page !== "string") throw new UnexpectedPageFormatError(pageId, "fusion");
-    return parseRscPayload(page);
+  async getRscPageContent(pageId: string): Promise<RscPageContent> {
+    return parseRscPageContent(pageId, await this.rsc.getPage(pageId));
   }
 
   /**
