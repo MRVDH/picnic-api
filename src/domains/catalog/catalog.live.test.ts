@@ -7,12 +7,13 @@ beforeAll(() => {
 });
 
 describe("Catalog - search", () => {
-  it("should return results for a search query", async () => {
-    const results = await client.catalog.search("Affligem blond");
+  it("should return sections, sorting options and recipes from getSearchResults", async () => {
+    const results = await client.catalog.getSearchResults("melk");
 
-    expect(results.length).toBeGreaterThan(0);
-    expect(results[0].id).toContain("s1");
-    expect(results[0].name).toContain("Affligem blond");
+    expect(results.query).toBe("melk");
+    expect(results.products?.sections.some((section) => section.products.length > 0)).toBe(true);
+    expect(results.products?.sortingOptions.map((option) => option.name)).toContain("RELEVANCE");
+    expect(results.recipes.length).toBeGreaterThan(0);
   });
 });
 

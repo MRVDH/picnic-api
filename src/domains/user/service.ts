@@ -1,8 +1,13 @@
 import type HttpClient from "../../http-client";
-import { User, UserInfo, ProfileMenu, UpdateCheckInput, UpdateCheckResult } from "./types";
+import type { AppService } from "../app/service";
+import { extractProfile } from "./helpers";
+import { User, UserInfo, Profile, ProfileMenu, UpdateCheckInput, UpdateCheckResult } from "./types";
 
 export class UserService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private app: AppService,
+  ) {}
 
   /**
    * Gets the details of the current logged in user.
@@ -24,6 +29,14 @@ export class UserService {
    */
   getProfileMenu(): Promise<ProfileMenu> {
     return this.http.sendRequest<any, ProfileMenu>("GET", `/profile-menu?fetch_mgm=true`, null, true);
+  }
+
+  /**
+   * Returns the profile tab the way the app shows it: the user, the preferred address and the
+   * account menu, from the `profile-root` RSC page.
+   */
+  async getProfile(): Promise<Profile> {
+    return extractProfile(await this.app.getRscPageContent("profile-root"));
   }
 
   // TODO: Test route and add types
