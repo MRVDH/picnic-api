@@ -88,13 +88,20 @@ export type ProductTile = {
   unitPrice: string | null;
   /** Bundle price tiers, or `null` when the price doesn't depend on the quantity. */
   priceRanges: PriceRange[] | null;
-  /** The quantity texts, e.g. "1.5 liter", joined with ", ". */
+  /**
+   * The text suffixes after the name, joined with ", ": the quantity, sometimes followed by a note,
+   * e.g. "1.5 liter" or "9 rollen, In prijs verlaagd".
+   */
   unitQuantity: string;
   /** Labels on the tile, e.g. a promotion ("1+1 gratis"). */
   labels: ProductTileLabel[];
   /** Whether the product can't be ordered at the moment. */
   isUnavailable: boolean;
-  /** How often the customer ordered the product, when known. */
+  /**
+   * Picnic's `numberOfOrders` field. It has the same value on every tile of a response, so it is not
+   * how often the product was ordered (probably the customer's total number of orders). Products
+   * the customer bought before are in the section with type "RFY".
+   */
   numberOfOrders: number | null;
 };
 
