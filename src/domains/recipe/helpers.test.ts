@@ -24,7 +24,7 @@ describe("recipe helpers", () => {
 
     const result = extractUserDefinedRecipes(page({ children: [own("a".repeat(32), "Kaasplank"), saved, own("a".repeat(32), "Kaasplank"), own("b".repeat(32), "Hamburgers")] }));
 
-    expect(result).toEqual([
+    expect(result).toMatchObject([
       { id: "a".repeat(32), name: "Kaasplank", imageType: "GALLERY" },
       { id: "b".repeat(32), name: "Hamburgers", imageType: "GALLERY" },
     ]);
@@ -116,7 +116,7 @@ describe("recipe helpers", () => {
       ] },
       pml: { component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "#(#333333)**Pasta**#(#333333)" } },
     };
-    expect(extractRecipes(page({ children: [tile, tile] }), "SAVED_RECIPES")).toEqual([
+    expect(extractRecipes(page({ children: [tile, tile] }), "SAVED_RECIPES")).toMatchObject([
       { id: "saved", name: "Pasta", imageType: null },
     ]);
     expect(extractRecipes(page(tile), "USER_DEFINED_RECIPES")).toEqual([]);

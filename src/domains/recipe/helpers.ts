@@ -13,6 +13,7 @@ import {
   stripColorTags,
 } from "../../helpers/pml";
 import type { NutritionRow } from "../catalog/types";
+import { parseMinutes, readRecipeTile } from "./lists";
 import {
   RecipeAllergens,
   RecipeDetails,
@@ -68,10 +69,15 @@ export function extractRecipes(page: FusionPage, segmentType: RecipeSegment): Re
     const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
     if (typeof recipe?.recipe_id !== "string") return;
     const previous = byId.get(recipe.recipe_id);
+    const tile = readRecipeTile(obj);
     byId.set(recipe.recipe_id, {
       id: recipe.recipe_id,
-      name: previous?.name || recipe.recipe_name || textByType(obj.pml, "SUBTITLE1") || "",
+      name: previous?.name || recipe.recipe_name || tile?.name || "",
       imageType: previous?.imageType ?? recipe.recipe_image_type ?? recipe.image_type ?? null,
+      imageId: previous?.imageId ?? tile?.imageId ?? null,
+      subtitle: previous?.subtitle ?? tile?.subtitle ?? null,
+      tags: previous?.tags.length ? previous.tags : (tile?.tags ?? []),
+      cookingTimeMinutes: previous?.cookingTimeMinutes ?? tile?.cookingTimeMinutes ?? null,
     });
   });
   return [...byId.values()];
@@ -238,14 +244,6 @@ function extractTimes(page: unknown): RecipeTime[] {
     const texts = childrenOf(column).filter((c) => c.type === "RICH_TEXT" && typeof c.markdown === "string");
     return texts.length === 2 ? [{ value: cleanMarkdown(texts[0].markdown as string), label: cleanMarkdown(texts[1].markdown as string) }] : [];
   });
-}
-
-/** Minutes in a time such as "20 min", "1 uur 10 min" or "1 Std. 10 Min.", or null. */
-function parseMinutes(value: string): number | null {
-  const hours = value.match(/(\d+)\s*(?:uur|u|std|h)\b/i)?.[1];
-  const minutes = value.match(/(\d+)\s*min/i)?.[1];
-  if (hours === undefined && minutes === undefined) return null;
-  return Number(hours ?? 0) * 60 + Number(minutes ?? 0);
 }
 
 /** The heading: an optional tag, the name (a header container) and an optional description. */

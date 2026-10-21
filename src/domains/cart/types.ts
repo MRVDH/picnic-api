@@ -234,6 +234,119 @@ export type DeliverySlotOverview = {
   selectedSlot: SelectedSlotSummary | null;
 };
 
+// ─── Cart contents (parsed) ───────────────────────────────────────────────────
+
+/** A label on a cart line, e.g. "Family" or "1+1 gratis", with its colors when Picnic sets them. */
+export type CartLineLabel = {
+  text: string;
+  textColor: string | null;
+  backgroundColor: string | null;
+};
+
+/** A product offered instead of an unavailable one. */
+export type CartReplacement = {
+  id: string;
+  name: string;
+  imageId: string | null;
+  /** Price in cents. */
+  displayPrice: number;
+  unitQuantity: string;
+  maxCount: number;
+};
+
+/** A line of the cart: one product and how many of it. Decorator overrides are applied. */
+export type CartLineItem = {
+  /** The order line id. */
+  id: string;
+  /** The product (selling unit) id, e.g. s1001524. */
+  productId: string;
+  name: string;
+  /** The package size, e.g. "500 gram". */
+  unitQuantity: string;
+  imageId: string | null;
+  quantity: number;
+  maxCount: number;
+  /** The price of the line in cents, after discounts (e.g. a member price). */
+  displayPrice: number;
+  /** The price of the line before discounts, or null when there is no discount. */
+  originalPrice: number | null;
+  /** The color token of the price, e.g. "RED2", or null for the default. */
+  priceColor: string | null;
+  /** The product's price tiers, or null when its price doesn't depend on the quantity. */
+  priceRanges: PriceRange[] | null;
+  /** Promotion and other labels, e.g. "Family". */
+  labels: CartLineLabel[];
+  /** The unit price text (BASE_PRICE), e.g. "€3.98/kg", or null. */
+  basePrice: string | null;
+  /** How long the product stays fresh (FRESH_LABEL), or null. */
+  freshness: string | null;
+  /** Product characteristics, e.g. "ORGANIC" or "FROZEN". */
+  characteristics: string[];
+  /** True when the product can't be delivered in the selected slot. */
+  isUnavailable: boolean;
+  /** Why, as the app shows it, or null. */
+  unavailableReason: string | null;
+  replacements: CartReplacement[];
+  /** The deep link of the line's bundles button, which opens the product's bundle offers, or null. */
+  bundlesLink: string | null;
+  /** The recipe (selling group) the line was added for, or null. */
+  recipeId: string | null;
+};
+
+/** A recipe in the cart, from the basket sections. */
+export type CartRecipe = {
+  /** The recipe's selling group id. */
+  id: string;
+  title: string;
+  /** The line above the title, e.g. "2 porties", or null. */
+  preTitle: string | null;
+  /** The line below the title, e.g. "6 ingrediënten", or null. */
+  subtitle: string | null;
+  imageId: string | null;
+};
+
+/** The deposit for one kind of container. */
+export type CartDeposit = {
+  type: "BAG" | "DEFAULT" | string;
+  /** Deposit per container in cents. */
+  value: number;
+  count: number;
+  /** value × count. */
+  total: number;
+};
+
+/** A fee or credit line, e.g. a Picnic credit settlement. */
+export type CartFee = {
+  type: string;
+  name: string;
+  /** In cents; negative for a credit. */
+  amount: number;
+};
+
+/** The cart as the app's basket shows it. Amounts are in cents. */
+export type CartContents = {
+  /** The lines in the order of the response. */
+  items: CartLineItem[];
+  /** The number of products. */
+  totalCount: number;
+  /** The amount to pay, including deposits and fees (`checkout_total_price`). */
+  totalPrice: number;
+  /** The sum of the line discounts (original price minus display price). */
+  discount: number;
+  /** Savings from promotions, without the membership discount (`total_savings`). */
+  promotionSavings: number;
+  /** Savings from the membership, e.g. Family prices. */
+  membershipSavings: number;
+  deposits: CartDeposit[];
+  depositTotal: number;
+  /** Fees and credits that aren't zero. */
+  fees: CartFee[];
+  /** The minimum order value of the selected slot, or null. */
+  minimumOrderValue: number | null;
+  selectedSlot: SelectedSlotSummary | null;
+  recipes: CartRecipe[];
+};
+
 // ─── Basket footer ────────────────────────────────────────────────────────────
 
 /** A text from the basket footer, with its color when Picnic sets one. */

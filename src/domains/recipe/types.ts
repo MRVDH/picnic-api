@@ -87,7 +87,7 @@ export type RecipeSegment = "SAVED_RECIPES" | "USER_DEFINED_RECIPES";
 /** Image sources observed on recipe pages; open to additional backend values. */
 export type RecipeImageType = "COMPOSED" | "CUSTOM" | "SUGGESTED" | "GALLERY" | string;
 
-/** A catalog or user-defined recipe as listed in the cookbook. */
+/** A catalog or user-defined recipe as a tile in a recipe list (cookbook, category, saved recipes). */
 export type RecipeSummary = {
   /** The recipe's selling group id. */
   id: string;
@@ -97,6 +97,60 @@ export type RecipeSummary = {
    * when details report COMPOSED, so prefer RecipeDetails.imageType when available.
    */
   imageType: RecipeImageType | null;
+  /** The image id including its namespace (e.g. recipes/abc), or null. */
+  imageId: string | null;
+  /** The line below the name, e.g. "met paratha", or null. */
+  subtitle: string | null;
+  /** The tags below the name, e.g. "20 min" and "Vegan". */
+  tags: string[];
+  /** The minutes of the first tag that is a time, or null. */
+  cookingTimeMinutes: number | null;
+};
+
+/** A row of recipes on the cookbook home, e.g. "Uitgelicht deze week". */
+export type RecipeListSection = {
+  title: string;
+  /** The selected filter pill of the row, e.g. "Voor jou", or null. The other pills load in the app. */
+  pill: string | null;
+  recipes: RecipeSummary[];
+};
+
+/**
+ * A link to a recipe category (`meals-category-page`, see {@link RecipeService.getRecipeCategory})
+ * or to a group of categories (`meals-category-group-page`, see {@link RecipeService.getRecipeCategoryGroup}).
+ */
+export type RecipeCategoryLink = {
+  type: "category" | "group";
+  /** The `category_id` of a category, or the `group_name` of a group. */
+  id: string;
+  name: string;
+  imageId: string | null;
+};
+
+/** A headed list of category links, e.g. "Pasta & noedels". */
+export type RecipeCategorySection = {
+  title: string;
+  categories: RecipeCategoryLink[];
+};
+
+/** The cookbook home (`meals-page-root`): the recipe rows and the category tree. */
+export type RecipeOverview = {
+  sections: RecipeListSection[];
+  categorySections: RecipeCategorySection[];
+};
+
+/** The recipes of one category (`meals-category-page`). */
+export type RecipeCategory = {
+  id: string;
+  title: string;
+  recipes: RecipeSummary[];
+};
+
+/** The categories of one group (`meals-category-group-page`), e.g. "Kids". */
+export type RecipeCategoryGroup = {
+  name: string;
+  title: string;
+  categories: RecipeCategoryLink[];
 };
 
 /** One ingredient (a selling group component) of either kind of recipe. */
@@ -154,7 +208,7 @@ export type RecipeTime = {
 };
 
 /** Shared structured details for catalog and user-defined recipes. */
-export type RecipeDetails = RecipeSummary & {
+export type RecipeDetails = Pick<RecipeSummary, "id" | "name" | "imageType"> & {
   /** Portion count for the returned products and quantities. */
   portions: number;
   /** Stored default portion count, which can differ from a requested count. */

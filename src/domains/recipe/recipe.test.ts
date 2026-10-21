@@ -1,5 +1,7 @@
 import { RecipeService } from "./service";
 import HttpClient from "../../http-client";
+import { AppService } from "../app/service";
+import { RscPageClient } from "../app/rsc-client";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -9,7 +11,8 @@ let recipe: RecipeService;
 beforeEach(() => {
   mockFetch.mockReset();
   mockFetch.mockResolvedValue({ ok: true, body: {}, json: () => Promise.resolve({}) });
-  recipe = new RecipeService(new HttpClient({ authKey: "initial-auth-key" }));
+  const http = new HttpClient({ authKey: "initial-auth-key" });
+  recipe = new RecipeService(http, new AppService(http, new RscPageClient(http)));
 });
 
 describe("RecipeService", () => {
@@ -139,13 +142,24 @@ describe("RecipeService", () => {
       expect((await recipe.getRecipe(recipeId, undefined, { resolveIngredientNames: true })).ingredients[0].name).toBeNull();
     });
 
-    it.each([["getSavedRecipes", "SAVED_RECIPES"], ["getUserDefinedRecipes", "USER_DEFINED_RECIPES"]] as const)("%s selects the correct cookbook segment", async (method, segment) => {
+    it("getUserDefinedRecipes selects the user's cookbook segment", async () => {
       const tile = (segmentType: string, id: string) => ({ analytics: { contexts: [
         { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: segmentType } },
         { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: id } },
       ] } });
-      mockFetch.mockResolvedValueOnce(response({ children: [tile(segment, "wanted"), tile("NEW_RECIPES", "other")] }));
-      expect(await recipe[method]()).toEqual([{ id: "wanted", name: "wanted", imageType: null }]);
+      mockFetch.mockResolvedValueOnce(response({ children: [tile("USER_DEFINED_RECIPES", "wanted"), tile("NEW_RECIPES", "other")] }));
+      expect(await recipe.getUserDefinedRecipes()).toEqual([
+        { id: "wanted", name: "wanted", imageType: null, imageId: null, subtitle: null, tags: [], cookingTimeMinutes: null },
+      ]);
+    });
+
+    it("getSavedRecipes reads every tile of the saved recipes page", async () => {
+      const tile = (id: string) => ({ type: "PML", analytics: { contexts: [
+        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: `Recipe ${id}` } },
+      ] }, pml: { component: { type: "RICH_TEXT", markdown: `Recipe ${id}` } } });
+      mockFetch.mockResolvedValueOnce(response({ children: [tile("a"), tile("b"), tile("a")] }));
+      expect((await recipe.getSavedRecipes()).map((r) => r.id)).toEqual(["a", "b"]);
+      expect(mockFetch.mock.calls[0][0]).toContain("/pages/saved-deep-dive-page-content");
     });
   });
 

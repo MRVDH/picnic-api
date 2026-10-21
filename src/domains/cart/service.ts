@@ -7,6 +7,7 @@ import {
   CheckoutConfirmation,
   CheckoutStartInput,
   CheckoutStartResult,
+  CartContents,
   CartFooter,
   CheckoutStatusResult,
   DeliverySlotOverview,
@@ -21,6 +22,7 @@ import {
 } from "./types";
 import { extractDeliverySlots } from "./helpers";
 import { extractCartFooter } from "./footer-helpers";
+import { extractCartContents } from "./contents";
 import { UnexpectedPageFormatError } from "../../errors/page-format-error";
 
 /** The app's basket footer page. */
@@ -45,6 +47,24 @@ export class CartService {
    */
   getCart(): Promise<Cart> {
     return this.http.sendRequest<any, Cart>("GET", `/cart`, null, true);
+  }
+
+  /**
+   * Returns the cart as the app's basket shows it: the lines with decorator overrides applied
+   * (quantities, member prices, labels, unavailability), the totals, deposits, fees, the
+   * selected slot and the recipes. See {@link parseCart} for the result of a cart mutation.
+   */
+  async getCartContents(): Promise<CartContents> {
+    return extractCartContents(await this.getCart());
+  }
+
+  /**
+   * Turns a cart response into {@link CartContents} without a request. Use it on what the cart
+   * mutations return, e.g. `cart.parseCart(await cart.addProductToCart(id))`.
+   * @param {Cart} cart A cart response.
+   */
+  parseCart(cart: Cart): CartContents {
+    return extractCartContents(cart);
   }
 
   /**

@@ -70,7 +70,7 @@ class PicnicClient extends HttpClient {
     this.customerService = new CustomerServiceService(this);
     this.content = new ContentService(this);
     this.userOnboarding = new UserOnboardingService(this);
-    this.recipe = new RecipeService(this);
+    this.recipe = new RecipeService(this, this.app);
   }
 }
 
