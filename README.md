@@ -59,19 +59,21 @@ await picnicClient.cart.addProductsToCart([
 
 ### Pages (Fusion and RSC)
 
-Most pages are Fusion pages (JSON), fetched with `app.getPage(pageId)`. Some are served as
-[React Server Components](https://react.dev/reference/rsc/server-components) instead; fetch those with
-`app.getRscPageContent(pageId)`, which returns the page as a tree of its components. Each method throws an
-`UnexpectedPageFormatError` for the other format:
+Picnic serves a page either as a Fusion page (JSON) or as
+[React Server Components](https://react.dev/reference/rsc/server-components), and is moving more pages to RSC.
+`app.getPage(pageId)` returns the page in the format it came in; an RSC page comes as a tree of its components:
 
 ```ts
-try {
-  const page = await picnicClient.app.getPage("home_page_root");
-} catch (error) {
-  if (!PicnicClient.isUnexpectedPageFormatError(error)) throw error;
-  const content = await picnicClient.app.getRscPageContent(error.pageId);
+const page = await picnicClient.app.getPage("home_page_root");
+if (page.format === "fusion") {
+  console.log(page.page);
+} else {
+  console.log(page.content.nodes);
 }
 ```
+
+The domain methods (`catalog.getProductDetails`, `recipe.getRecipe`, ...) read the page they need themselves. When
+Picnic serves such a page in a format the method doesn't read yet, it throws an `UnexpectedPageFormatError`.
 
 ### Custom requests
 

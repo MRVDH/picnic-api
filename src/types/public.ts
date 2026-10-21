@@ -14,3 +14,5 @@ export * as payment from "../domains/payment/types";
 export * as recipe from "../domains/recipe/types";
 export * as user from "../domains/user/types";
 export * as common from "./common";
+export * as fusion from "../pages/fusion";
+export * as pages from "../pages/types";

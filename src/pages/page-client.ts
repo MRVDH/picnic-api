@@ -1,15 +1,23 @@
-import type HttpClient from "../../http-client";
-import { UnexpectedPageFormatError } from "../../errors/page-format-error";
-import type { BootstrapData, FusionPage } from "../../types/fusion";
-import type { RscPage } from "../../types/rsc";
-import { findRscModuleChunks, parseRscPayload } from "./rsc";
+import type HttpClient from "../http-client";
+import { UnexpectedPageFormatError } from "../errors/page-format-error";
+import type { FusionPage } from "./fusion";
+import type { RscPage } from "./rsc-payload";
+import { findRscModuleChunks, parseRscPageContent, parseRscPayload } from "./rsc";
+import type { Page, RscPageContent } from "./types";
+
+/** A page as Picnic served it, with an RSC page still in its raw form (needed to run its server actions). */
+export type LoadedPage = { format: "fusion"; pageId: string; page: unknown } | { format: "rsc"; pageId: string; payload: RscPage };
 
 /**
- * Fetches raw RSC pages and runs their server actions, the way the app's RSC runtime does.
- * Internal: services use it to build parsed models (e.g. `app.getRscPageContent`,
- * `catalog.getSearchResults`); it isn't part of the client's public API.
+ * Fetches pages the way the app does: one request to `/pages/<id>`, which Picnic answers with a
+ * Fusion page or an RSC payload depending on the page and the `x-picnic-agent` version. Also runs
+ * the server actions of RSC pages.
+ *
+ * Internal: every service reads pages through it, so a page that switches format raises an
+ * `UnexpectedPageFormatError` naming the page instead of reaching the wrong parser. It isn't part
+ * of the client's public API; `app.getPage` returns pages in either format.
  */
-export class RscPageClient {
+export class PageClient {
   /** The CDN base URL of RSC client chunks, from the bootstrap data; fetched once. */
   private clientChunkBaseUrl?: Promise<string>;
   /** Server action ids found per chunk and action name (`<chunk>#<action>`), `null` when absent. */
@@ -18,16 +26,52 @@ export class RscPageClient {
   constructor(private http: HttpClient) {}
 
   /**
-   * Returns a page served as an RSC payload, split into its rows and module references, with
-   * the page's `X-Page-Version` header as `version`. Throws an `UnexpectedPageFormatError` when
-   * the page is served as a Fusion page.
-   * @param {string} pageId The page ID, optionally with query params, e.g. `category-tree-root`.
+   * Fetches a page in whichever format Picnic serves it. An RSC page comes with the page's
+   * `X-Page-Version` header as `version`.
+   * @param {string} pageId The page id, optionally with query params, e.g. `category-tree-root`.
    */
-  async getPage(pageId: string): Promise<RscPage> {
-    const { data, headers } = await this.http.sendRequestWithHeaders<null, FusionPage | string>("GET", `/pages/${pageId}`, null, { includePicnicHeaders: true });
-    if (typeof data !== "string") throw new UnexpectedPageFormatError(pageId, "fusion");
+  async load(pageId: string): Promise<LoadedPage> {
+    const { data, headers } = await this.http.sendRequestWithHeaders<null, unknown>("GET", `/pages/${pageId}`, null, { includePicnicHeaders: true });
+    if (typeof data !== "string") return { format: "fusion", pageId, page: data };
     const version = headers.get("x-page-version");
-    return { ...parseRscPayload(data), ...(version && { version }) };
+    return { format: "rsc", pageId, payload: { ...parseRscPayload(data), ...(version && { version }) } };
+  }
+
+  /** Fetches a page and parses an RSC page into its component tree. */
+  async getPage(pageId: string): Promise<Page> {
+    const loaded = await this.load(pageId);
+    return loaded.format === "fusion"
+      ? { format: "fusion", pageId, page: loaded.page as FusionPage }
+      : { format: "rsc", pageId, content: parseRscPageContent(pageId, loaded.payload) };
+  }
+
+  /**
+   * Fetches a page that is expected to be a Fusion page. Most pages come as a {@link FusionPage};
+   * a few return the bare layout, so the caller names the type.
+   * @throws {UnexpectedPageFormatError} When Picnic serves the page as RSC.
+   */
+  async getFusionPage<TPage = FusionPage>(pageId: string): Promise<TPage> {
+    const loaded = await this.load(pageId);
+    if (loaded.format !== "fusion") throw new UnexpectedPageFormatError(pageId, "rsc");
+    return loaded.page as TPage;
+  }
+
+  /**
+   * Fetches a page that is expected to be RSC, split into its rows and module references.
+   * @throws {UnexpectedPageFormatError} When Picnic serves the page as a Fusion page.
+   */
+  async getRscPayload(pageId: string): Promise<RscPage> {
+    const loaded = await this.load(pageId);
+    if (loaded.format !== "rsc") throw new UnexpectedPageFormatError(pageId, "fusion");
+    return loaded.payload;
+  }
+
+  /**
+   * Fetches a page that is expected to be RSC and parses it into its component tree.
+   * @throws {UnexpectedPageFormatError} When Picnic serves the page as a Fusion page.
+   */
+  async getRscContent(pageId: string): Promise<RscPageContent> {
+    return parseRscPageContent(pageId, await this.getRscPayload(pageId));
   }
 
   /**
@@ -58,11 +102,13 @@ export class RscPageClient {
    * @param {string} chunkId The chunk id, e.g. `shared-pages_search_search-page-content_results_index_tsx.b717044a`.
    */
   async getClientChunk(chunkId: string): Promise<string> {
-    this.clientChunkBaseUrl ??= this.http.sendRequest<null, BootstrapData>("GET", `/bootstrap`).then((bootstrap) => {
-      const baseUrl = bootstrap.in_app_feature_config?.client_component_cdn_base_url?.trim();
-      if (!baseUrl) throw new Error("The bootstrap data has no client_component_cdn_base_url");
-      return baseUrl.replace(/\/+$/, "");
-    });
+    this.clientChunkBaseUrl ??= this.http
+      .sendRequest<null, { in_app_feature_config?: { client_component_cdn_base_url?: string } }>("GET", `/bootstrap`)
+      .then((bootstrap) => {
+        const baseUrl = bootstrap.in_app_feature_config?.client_component_cdn_base_url?.trim();
+        if (!baseUrl) throw new Error("The bootstrap data has no client_component_cdn_base_url");
+        return baseUrl.replace(/\/+$/, "");
+      });
     let baseUrl: string;
     try {
       baseUrl = await this.clientChunkBaseUrl;

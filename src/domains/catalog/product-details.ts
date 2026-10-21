@@ -1,4 +1,4 @@
-import type { FusionPage, PriceRange } from "../../types/fusion";
+import type { FusionPage, PriceRange } from "../../pages/fusion";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import {
   accordionItems,
@@ -18,7 +18,7 @@ import {
   PmlNode,
   stripColorTags,
   walkNodes,
-} from "../../helpers/pml";
+} from "../../pages/pml";
 import type {
   NutritionRow,
   ProductAllergens,
@@ -292,4 +292,9 @@ function extractSimilarProducts(page: unknown): SimilarProduct[] {
       ...(u.deposit !== undefined ? { deposit: Number(u.deposit) } : {}),
       ...(Array.isArray(u.price_ranges) ? { priceRanges: u.price_ranges as PriceRange[] } : {}),
     }));
+}
+
+/** The id of a product's details page, with the parameters the app sends. */
+export function productDetailsPageId(productId: string): string {
+  return `product-details-page-root?id=${encodeURIComponent(productId)}&show_category_action=true&show_remove_from_purchases_page_action=true`;
 }

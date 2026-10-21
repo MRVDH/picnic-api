@@ -1,4 +1,4 @@
-import { Component, Icon, PriceRange } from "../../types/fusion";
+import { Component, Icon, PriceRange } from "../../pages/fusion";
 import { Decorator } from "../../types/common";
 
 // ─── Delivery Slots ───────────────────────────────────────────────────────────

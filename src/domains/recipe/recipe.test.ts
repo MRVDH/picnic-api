@@ -1,7 +1,6 @@
 import { RecipeService } from "./service";
 import HttpClient from "../../http-client";
-import { AppService } from "../app/service";
-import { RscPageClient } from "../app/rsc-client";
+import { PageClient } from "../../pages/page-client";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -12,7 +11,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockFetch.mockResolvedValue({ ok: true, body: {}, json: () => Promise.resolve({}) });
   const http = new HttpClient({ authKey: "initial-auth-key" });
-  recipe = new RecipeService(http, new AppService(http, new RscPageClient(http)));
+  recipe = new RecipeService(http, new PageClient(http));
 });
 
 describe("RecipeService", () => {

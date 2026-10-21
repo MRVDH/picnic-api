@@ -1,4 +1,4 @@
-import type { PriceRange } from "../../types/fusion";
+import type { PriceRange } from "../../pages/fusion";
 import type { NutritionRow } from "../catalog/types";
 
 // ─── Recipe Saving types ─────────────────────────────────────────────────────

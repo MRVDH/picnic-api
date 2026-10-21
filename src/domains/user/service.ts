@@ -1,12 +1,12 @@
 import type HttpClient from "../../http-client";
-import type { AppService } from "../app/service";
+import type { PageClient } from "../../pages/page-client";
 import { extractProfile } from "./helpers";
 import { User, UserInfo, Profile, ProfileMenu, UpdateCheckInput, UpdateCheckResult } from "./types";
 
 export class UserService {
   constructor(
     private http: HttpClient,
-    private app: AppService,
+    private pages: PageClient,
   ) {}
 
   /**
@@ -36,7 +36,7 @@ export class UserService {
    * account menu, from the `profile-root` RSC page.
    */
   async getProfile(): Promise<Profile> {
-    return extractProfile(await this.app.getRscPageContent("profile-root"));
+    return extractProfile(await this.pages.getRscContent("profile-root"));
   }
 
   // TODO: Test route and add types

@@ -1,4 +1,4 @@
-import type { RscNode, RscPageContent } from "../app/types";
+import type { RscNode, RscPageContent } from "../../pages/types";
 import type { Profile, ProfileAddress, ProfileMenuEntry } from "./types";
 
 type RscRecord = Record<string, unknown>;
@@ -9,7 +9,7 @@ const asString = (value: unknown): string | null => (typeof value === "string" &
 /**
  * Extracts the profile from the `profile-root` page content: the `user-info` component holds the
  * user and preferred address, the `menu-list` component the menu entries as `{ id, deeplink }`.
- * @param {RscPageContent} content The page content from `app.getRscPageContent("profile-root")`.
+ * @param {RscPageContent} content The content of the `profile-root` page.
  */
 export function extractProfile(content: RscPageContent): Profile {
   const user = asRecord(findNode(content.nodes, "user-info")?.props.user) ?? {};

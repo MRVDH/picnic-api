@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { PML, Component } from "../../types/fusion";
+import { PML, Component } from "../../pages/fusion";
 
 export class ContentService {
   constructor(private http: HttpClient) {}

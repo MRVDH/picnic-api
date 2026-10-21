@@ -1,5 +1,6 @@
 import { CartService } from "./service";
 import HttpClient from "../../http-client";
+import { PageClient } from "../../pages/page-client";
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -8,7 +9,8 @@ let cart: CartService;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  cart = new CartService(new HttpClient({ authKey: "initial-auth-key" }));
+  const http = new HttpClient({ authKey: "initial-auth-key" });
+  cart = new CartService(http, new PageClient(http));
 });
 
 describe("CartService - addProductsToCart", () => {

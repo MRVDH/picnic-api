@@ -2,7 +2,7 @@ import HttpClient from "./http-client";
 import { ApiConfig } from "./types/common";
 
 import { AppService } from "./domains/app/service";
-import { RscPageClient } from "./domains/app/rsc-client";
+import { PageClient } from "./pages/page-client";
 import { AuthService } from "./domains/auth/service";
 import { UserService } from "./domains/user/service";
 import { CatalogService } from "./domains/catalog/service";
@@ -57,20 +57,20 @@ class PicnicClient extends HttpClient {
   constructor(options?: ApiConfig) {
     super(options);
 
-    // Shared by the services that read RSC pages, so they share its chunk and action id caches.
-    const rsc = new RscPageClient(this);
-    this.app = new AppService(this, rsc);
+    // Every service reads pages through one client, so they share its chunk and action id caches.
+    const pages = new PageClient(this);
+    this.app = new AppService(this, pages);
     this.auth = new AuthService(this);
-    this.user = new UserService(this, this.app);
-    this.catalog = new CatalogService(this, rsc);
-    this.cart = new CartService(this);
+    this.user = new UserService(this, pages);
+    this.catalog = new CatalogService(this, pages);
+    this.cart = new CartService(this, pages);
     this.delivery = new DeliveryService(this);
     this.payment = new PaymentService(this);
     this.consent = new ConsentService(this);
     this.customerService = new CustomerServiceService(this);
     this.content = new ContentService(this);
     this.userOnboarding = new UserOnboardingService(this);
-    this.recipe = new RecipeService(this, this.app);
+    this.recipe = new RecipeService(this, pages);
   }
 }
 

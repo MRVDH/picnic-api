@@ -1,5 +1,5 @@
 import { extractRecipes, extractRecipeDetails, extractUserDefinedRecipes, extractUserDefinedRecipeDetails, extractIngredientQuantities, extractSuggestedImages } from "./helpers";
-import { FusionPage } from "../../types/fusion";
+import { FusionPage } from "../../pages/fusion";
 
 const page = (body: unknown): FusionPage => ({ script: {}, layout: { id: "p", presentation: { type: "FULL_SCREEN" }, header: null, body } as any });
 

@@ -1,4 +1,4 @@
-import { PriceRange } from "../../types/fusion";
+import { PriceRange } from "../../pages/fusion";
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 

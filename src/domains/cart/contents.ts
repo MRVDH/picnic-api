@@ -1,5 +1,5 @@
 import type { Decorator } from "../../types/common";
-import type { PriceRange } from "../../types/fusion";
+import type { PriceRange } from "../../pages/fusion";
 import { extractDeliverySlots } from "./helpers";
 import type { Cart, CartContents, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
 

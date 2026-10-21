@@ -10,9 +10,14 @@ src/
   http-client.ts        # Base HTTP client — handles request construction, auth headers, errors
   types/
     common.ts           # Shared types (ApiConfig, CountryCode, etc.)
+    public.ts           # The public types, exposed as PicnicClient.Types
+  pages/                # Reading Picnic's pages, in either format
+    page-client.ts      # PageClient: fetches pages (Fusion or RSC) and runs RSC server actions
+    types.ts            # Public page types: Page, PageFormat, RscPageContent, RscNode
     fusion.ts           # Types for Fusion/PML page responses
-  helpers/
     pml.ts              # Shared readers for Fusion/PML trees (find nodes, texts, prices, badges, tables)
+    rsc.ts              # Parses RSC payloads into rows and into the component tree
+    rsc-payload.ts      # Types of a raw RSC payload (internal)
   errors/               # Error classes exposed on PicnicClient
   domains/
     app/                # Bootstrap data, pages, announcements
@@ -32,7 +37,7 @@ src/
 Each domain folder contains:
 - `service.ts` — Service class with methods that call API endpoints via `this.http.sendRequest(...)`. Should only contain route definitions and minimal glue logic.
 - `types.ts` — TypeScript interfaces/types for the domain's request and response data.
-- `helpers.ts` *(optional)* — Pure helper/extraction functions used by the service (e.g. parsing Fusion page responses into typed models). Created when a service needs non-trivial data transformation logic that would clutter the service file. Read pages by their structure (component ids, layout, `textType`, state boundaries) with `src/helpers/pml.ts`, not by matching the text in them: texts differ per country and a text pattern also matches other products on the page.
+- `helpers.ts` *(optional)* — Pure helper/extraction functions used by the service (e.g. parsing Fusion page responses into typed models). Created when a service needs non-trivial data transformation logic that would clutter the service file. Read pages by their structure (component ids, layout, `textType`, state boundaries) with `src/pages/pml.ts`, not by matching the text in them: texts differ per country and a text pattern also matches other products on the page.
 
 ## Initial Setup
 
@@ -94,6 +99,6 @@ When looking for API routes in the decompiled picnic-app:
 ## Route Types
 
 - Some routes return regular JSON data objects, while others return JSON Fusion/PML objects.
-- Some pages are served as a React Server Components (RSC) payload (`text/x-component`) instead of a Fusion page, depending on the page and the `x-picnic-agent` version. Newer app versions get RSC for pages that Picnic moved to its newer page platform (known: `category-tree-root`, `subcategory-page`, `category-product-overview`, `promotion-category-page`, `profile-root`, `promo-group-deep-dive`, `search-page-results`, `search-page-index`, `meals-category-page`, `meals-category-group-page`, `unavailability-replacements-page-root`). `app.getPage` throws an `UnexpectedPageFormatError` for those; fetch them with `app.getRscPageContent`, which returns the component tree (types in `src/domains/app/types.ts`). The raw payload (rows, module references, page version) is internal: services get it from `RscPageClient` (`src/domains/app/rsc-client.ts`), and the parsing is in `src/domains/app/rsc.ts`. Parse RSC pages into domain models in picnic-api (e.g. `user.getProfile`, `catalog.getSearchResults`), not in the consumers. Data that client components load after the page is shown comes from server actions: find the action id with `RscPageClient.findServerActionId` and run it with `RscPageClient.runServerAction` (see `catalog.getSearchResults`). When bumping the default agent in `src/http-client.ts`, check which pages switch format.
-- If a route uses JSON Fusion/PML objects, then you don't have to recreate types for those. Those types are defined in `src/types/fusion.ts`. They might need updating though.
+- Some pages are served as a React Server Components (RSC) payload (`text/x-component`) instead of a Fusion page, depending on the page and the `x-picnic-agent` version. Newer app versions get RSC for pages that Picnic moved to its newer page platform (known: `category-tree-root`, `subcategory-page`, `category-product-overview`, `promotion-category-page`, `profile-root`, `promo-group-deep-dive`, `search-page-results`, `search-page-index`, `meals-category-page`, `meals-category-group-page`, `unavailability-replacements-page-root`). Picnic is moving more pages to RSC. Services never request `/pages/...` themselves: they read pages through the `PageClient` (`src/pages/page-client.ts`), which makes one request and returns what Picnic served. `getFusionPage` and `getRscContent` throw an `UnexpectedPageFormatError` naming the page when it comes in the other format, so a page that switches format fails clearly instead of reaching the wrong parser. When a page a domain method reads moves to RSC, add an RSC reader that returns the same model, and use `load` to pick the reader by format while Picnic serves both. `app.getPage` returns a page in either format (`Page`, types in `src/pages/types.ts`); the raw RSC payload (rows, module references, page version) stays internal. Parse RSC pages into domain models in picnic-api (e.g. `user.getProfile`, `catalog.getSearchResults`), not in the consumers. Data that client components load after the page is shown comes from server actions: find the action id with `PageClient.findServerActionId` and run it with `PageClient.runServerAction` (see `catalog.getSearchResults`). When bumping the default agent in `src/http-client.ts`, check which pages switch format.
+- If a route uses JSON Fusion/PML objects, then you don't have to recreate types for those. Those types are defined in `src/pages/fusion.ts`. They might need updating though.
 - There are API routes that are not statically defined in the picnic-app codebase. The PML/Fusion pages contain embedded JavaScript expressions that run client-side. An example of this is the recipe save button's `onPress` handler, which constructs an `ENDPOINT` action with a `url` field. This was found by fetching the `cookbook-page-content` page and extracting the PML expression from the `onRecipeLikeButtonPress` handler, which was the following: `{ actionType: "ENDPOINT", method: "post", url: "pages/task/recipe-saving", body: { payload: { recipe_id, saved_at: "<ISO timestamp>" } } }`. So when you are asked to find all routes related to a feature — besides looking through the picnic-app code — you will have to navigate the bootstrap and pages endpoints to look for these actions.

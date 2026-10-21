@@ -1,12 +1,11 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
 import { CategoryProducts, CategorySection, ProductDetails, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
-import { FusionPage } from "../../types/fusion";
+import { FusionPage } from "../../pages/fusion";
 import { extractSearchResults } from "./helpers";
-import { extractProductDetails } from "./product-details";
-import type { RscPageClient } from "../app/rsc-client";
-import { decodeRscValue, findRscElementProps, parseRscPageContent } from "../app/rsc";
-import type { RscPageContent } from "../app/types";
+import { extractProductDetails, productDetailsPageId } from "./product-details";
+import type { PageClient } from "../../pages/page-client";
+import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
 
 /** The search page component that holds the search parameters (search id, session id). */
@@ -17,13 +16,8 @@ const SEARCH_RESULTS_MODULE = "search-page-content/results/index.tsx";
 export class CatalogService {
   constructor(
     private http: HttpClient,
-    private rsc: RscPageClient,
+    private pages: PageClient,
   ) {}
-
-  /** Fetches an RSC page and parses it into its component tree. */
-  private async getRscContent(pageId: string): Promise<RscPageContent> {
-    return parseRscPageContent(pageId, await this.rsc.getPage(pageId));
-  }
 
   /**
    * Returns the category tree as the app shows it (`category-tree-root`): links to promotions and
@@ -31,7 +25,7 @@ export class CatalogService {
    * opens it.
    */
   async getCategories(): Promise<CategorySection[]> {
-    return extractCategoryTree(await this.getRscContent("category-tree-root"));
+    return extractCategoryTree(await this.pages.getRscContent("category-tree-root"));
   }
 
   /**
@@ -39,7 +33,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `subcategories`, e.g. "21724".
    */
   async getSubcategories(categoryId: string): Promise<Subcategories> {
-    const content = await this.getRscContent(`subcategory-page?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`subcategory-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractSubcategories(categoryId, content);
   }
 
@@ -48,7 +42,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `products`, e.g. "21746".
    */
   async getCategoryProducts(categoryId: string): Promise<CategoryProducts> {
-    const content = await this.getRscContent(`category-product-overview?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`category-product-overview?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
   }
 
@@ -57,7 +51,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `promotions`, e.g. "21724".
    */
   async getCategoryPromotions(categoryId: string): Promise<CategoryProducts> {
-    const content = await this.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
   }
 
@@ -70,15 +64,15 @@ export class CatalogService {
    */
   async getSearchResults(query: string, options: SearchOptions = {}): Promise<SearchResults> {
     const contextParams = options.context === "MEALS" ? "&page_context=MEALS&is_recipe=true" : "";
-    const page = await this.rsc.getPage(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
+    const page = await this.pages.getRscPayload(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
     const params = findRscElementProps(page, SEARCH_PARAMS_MODULE)[0]?.params as Record<string, unknown> | undefined;
     if (!params) throw new Error("The search page has no search parameters");
 
-    const actionId = await this.rsc.findServerActionId(page, SEARCH_RESULTS_MODULE, "fetchSearchResults");
+    const actionId = await this.pages.findServerActionId(page, SEARCH_RESULTS_MODULE, "fetchSearchResults");
     if (!actionId) throw new Error("The search page has no fetchSearchResults action");
 
     // The same argument the app's results component passes (search-page-content/results/index.tsx).
-    const results = await this.rsc.runServerAction(
+    const results = await this.pages.runServerAction(
       actionId,
       [
         {
@@ -111,12 +105,7 @@ export class CatalogService {
    * @param {string} productId The product ID to fetch the page for.
    */
   getProductDetailsPage(productId: string): Promise<FusionPage> {
-    return this.http.sendRequest<any, FusionPage>(
-      "GET",
-      `/pages/product-details-page-root?id=${productId}&show_category_action=true&show_remove_from_purchases_page_action=true`,
-      null,
-      true,
-    );
+    return this.pages.getFusionPage(productDetailsPageId(productId));
   }
 
   /**

@@ -1,6 +1,6 @@
 import { extractProductDetails } from "./product-details";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
-import type { FusionPage } from "../../types/fusion";
+import type { FusionPage } from "../../pages/fusion";
 
 const text = (markdown: unknown, extra: Record<string, unknown> = {}) => ({ type: "RICH_TEXT", markdown, ...extra });
 const badge = (markdown: string, backgroundColor: string) => ({

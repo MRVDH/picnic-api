@@ -1,4 +1,4 @@
-import { FusionPage, PriceRange } from "../../types/fusion";
+import { FusionPage, PriceRange } from "../../pages/fusion";
 import {
   accordionItems,
   ancestorsOf,
@@ -11,7 +11,7 @@ import {
   findPmlComponent,
   PmlNode,
   stripColorTags,
-} from "../../helpers/pml";
+} from "../../pages/pml";
 import type { NutritionRow } from "../catalog/types";
 import { parseMinutes, readRecipeTile } from "./lists";
 import {

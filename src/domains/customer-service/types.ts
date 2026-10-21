@@ -1,4 +1,4 @@
-import { FusionComponent } from "../../types/fusion";
+import { FusionComponent } from "../../pages/fusion";
 
 export type OpeningTime = {
   start: number[]; // e.g. [8, 0]

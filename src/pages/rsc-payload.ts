@@ -25,6 +25,3 @@ export type RscPage = {
    */
   version?: string;
 };
-
-/** The formats Picnic can serve a page in. */
-export type PageFormat = "fusion" | "rsc";

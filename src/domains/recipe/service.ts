@@ -38,17 +38,16 @@ import type {
   UserDefinedRecipeImageUpload,
   UserDefinedRecipeImageUploadResult,
 } from "./types";
-import { FusionPage, FusionPageLayout } from "../../types/fusion";
-import { CatalogService } from "../catalog/service";
-import { RscPageClient } from "../app/rsc-client";
-import type { AppService } from "../app/service";
+import { FusionPage, FusionPageLayout } from "../../pages/fusion";
+import type { PageClient } from "../../pages/page-client";
+import { productDetailsPageId } from "../catalog/product-details";
 import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./helpers";
 import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles } from "./lists";
 
 export class RecipeService {
   constructor(
     private http: HttpClient,
-    private app: AppService,
+    private pages: PageClient,
   ) {}
 
   /**
@@ -57,7 +56,7 @@ export class RecipeService {
    * {@link getCookbookPage}.
    */
   getRecipesPage(): Promise<FusionPage> {
-    return this.http.sendRequest<null, FusionPage>("GET", `/pages/meals-page-root`, null, true);
+    return this.pages.getFusionPage("meals-page-root");
   }
 
   /**
@@ -67,7 +66,7 @@ export class RecipeService {
    * recipes), `NEW_RECIPES`, `THIS_WEEK_RECIPES`, …
    */
   getCookbookPage(): Promise<FusionPage> {
-    return this.http.sendRequest<null, FusionPage>("GET", `/pages/cookbook-page-content`, null, true);
+    return this.pages.getFusionPage("cookbook-page-content");
   }
 
   /**
@@ -89,7 +88,7 @@ export class RecipeService {
       throw new RangeError("Recipe portions must be a positive integer");
     }
     const query = portions === undefined ? "" : `&portions=${portions}`;
-    return this.http.sendRequest<null, FusionPage>("GET", `/pages/selling-group-details-page?selling_group_id=${encodeURIComponent(recipeId)}${query}`, null, true);
+    return this.pages.getFusionPage(`selling-group-details-page?selling_group_id=${encodeURIComponent(recipeId)}${query}`);
   }
 
   /**
@@ -98,7 +97,7 @@ export class RecipeService {
    * Parses dynamic Fusion/PML tiles and may need updates if Picnic changes them.
    */
   async getSavedRecipes(): Promise<RecipeSummary[]> {
-    return extractRecipeTiles(await this.http.sendRequest<null, FusionPage>("GET", `/pages/saved-deep-dive-page-content`, null, true));
+    return extractRecipeTiles(await this.pages.getFusionPage("saved-deep-dive-page-content"));
   }
 
   /**
@@ -115,7 +114,7 @@ export class RecipeService {
    * @param {string} categoryId The `category_id` of a category link from {@link getRecipeOverview}.
    */
   async getRecipeCategory(categoryId: string): Promise<RecipeCategory> {
-    const content = await this.app.getRscPageContent(`meals-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`meals-category-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractRecipeCategory(categoryId, content);
   }
 
@@ -124,7 +123,7 @@ export class RecipeService {
    * @param {string} groupName The `group_name` of a group link from {@link getRecipeOverview}, e.g. "Kids".
    */
   async getRecipeCategoryGroup(groupName: string): Promise<RecipeCategoryGroup> {
-    const content = await this.app.getRscPageContent(`meals-category-group-page?group_name=${encodeURIComponent(groupName)}`);
+    const content = await this.pages.getRscContent(`meals-category-group-page?group_name=${encodeURIComponent(groupName)}`);
     return extractRecipeCategoryGroup(groupName, content);
   }
 
@@ -161,13 +160,12 @@ export class RecipeService {
     }
 
     if (options.resolveIngredientNames) {
-      const catalog = new CatalogService(this.http, new RscPageClient(this.http));
       const names = new Map<string, Promise<string | null>>();
       await Promise.all(details.ingredients.map(async (ingredient) => {
         if (ingredient.name !== null || !ingredient.sellingUnitId) return;
         let name = names.get(ingredient.sellingUnitId);
         if (!name) {
-          name = catalog.getProductDetailsPage(ingredient.sellingUnitId).then(extractIngredientProductName);
+          name = this.pages.getFusionPage(productDetailsPageId(ingredient.sellingUnitId)).then(extractIngredientProductName);
           names.set(ingredient.sellingUnitId, name);
         }
         ingredient.name = await name;
@@ -308,12 +306,7 @@ export class RecipeService {
    * @param {string} recipeId The recipe id.
    */
   getUserDefinedRecipeImageSelectionPage(recipeId: string): Promise<FusionPageLayout> {
-    return this.http.sendRequest<null, FusionPageLayout>(
-      "GET",
-      `/pages/sellable-image-selection-page-root?origin=RECIPE_DETAILS&sellable_id=${encodeURIComponent(recipeId)}`,
-      null,
-      true,
-    );
+    return this.pages.getFusionPage<FusionPageLayout>(`sellable-image-selection-page-root?origin=RECIPE_DETAILS&sellable_id=${encodeURIComponent(recipeId)}`);
   }
 
   /**

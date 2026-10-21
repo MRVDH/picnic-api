@@ -23,23 +23,24 @@ import {
 import { extractDeliverySlots } from "./helpers";
 import { extractCartFooter } from "./footer-helpers";
 import { extractCartContents } from "./contents";
-import { UnexpectedPageFormatError } from "../../errors/page-format-error";
+import type { PageClient } from "../../pages/page-client";
 
 /** The app's basket footer page. */
 const BASKET_FOOTER_PAGE_ID = "basket-footer-section-root";
 
 export class CartService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private pages: PageClient,
+  ) {}
 
   /**
    * Returns the basket footer: the loyalty points line and the "Niets vergeten?" recommendation tiles.
    * The rest of the basket comes from {@link getCart}.
-   * Throws {@link UnexpectedPageFormatError} when Picnic serves the page as an RSC payload.
+   * @throws {UnexpectedPageFormatError} When Picnic serves the page as RSC.
    */
   async getBasketFooter(): Promise<CartFooter> {
-    const page = await this.http.sendRequest<null, unknown>("GET", `/pages/${BASKET_FOOTER_PAGE_ID}`, null, true);
-    if (typeof page === "string") throw new UnexpectedPageFormatError(BASKET_FOOTER_PAGE_ID, "rsc");
-    return extractCartFooter(page);
+    return extractCartFooter(await this.pages.getFusionPage<unknown>(BASKET_FOOTER_PAGE_ID));
   }
 
   /**
