@@ -1,6 +1,6 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
+import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, RawSearchSuggestion, Subcategories } from "./types";
 import { FusionPage } from "../../pages/fusion";
 import { extractSearchResults } from "./search";
 import { extractProductDetails, productDetailsPageId } from "./product";
@@ -96,8 +96,8 @@ export class CatalogService {
    * Returns suggestions for Picnic products matching the query.
    * @param {string} query The keywords for suggestions.
    */
-  getSuggestions(query: string): Promise<SearchSuggestion[]> {
-    return this.http.sendRequest<any, SearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
+  getSuggestions(query: string): Promise<RawSearchSuggestion[]> {
+    return this.http.sendRequest<null, RawSearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
   }
 
   /** Fetches the product details page (Fusion). */

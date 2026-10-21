@@ -1,5 +1,5 @@
 import type HttpClient from "../../http-client";
-import { PaymentProfile, WalletTransaction, WalletTransactionSummary, RawWalletTransaction, WalletTransactionsInput } from "./types";
+import { RawPaymentProfile, WalletTransaction, RawWalletTransactionSummary, RawWalletTransaction, WalletTransactionsInput } from "./types";
 import { extractWalletTransaction } from "./wallet-transaction";
 
 export class PaymentService {
@@ -8,16 +8,16 @@ export class PaymentService {
   /**
    * Returns payment profile information.
    */
-  getPaymentProfile(): Promise<PaymentProfile> {
-    return this.http.sendRequest<any, PaymentProfile>("GET", `/payment-profile`, null, { includePicnicHeaders: true });
+  getPaymentProfile(): Promise<RawPaymentProfile> {
+    return this.http.sendRequest<null, RawPaymentProfile>("GET", `/payment-profile`, null, { includePicnicHeaders: true });
   }
 
   /**
    * Returns a page of wallet transactions.
    * @param {number} pageNumber The page number to retrieve (1-based; minimum 1).
    */
-  getWalletTransactions(pageNumber: number): Promise<WalletTransactionSummary[]> {
-    return this.http.sendRequest<WalletTransactionsInput, WalletTransactionSummary[]>("POST", `/wallet/transactions`, { page_number: pageNumber });
+  getWalletTransactions(pageNumber: number): Promise<RawWalletTransactionSummary[]> {
+    return this.http.sendRequest<WalletTransactionsInput, RawWalletTransactionSummary[]>("POST", `/wallet/transactions`, { page_number: pageNumber });
   }
 
   /**

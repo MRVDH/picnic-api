@@ -13,7 +13,7 @@ export type ContactDetails = {
   whatsapp: string;
 };
 
-export type CustomerServiceContactInfo = {
+export type RawContactInfo = {
   contact_details: ContactDetails;
   opening_times: OpeningTimes;
 };

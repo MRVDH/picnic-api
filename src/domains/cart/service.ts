@@ -8,7 +8,7 @@ import {
   RemoveGroupInput,
   SellingUnitContext,
   SetDeliverySlotInput,
-  UserSlotMinimumOrderValue,
+  RawMinimumOrderValue,
 } from "./types";
 import { extractDeliverySlots } from "./delivery-slots";
 import { extractCartFooter } from "./footer";
@@ -111,7 +111,7 @@ export class CartService {
    * Returns the minimum order value for the currently selected delivery slot.
    * Requires a delivery slot to be selected; otherwise the API returns a 500 error.
    */
-  getMinimumOrderValue(): Promise<UserSlotMinimumOrderValue> {
-    return this.http.sendRequest<void, UserSlotMinimumOrderValue>("GET", `/user-slot-minimum-order-value/minimum`, null, { includePicnicHeaders: true });
+  getMinimumOrderValue(): Promise<RawMinimumOrderValue> {
+    return this.http.sendRequest<void, RawMinimumOrderValue>("GET", `/user-slot-minimum-order-value/minimum`, null, { includePicnicHeaders: true });
   }
 }

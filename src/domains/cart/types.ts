@@ -53,9 +53,9 @@ export type OrderArticle = {
   image_ids: string[];
   perishable: boolean;
   /** Analytics context entries for mutation tracking; usually an empty array. */
-  analytics_contexts: any[];
+  analytics_contexts: unknown[];
   /** Selling unit context metadata; usually an empty array. */
-  selling_unit_contexts_for_mutations: any[];
+  selling_unit_contexts_for_mutations: unknown[];
 };
 
 export type OrderLine = {
@@ -120,9 +120,9 @@ export type RawCart = {
   /** Signed JWT that represents the current cart state; used for checkout. */
   state_token: string;
   /** Applied fees (e.g. service fees); usually an empty array. */
-  fees: any[];
+  fees: unknown[];
   /** Basket sections for grouped display; usually an empty array. */
-  basket_sections: any[];
+  basket_sections: unknown[];
   analytics_context_data: { items_list: CartAnalyticsItem[] };
   show_create_sellable_banner: boolean;
   /** Savings from a membership/subscription (in cents). */
@@ -150,9 +150,9 @@ export type Order = {
   /** Always null for placed orders; may be absent or null. */
   slot_selector_message?: SlotSelectorMessage | null;
   deposit_breakdown?: DepositBreakdown[];
-  fees?: any[];
-  basket_sections?: any[];
-  analytics_context_data?: Record<string, any>;
+  fees?: unknown[];
+  basket_sections?: unknown[];
+  analytics_context_data?: Record<string, unknown>;
   membership_savings?: number;
 };
 
@@ -393,7 +393,7 @@ export type RemoveGroupInput = {
   group_id: string;
 };
 
-export type UserSlotMinimumOrderValue = {
+export type RawMinimumOrderValue = {
   slot_id: string;
   minimum_order_value: number;
 };

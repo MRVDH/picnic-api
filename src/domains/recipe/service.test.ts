@@ -74,7 +74,7 @@ describe("RecipeService", () => {
     it("refetches once when the page renders other portions than requested", async () => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack")));
       mockFetch.mockResolvedValueOnce(response(detailsPage(4, 4, "large-pack")));
-      const details = await recipe.getRecipe(recipeId, 4);
+      const details = await recipe.getRecipe(recipeId, { portions: 4 });
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(details).toMatchObject({ portions: 4 });
       expect(details.ingredients[0]).toMatchObject({ sellingUnitId: "large-pack" });
@@ -82,7 +82,7 @@ describe("RecipeService", () => {
 
     it("getRecipe requests explicit portions in a single details call", async () => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack")));
-      const details = await recipe.getRecipe(recipeId, 2);
+      const details = await recipe.getRecipe(recipeId, { portions: 2 });
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch.mock.calls[0][0]).toContain("&portions=2");
       expect(details).toMatchObject({ portions: 2, defaultPortions: 4 });
@@ -96,19 +96,19 @@ describe("RecipeService", () => {
     });
 
     it.each([0, -1, 1.5, NaN, Infinity])("rejects invalid portions %s before a request", async (portions) => {
-      await expect(recipe.getRecipe(recipeId, portions)).rejects.toThrow("positive integer");
+      await expect(recipe.getRecipe(recipeId, { portions })).rejects.toThrow("positive integer");
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("bounds refetching when the server ignores the requested portions", async () => {
       mockFetch.mockResolvedValue(response(detailsPage(2, 4, "product")));
-      await expect(recipe.getRecipe(recipeId, 4)).rejects.toThrow("rendered 2 portions instead of 4");
+      await expect(recipe.getRecipe(recipeId, { portions: 4 })).rejects.toThrow("rendered 2 portions instead of 4");
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it("propagates backend rendering errors without silently using different portions", async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: "Internal Server Error", text: async () => JSON.stringify({ error: { message: "Error rendering page_id='selling-group-details-page'" } }) });
-      await expect(recipe.getRecipe(recipeId, 2)).rejects.toThrow("Error rendering page_id='selling-group-details-page'");
+      await expect(recipe.getRecipe(recipeId, { portions: 2 })).rejects.toThrow("Error rendering page_id='selling-group-details-page'");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -119,7 +119,7 @@ describe("RecipeService", () => {
       const resolvers: Array<(value: unknown) => void> = [];
       mockFetch.mockResolvedValueOnce(response(data));
       mockFetch.mockImplementation(() => new Promise(resolve => { resolvers.push(resolve); }));
-      const pending = recipe.getRecipe(recipeId, undefined, { resolveIngredientNames: true });
+      const pending = recipe.getRecipe(recipeId, { resolveIngredientNames: true });
       // Wait for the async details parse, while both product requests remain unresolved.
       for (let i = 0; i < 20 && resolvers.length < 2; i++) await Promise.resolve();
       expect(resolvers).toHaveLength(2);
@@ -132,13 +132,13 @@ describe("RecipeService", () => {
     it("propagates errors from explicitly enabled product lookups", async () => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(4, 4, "product")));
       mockFetch.mockRejectedValueOnce(new Error("Product unavailable"));
-      await expect(recipe.getRecipe(recipeId, undefined, { resolveIngredientNames: true })).rejects.toThrow("Product unavailable");
+      await expect(recipe.getRecipe(recipeId, { resolveIngredientNames: true })).rejects.toThrow("Product unavailable");
     });
 
     it("returns null if the optional product page has no name", async () => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(4, 4, "product")));
       mockFetch.mockResolvedValueOnce(response({}));
-      expect((await recipe.getRecipe(recipeId, undefined, { resolveIngredientNames: true })).ingredients[0].name).toBeNull();
+      expect((await recipe.getRecipe(recipeId, { resolveIngredientNames: true })).ingredients[0].name).toBeNull();
     });
 
     it("getUserDefinedRecipes selects the user's cookbook segment", async () => {
@@ -215,7 +215,7 @@ describe("RecipeService", () => {
     });
 
     it("addUserDefinedRecipeIngredient sends order and portions as strings like the app", async () => {
-      await recipe.addUserDefinedRecipeIngredient(recipeId, "s1010706", 1, 4, 7);
+      await recipe.addUserDefinedRecipeIngredient(recipeId, "s1010706", { quantity: 1, portions: 4, order: 7 });
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/add-ingredient-task");
       expect(body).toEqual({
@@ -224,7 +224,7 @@ describe("RecipeService", () => {
     });
 
     it("updateRecipeIngredient posts to save-selling-group-edit-task", async () => {
-      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 2 }, 4);
+      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { quantities: { s1143210: 2 }, portions: 4 });
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/save-selling-group-edit-task");
       expect(body).toEqual({
@@ -255,14 +255,14 @@ describe("RecipeService", () => {
     });
 
     it("updateRecipeIngredient includes the swap type when given", async () => {
-      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 0, s1189145: 1 }, 2, "SEARCH_SELECTION");
+      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { quantities: { s1143210: 0, s1189145: 1 }, portions: 2, swapType: "SEARCH_SELECTION" });
       const { body } = lastCall();
       expect(body.payload.swapType).toBe("SEARCH_SELECTION");
       expect(body.payload.selling_unit_quantity_by_id).toEqual({ s1143210: 0, s1189145: 1 });
     });
 
     it("updateRecipeIngredientInCart posts the selection with portions as a string", async () => {
-      await recipe.updateRecipeIngredientInCart(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1189145: 1 }, 2, "SEARCH_SELECTION");
+      await recipe.updateRecipeIngredientInCart(recipeId, "88c457541b974e8ab682e0a449a2d94c", { quantities: { s1189145: 1 }, portions: 2, swapType: "SEARCH_SELECTION" });
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/assign-sellable-component-to-day");
       expect(body).toEqual({

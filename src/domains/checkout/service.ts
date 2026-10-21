@@ -1,13 +1,13 @@
 import type HttpClient from "../../http-client";
 import type {
   CancelCheckoutInput,
-  CheckoutConfirmation,
+  RawCheckoutConfirmation,
   CheckoutStartInput,
-  CheckoutStartResult,
-  CheckoutStatusResult,
+  RawCheckoutStartResult,
+  RawCheckoutStatus,
   InitiatePaymentInput,
-  InitiatePaymentResult,
-  OrderStatus,
+  RawInitiatePaymentResult,
+  RawOrderStatus,
   StartCheckoutOptions,
 } from "./types";
 
@@ -20,8 +20,8 @@ export class CheckoutService {
    * @param {StartCheckoutOptions} options The cart's `mts`, and what the user resolved or accepted.
    * @throws {CheckoutIssueError} When the cart has issues to resolve first, e.g. an age check for alcohol.
    */
-  startCheckout(options: StartCheckoutOptions): Promise<CheckoutStartResult> {
-    return this.http.sendRequest<CheckoutStartInput, CheckoutStartResult>(
+  startCheckout(options: StartCheckoutOptions): Promise<RawCheckoutStartResult> {
+    return this.http.sendRequest<CheckoutStartInput, RawCheckoutStartResult>(
       "POST",
       `/cart/checkout/start`,
       {
@@ -36,12 +36,12 @@ export class CheckoutService {
   /**
    * Initiates payment for a checkout order and returns a bank redirect URL.
    */
-  initiatePayment(orderId: string, appReturnUrl: string): Promise<InitiatePaymentResult> {
+  initiatePayment(orderId: string, appReturnUrl: string): Promise<RawInitiatePaymentResult> {
     const body: InitiatePaymentInput = {
       order_id: orderId,
       app_return_url: appReturnUrl,
     };
-    return this.http.sendRequest<InitiatePaymentInput, InitiatePaymentResult>(
+    return this.http.sendRequest<InitiatePaymentInput, RawInitiatePaymentResult>(
       "POST",
       `/cart/checkout/initiate_payment`,
       body,
@@ -52,8 +52,8 @@ export class CheckoutService {
   /**
    * Polls checkout payment status while a transaction is in progress.
    */
-  getCheckoutStatus(transactionId: string): Promise<CheckoutStatusResult> {
-    return this.http.sendRequest<void, CheckoutStatusResult>(
+  getCheckoutStatus(transactionId: string): Promise<RawCheckoutStatus> {
+    return this.http.sendRequest<void, RawCheckoutStatus>(
       "GET",
       `/cart/checkout/${encodeURIComponent(transactionId)}/status`,
     );
@@ -75,15 +75,15 @@ export class CheckoutService {
    * Confirms and places an order identified by its order id.
    * @param {string} orderId The id of the order to confirm.
    */
-  confirmOrder(orderId: string): Promise<CheckoutConfirmation> {
-    return this.http.sendRequest<void, CheckoutConfirmation>("POST", `/cart/checkout/order/${encodeURIComponent(orderId)}/confirm`);
+  confirmOrder(orderId: string): Promise<RawCheckoutConfirmation> {
+    return this.http.sendRequest<void, RawCheckoutConfirmation>("POST", `/cart/checkout/order/${encodeURIComponent(orderId)}/confirm`);
   }
 
   /**
    * Returns the status of an order (not delivery) by its id.
    * @param {string} orderId
    */
-  getOrderStatus(orderId: string): Promise<OrderStatus> {
-    return this.http.sendRequest<any, OrderStatus>("GET", `/cart/checkout/order/${encodeURIComponent(orderId)}/status`);
+  getOrderStatus(orderId: string): Promise<RawOrderStatus> {
+    return this.http.sendRequest<null, RawOrderStatus>("GET", `/cart/checkout/order/${encodeURIComponent(orderId)}/status`);
   }
 }

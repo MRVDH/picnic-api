@@ -1,6 +1,6 @@
 import type { FusionComponent, Icon } from "../../pages/fusion";
 
-export type DeeplinkResolution = {
+export type RawDeeplinkResolution = {
   url: string;
 };
 
@@ -37,7 +37,7 @@ export type Message = {
  * Response wrapper for the /messages endpoint.
  * Maps to `MessagesWrapper` in the Android app.
  */
-export type MessagesWrapper = {
+export type RawMessages = {
   messages: Message[];
   query_interval: number | null; // polling interval in milliseconds
 };
@@ -232,7 +232,7 @@ export type InAppFeatureConfig = {
 };
 
 /** The root response returned by `GET /bootstrap`. */
-export type BootstrapData = {
+export type RawBootstrapData = {
   landing_tab_id: string;
   tabs: BootstrapTab[];
   general_message_behaviour: GeneralMessageBehaviour;

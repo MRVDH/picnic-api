@@ -55,7 +55,7 @@ export type FeatureToggle = {
   name: string;
 };
 
-export type User = {
+export type RawUser = {
   user_id: string;
   firstname: string;
   lastname: string;
@@ -76,7 +76,7 @@ export type User = {
   consent_decisions: ConsentDecisions;
 };
 
-export type UserInfo = {
+export type RawUserInfo = {
   user_id: string;
   redacted_phone_number: string;
   feature_toggles: FeatureToggle[];
@@ -91,7 +91,7 @@ export type UpdateCheckInput = {
   build_number: string;
 };
 
-export type UpdateCheckResult = {
+export type RawUpdateCheckResult = {
   update_required: boolean;
   address_autocomplete_enabled_countries: string[];
   use_address_autocomplete_flow: boolean;
@@ -109,8 +109,8 @@ export type ProfileUser = {
   mgm: MgmDetails;
 };
 
-export type ProfileMenu = {
-  highlights: any[];
+export type RawProfileMenu = {
+  highlights: unknown[];
   user: ProfileUser;
 };
 

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type HttpClient from "../../http-client";
-import { LoginInput, LoginResult, Verify2FAResult, Verify2FACodeInput, Generate2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
+import { LoginInput, LoginResult, RawLoginResponse, Verify2FAResult, Verify2FACodeInput, Generate2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
 
 export class AuthService {
   constructor(private http: HttpClient) {}
@@ -12,7 +12,7 @@ export class AuthService {
    */
   async login(username: string, password: string): Promise<LoginResult> {
     const secret = crypto.createHash("md5").update(password, "utf8").digest("hex");
-    const { data, headers } = await this.http.sendRequestWithHeaders<LoginInput, Omit<LoginResult, "authKey">>(
+    const { data, headers } = await this.http.sendRequestWithHeaders<LoginInput, RawLoginResponse>(
       "POST",
       `/user/login`,
       { key: username, secret, client_id: 30100 },
@@ -28,9 +28,9 @@ export class AuthService {
 
     return {
       authKey,
-      second_factor_authentication_required: data.second_factor_authentication_required,
-      show_second_factor_authentication_intro: data.show_second_factor_authentication_intro,
-      user_id: data.user_id,
+      userId: data.user_id,
+      secondFactorAuthenticationRequired: data.second_factor_authentication_required,
+      showSecondFactorAuthenticationIntro: data.show_second_factor_authentication_intro,
     };
   }
 

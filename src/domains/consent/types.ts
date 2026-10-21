@@ -5,7 +5,7 @@ export type ConsentSettingText = {
   timestamp: string;
 };
 
-export type ConsentSetting = {
+export type RawConsentSetting = {
   type: ConsentType;
   id: string;
   text_id: string;
@@ -25,7 +25,7 @@ export type SetConsentSettingsInput = {
   consent_declarations: ConsentDeclaration[];
 };
 
-export type SetConsentSettingsResult = {
+export type RawSetConsentSettingsResult = {
   consent_request_text_ids: string[];
 };
 
@@ -35,7 +35,7 @@ export type ConsentFormattedContent = {
   dialog_flow?: string;
 };
 
-export type ConsentRequest = {
+export type RawConsentRequest = {
   type: ConsentType;
   id: string;
   text_id: string;

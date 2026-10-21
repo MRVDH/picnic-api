@@ -1,7 +1,7 @@
 import type HttpClient from "../../http-client";
 import type { PageClient } from "../../pages/page-client";
 import type { Page } from "../../pages/types";
-import { BootstrapData, DeeplinkResolution, MessageDisplayPosition, MessagesWrapper } from "./types";
+import { RawBootstrapData, RawDeeplinkResolution, MessageDisplayPosition, RawMessages } from "./types";
 
 export class AppService {
   constructor(
@@ -12,8 +12,8 @@ export class AppService {
   /**
    * Returns the bootstrap data; tab bar configuration, third-party SDK configs, and feature flags.
    */
-  getBootstrapData(): Promise<BootstrapData> {
-    return this.http.sendRequest<null, BootstrapData>("GET", `/bootstrap`);
+  getBootstrapData(): Promise<RawBootstrapData> {
+    return this.http.sendRequest<null, RawBootstrapData>("GET", `/bootstrap`);
   }
 
   /**
@@ -45,8 +45,8 @@ export class AppService {
    * (e.g. URLs like `https://picnic.app/nl/deeplink/...`).
    * @param {string} url The deeplink URL to resolve.
    */
-  resolveDeeplink(url: string): Promise<DeeplinkResolution> {
-    return this.http.sendRequest<DeeplinkResolution, DeeplinkResolution>("POST", `/deeplink/resolve`, { url }, { includePicnicHeaders: true });
+  resolveDeeplink(url: string): Promise<RawDeeplinkResolution> {
+    return this.http.sendRequest<RawDeeplinkResolution, RawDeeplinkResolution>("POST", `/deeplink/resolve`, { url }, { includePicnicHeaders: true });
   }
 
   /**
@@ -54,8 +54,8 @@ export class AppService {
    * message bar notifications, order-confirmation cards).
    * @param {MessageDisplayPosition[]} [displayPositions] Optional filter by display position(s).
    */
-  getMessages(displayPositions?: MessageDisplayPosition[]): Promise<MessagesWrapper> {
+  getMessages(displayPositions?: MessageDisplayPosition[]): Promise<RawMessages> {
     const query = displayPositions?.length ? `?${displayPositions.map((p) => `display_position=${encodeURIComponent(p)}`).join("&")}` : "";
-    return this.http.sendRequest<any, MessagesWrapper>("GET", `/messages${query}`, null, { includePicnicHeaders: true });
+    return this.http.sendRequest<null, RawMessages>("GET", `/messages${query}`, null, { includePicnicHeaders: true });
   }
 }

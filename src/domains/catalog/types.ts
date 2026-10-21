@@ -2,7 +2,7 @@ import { PriceRange } from "../../pages/fusion";
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
-export type SearchSuggestion = {
+export type RawSearchSuggestion = {
   type: "SEARCH_SUGGESTION";
   id: string;
   suggestion: string;

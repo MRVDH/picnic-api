@@ -64,10 +64,29 @@ a model of the same data exists. Types are available as `PicnicClient.Types.<dom
 | `RecipeDetailsOptions` | `RecipeOptions` |
 | `UserDefinedRecipeSummary`, `UserDefinedRecipeIngredient`, `UserDefinedRecipeDetails`, `UserDefinedRecipeImageType` | `RecipeSummary`, `RecipeIngredient`, `Recipe`, `RecipeImageType` |
 | `SellingGroupSwapType` | `RecipeIngredientSwapType` |
-| `BootstrapData` and the tab bar types, in the Fusion types | The same names under `PicnicClient.Types.app` |
+| `BootstrapData` and the tab bar types, in the Fusion types | `RawBootstrapData` and the tab bar types under `PicnicClient.Types.app` |
+| `LoginResult` with `user_id`, `second_factor_authentication_required`, `show_second_factor_authentication_intro` | `LoginResult` with `userId`, `secondFactorAuthenticationRequired`, `showSecondFactorAuthenticationIntro` |
 
-The input and result types of renamed methods follow the method names, e.g. `AssignSellingGroupToBasketResult`
-is `AddRecipeToCartResult`.
+Every type that methods return as Picnic's JSON, without a parsing step, has the `Raw` prefix:
+
+| 4.x | 5.0 |
+| --- | --- |
+| `DeeplinkResolution`, `MessagesWrapper` | `RawDeeplinkResolution`, `RawMessages` |
+| `UserSlotMinimumOrderValue` | `RawMinimumOrderValue` |
+| `SearchSuggestion` | `RawSearchSuggestion` |
+| `CheckoutStartResult`, `InitiatePaymentResult`, `CheckoutStatusResult`, `CheckoutConfirmation`, `OrderStatus` | `RawCheckoutStartResult`, `RawInitiatePaymentResult`, `RawCheckoutStatus`, `RawCheckoutConfirmation`, `RawOrderStatus` |
+| `ConsentSetting`, `SetConsentSettingsResult`, `ConsentRequest` | `RawConsentSetting`, `RawSetConsentSettingsResult`, `RawConsentRequest` |
+| `CustomerServiceContactInfo` | `RawContactInfo` |
+| `Parcel` | `RawParcel` |
+| `PaymentProfile` | `RawPaymentProfile` |
+| `User`, `UserInfo`, `ProfileMenu`, `UpdateCheckResult` | `RawUser`, `RawUserInfo`, `RawProfileMenu`, `RawUpdateCheckResult` |
+| The results of the recipe tasks (`AssignSellingGroupToBasketResult`, `CreateUserDefinedRecipeResult`, ...) | `RawAddRecipeToCartResult`, `RawCreateUserDefinedRecipeResult`, ... |
+
+Fields of Picnic's JSON that the library hasn't typed are `unknown` instead of `any`, so reading them needs a check
+or a cast.
+
+The input types of renamed methods follow the method names, e.g. `AssignSellingGroupInput` is
+`AddRecipeToCartInput`.
 
 Some types moved to another domain, following their methods:
 
@@ -108,8 +127,10 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 | `delivery.getDelivery(id)` (raw) and `delivery.getDeliveryDetails(id)` | `delivery.getDelivery(id)` returns the `Delivery` model |
 | `delivery.getDeliveryPosition(id)` (raw) | `delivery.getDeliveryPosition(id)` returns the `DeliveryPosition` model |
 | `delivery.getDeliveryScenario(id)` | `delivery.getDeliveryRoute(id)` returns the `DeliveryRoute` model |
+| `delivery.cancelDelivery`, `setDeliveryRating`, `sendDeliveryInvoiceEmail` returned `any` or `string` | Return `void` |
 | `delivery.parseTracking(position, scenario)` | `delivery.getDeliveryTracking(id, knownRoute)`: pass the `route` of the previous result, and the route is only fetched again when its version changes |
-| `customerService.getParcels()`, `getReminders()`, `setReminders()` | `delivery.getParcels()`, `getReminders()`, `setReminders()` |
+| `customerService.getParcels()` | `delivery.getParcels()` |
+| `customerService.getReminders()`, `setReminders()` | Removed: Picnic answers the reminders route with 204 No Content and the app has no reminders screen |
 
 `DeliveryTracking` nests the route: `tracking.route.points`, `tracking.route.driverName` and so on, with
 `tracking.routeVersion` instead of `scenarioVersion`.
@@ -124,18 +145,23 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 | `user.getUserDetails()` | `user.getUser()` |
 | `customerService.getMessages(positions)` | `app.getMessages(positions)` |
 | `client.userOnboarding` | Removed |
+| `consent.getConsentSettings(true)` | `consent.getGeneralConsentSettings()`; `getConsentSettings()` takes no argument |
+| `user.submitSuggestion(text)` returned `any` | Returns `void` |
+| `user.registerPushToken(token, platform)` sent `{ push_token, platform }` | `user.registerPushToken(token)` sends `{ push_destination, push_version: 1 }`, as the app does, and returns `void` |
 
 ### Recipes
 
 | 4.x | 5.0 |
 | --- | --- |
-| `recipe.getUserDefinedRecipe(id, portions, options)` | `recipe.getRecipe(id, portions, options)` |
-| `recipe.assignSellingGroupToBasket(id, dayOffset, portions)` | `recipe.addRecipeToCart(id, dayOffset, portions)` |
-| `recipe.updateSellingGroupPortions(id, dayOffset, portions)` | `recipe.updateRecipePortionsInCart(id, dayOffset, portions)` |
+| `recipe.getRecipe(id, portions, { resolveIngredientNames })` and `recipe.getUserDefinedRecipe(...)` | `recipe.getRecipe(id, { portions, resolveIngredientNames })` |
+| `recipe.assignSellingGroupToBasket(id, dayOffset, portions)` | `recipe.addRecipeToCart(id, { dayOffset, portions })` |
+| `recipe.updateSellingGroupPortions(id, dayOffset, portions)` | `recipe.updateRecipePortionsInCart(id, { dayOffset, portions })` |
 | `recipe.removeSellingGroupFromBasket(id)` | `recipe.removeRecipeFromCart(id)` |
-| `recipe.updateUserDefinedRecipeIngredient(...)` | `recipe.updateRecipeIngredient(...)`; works for catalog recipes too |
-| `recipe.assignSellableComponentToDay(...)` | `recipe.updateRecipeIngredientInCart(...)` |
+| `recipe.updateUserDefinedRecipeIngredient(id, ingredientId, quantities, portions, swapType)` | `recipe.updateRecipeIngredient(id, ingredientId, { quantities, portions, swapType })`; works for catalog recipes too |
+| `recipe.assignSellableComponentToDay(id, ingredientId, quantities, portions, swapType)` | `recipe.updateRecipeIngredientInCart(id, ingredientId, { quantities, portions, swapType })` |
 | `recipe.removeUserDefinedRecipeIngredient(id, ingredientId)` | `recipe.removeRecipeIngredient(id, ingredientId)` |
+| `recipe.addUserDefinedRecipeIngredient(id, sellingUnitId, quantity, portions, order)` | `recipe.addUserDefinedRecipeIngredient(id, sellingUnitId, { quantity, portions, order })` |
+| Recipe methods that returned `Record<string, never>` (`saveRecipe`, `renameUserDefinedRecipe`, ...) | Return `void` |
 
 ## Errors
 

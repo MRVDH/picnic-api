@@ -38,10 +38,10 @@ export type StoredPaymentOption = {
   payment_method: string;
 };
 
-export type PaymentProfile = {
-  available_payment_method_item: any | null;
+export type RawPaymentProfile = {
+  available_payment_method_item: unknown | null;
   available_payment_methods: AvailablePaymentMethod[];
-  checkout_banner: any | null;
+  checkout_banner: unknown | null;
   payment_methods: PaymentMethod[];
   preferred_payment_option_id: string;
   stored_payment_options: StoredPaymentOption[];
@@ -53,7 +53,7 @@ export type WalletTransactionsInput = {
   page_number: number;
 };
 
-export type WalletTransactionSummary = {
+export type RawWalletTransactionSummary = {
   account: string;
   amount_in_cents: number;
   brand: string;
@@ -82,17 +82,17 @@ export type Deposit = {
 
 export type RawWalletTransaction = {
   amount_in_cents: number;
-  article_issue_refunds: any[];
-  debt_resolution: any | null;
-  delivery_debt: any | null;
+  article_issue_refunds: unknown[];
+  debt_resolution: unknown | null;
+  delivery_debt: unknown | null;
   delivery_id: string;
   deposits: Deposit[];
-  fees: any[];
+  fees: unknown[];
   payment_execution_timestamp: number;
   payment_method_icon_url: string;
   payment_option_account: string;
   payment_option_display_name: string;
-  refunded_items: any[];
+  refunded_items: unknown[];
   returned_containers: RawReturnedContainer[];
   shop_items: OrderLine[];
   transaction_method: string;

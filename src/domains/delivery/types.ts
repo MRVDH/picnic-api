@@ -51,7 +51,7 @@ export type RawDelivery = Omit<RawDeliverySummary, "orders"> & {
   id: string;
   orders: Order[];
   returned_containers: RawReturnedContainer[];
-  parcels: any[];
+  parcels: unknown[];
 };
 
 // ─── Delivery Summary ─────────────────────────────────────────────────────────
@@ -241,33 +241,6 @@ export type DeliveryTracking = DeliveryPosition & {
 };
 
 // ---
-// Reminders
-// ---
-
-/**
- * Day of week for a reminder.
- * Maps to `DayOfWeek` in the Android app.
- */
-export type ReminderDayOfWeek = "EMPTY" | "SUNDAY" | "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
-
-/**
- * A single delivery reminder configuration.
- * Maps to `Reminder` in the Android app.
- */
-export type Reminder = {
-  day_of_week: ReminderDayOfWeek | null;
-  time_of_day: number[] | null; // e.g. [8, 0] for 08:00
-};
-
-/**
- * Response wrapper for the GET /reminders endpoint.
- * Maps to `Reminders` in the Android app.
- */
-export type RemindersWrapper = {
-  reminders: Reminder[];
-};
-
-// ---
 // Parcels
 // ---
 
@@ -282,7 +255,7 @@ export type ParcelCurrentStatus = {
 /**
  * A tracked parcel (external delivery via a carrier such as DHL).
  */
-export type Parcel = {
+export type RawParcel = {
   id: string; // carrier tracking code
   handler_name: string; // e.g. "DHL"
   active: boolean;

@@ -1,13 +1,13 @@
 import type { DepositBreakdown, RawDeliverySlot } from "../cart/types";
 
-export type OrderStatus = {
+export type RawOrderStatus = {
   checkout_status: "FINISHED" | string;
 };
 
-export type CheckoutConfirmation = {
+export type RawCheckoutConfirmation = {
   order_id: string;
   delivery_slot: RawDeliverySlot;
-  analytics: Record<string, any> | null;
+  analytics: Record<string, unknown> | null;
 };
 
 /** Options for {@link CheckoutService.startCheckout}. */
@@ -27,7 +27,7 @@ export type CheckoutStartInput = {
   resolve_key?: string;
 };
 
-export type CheckoutStartResult = {
+export type RawCheckoutStartResult = {
   order_id: string;
   total_price: number;
   total_count: number;
@@ -54,14 +54,14 @@ export type PaymentAction = {
   redirect_url: string;
 };
 
-export type InitiatePaymentResult = {
+export type RawInitiatePaymentResult = {
   payment_id: string;
   transaction_id: string;
   issuer_authentication_url?: string;
   action: PaymentAction;
 };
 
-export type CheckoutStatusResult = {
+export type RawCheckoutStatus = {
   checkout_status: "FINISHED" | string;
 };
 

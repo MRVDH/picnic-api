@@ -43,10 +43,10 @@ export type ImageComponent = {
   resizeMode?: string;
   derivativeType?: string;
   extension?: string;
-  placeholder?: string | Record<string, any>;
+  placeholder?: string | Record<string, unknown>;
   fallbackSource?: ImageSource;
   maxUpscalePercentage?: number;
-  analytics?: Record<string, any>;
+  analytics?: Record<string, unknown>;
   aspectRatio?: number;
 };
 
@@ -65,7 +65,7 @@ export type StackComponent = {
   accessible?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-  accessibilityActions?: any[];
+  accessibilityActions?: unknown[];
   isHidden?: boolean;
   children?: Component[];
 };
@@ -87,13 +87,13 @@ export type ContainerComponent = {
   hideFromAccessibility?: boolean;
   pointerEvents?: string;
   absolutePosition?: Padding;
-  accessibilityActions?: any[];
+  accessibilityActions?: unknown[];
   /** Drop-shadow configuration (color, offset, opacity, radius). */
-  shadow?: Record<string, any>;
+  shadow?: Record<string, unknown>;
   /** Component rendered as a blur underlay (product-details sticky header). */
-  blurComponent?: any;
+  blurComponent?: unknown;
   /** Props passed to the blur underlay renderer. */
-  blurProps?: Record<string, any>;
+  blurProps?: Record<string, unknown>;
   child?: Component;
   children?: Component[];
 };
@@ -111,12 +111,12 @@ export type RichTextComponent = {
 
 export type IconComponent = {
   type: "ICON";
-  iconKey: string | Record<string, any>;
+  iconKey: string | Record<string, unknown>;
   width: number;
   height: number;
-  color?: string | Record<string, any>;
+  color?: string | Record<string, unknown>;
   aspectRatio?: number;
-  fallback?: Record<string, any>;
+  fallback?: Record<string, unknown>;
   /** Clockwise rotation in degrees applied to the icon (e.g. 270 for a chevron pointing up). */
   rotation?: number;
 };
@@ -156,7 +156,7 @@ export type FusionHitSlop = {
 };
 
 export type FusionAnalyticsContext = {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   schema: string;
 };
 
@@ -195,7 +195,7 @@ export type FusionRefreshEventPayload = {
 };
 
 /** Union of all typed event payloads that can appear as `FusionEventAction.action`. */
-export type FusionEventPayload = FusionToastEventPayload | FusionSnackbarEventPayload | FusionRefreshEventPayload | { type: string; [key: string]: any };
+export type FusionEventPayload = FusionToastEventPayload | FusionSnackbarEventPayload | FusionRefreshEventPayload | { type: string; [key: string]: unknown };
 
 export type FusionEventAction = {
   actionType: "EVENT";
@@ -207,7 +207,7 @@ export type FusionEndpointAction = {
   actionType: "ENDPOINT";
   method: string;
   url: string;
-  body?: Record<string, any>;
+  body?: Record<string, unknown>;
   onSuccess?: FusionPressAction;
 };
 
@@ -243,7 +243,7 @@ export type FusionPressAction =
   | FusionCallbackAction
   | FusionReloadAction
   | FusionAnalyticsAction
-  | { actionType: string; [key: string]: any };
+  | { actionType: string; [key: string]: unknown };
 
 // ── PML inner components (inside `pml.component`, camelCase naming) ───────────
 
@@ -312,7 +312,7 @@ export type SellingUnit = {
   display_price: number;
   unit_quantity: string;
   max_count: number;
-  decorators: any[];
+  decorators: unknown[];
   /** Bundle discount price tiers. Each entry defines a per-unit price that applies when the cart quantity reaches `from_quantity`. */
   price_ranges: PriceRange[] | null;
 };
@@ -529,7 +529,7 @@ export type FlowLayout = {
   hideFromAccessibility?: boolean;
   accessibilityElementsHidden?: boolean;
   /** Pagination configuration. */
-  pagination?: Record<string, any> | null;
+  pagination?: Record<string, unknown> | null;
   /**
    * ID of the item to scroll into focus on render. Can be a plain string or an
    * EXPRESSION component that resolves to the ID at runtime.
@@ -538,7 +538,7 @@ export type FlowLayout = {
   focusedItemOffset?: number | null;
   itemVisibilityPercentage?: number | null;
   smoothScrollToFocusedItem?: boolean;
-  viewabilityListeners?: any[] | null;
+  viewabilityListeners?: unknown[] | null;
   /**
    * Override for the underlying list renderer.
    * Known values: `"FlashList"` (high-performance list on category pages).
@@ -553,7 +553,7 @@ export type PMLItem = {
   analytics: FusionItemAnalytics;
   size: FusionSize;
   pml: FusionPMLRoot;
-  content?: Record<string, any>;
+  content?: Record<string, unknown>;
   viewComponentType?: string;
   /** When true the item is invisible but still present in the tree. */
   isHidden?: boolean;
@@ -572,7 +572,7 @@ export type BlockComponent = {
    * Expressions evaluated when the block mounts. Can be an array of named
    * expressions or a single EXPRESSION object (search pages use the latter).
    */
-  initializeExpressions?: any[] | Record<string, any> | null;
+  initializeExpressions?: unknown[] | Record<string, unknown> | null;
   /** Action fired when the block mounts. */
   onMount?: FusionPressAction | null;
   /** Action fired when the block unmounts (navigation away). */
@@ -599,7 +599,7 @@ export type SuspenseComponent = {
   suspenseId?: string;
   child?: BlockComponent | StateBoundaryComponent;
   /** References the page-content endpoint to fetch lazily. */
-  pageConfig?: { id: string; parameters?: Record<string, any> } | null;
+  pageConfig?: { id: string; parameters?: Record<string, unknown> } | null;
   /** Shown while the lazy content is loading; `null` means no loading UI. */
   loadingConfig?: SuspenseFallbackConfig | null;
   /** Shown when the lazy content fetch fails; `null` means no error UI. */
@@ -609,7 +609,7 @@ export type SuspenseComponent = {
 export type StateBoundaryComponent = {
   type: "STATE_BOUNDARY";
   id: string;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   child: BlockComponent | SuspenseComponent;
 };
 
@@ -625,7 +625,7 @@ export type FullScreenPresentation = {
 export type PageAnalytics = {
   /** Present on home pages; absent on some pages (e.g. meals, slot-selector) that only carry `contexts`. */
   type?: "Page" | string;
-  additionalProperties?: Record<string, any>;
+  additionalProperties?: Record<string, unknown>;
   contexts?: FusionAnalyticsContext[];
   domain?: string;
   name?: string;
@@ -636,7 +636,7 @@ export type PageHeader = {
   type: string;
   title?: string | null;
   padding?: Padding;
-  buttons?: any[] | null;
+  buttons?: unknown[] | null;
 };
 
 /** Minimal static header — just a title, no buttons or padding (e.g. category pages). */
@@ -650,7 +650,7 @@ export type DefaultPageHeader = {
   type: "DEFAULT";
   title?: string | null;
   padding?: Padding;
-  buttons?: any[] | null;
+  buttons?: unknown[] | null;
 };
 
 /**

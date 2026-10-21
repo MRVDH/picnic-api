@@ -33,7 +33,7 @@ const picnicClient = new PicnicClient({
 
 Most endpoints require authentication. Call `auth.login()` to obtain an auth key, which is automatically stored in the client and sent with subsequent requests. If you already have a key from a previous session, pass it as `authKey` in the constructor instead.
 
-If the login endpoint responds with a 2FA requirement (`second_factor_authentication_required: true`), then call `auth.generate2FACode("SMS")` to generate a 2FA code and pass it to `auth.verify2FA(<code>)` to complete the login process.
+If the login requires a second factor (`secondFactorAuthenticationRequired` in the result), call `auth.generate2FACode("SMS")` to send a code and pass it to `auth.verify2FACode(<code>)` to complete the login.
 
 ```ts
 await picnicClient.auth.login("email", "password");
@@ -98,15 +98,20 @@ The client exposes the following domain services, each grouping a set of related
 | **Consent** | `client.consent` | Consent settings and GDPR declarations. |
 | **Content** | `client.content` | Static content pages (FAQ, search empty state). |
 | **Customer Service** | `client.customerService` | Contact info and opening times. |
-| **Delivery** | `client.delivery` | Delivery history, tracking, ratings, invoices, parcels, and reminders. |
+| **Delivery** | `client.delivery` | Delivery history, tracking, ratings, invoices, and parcels. |
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
 | **Recipe** | `client.recipe` | Recipe browsing and saving, plus creating and editing your own (user defined) recipes: name, portions, ingredients, note and image. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
 
-Each service method is fully typed. Methods return the data the way the app shows it, as camelCase models such as
-`Cart`, `Delivery`, `Product` and `Recipe`; the cart mutations return the updated `Cart`. Types prefixed with `Raw`
-mirror Picnic's own JSON (snake_case) and are what the models are read from. The types are available as
-`PicnicClient.Types.<domain>`, e.g. `PicnicClient.Types.cart.Cart`.
+Each service method is fully typed and returns one of two kinds of data:
+
+- A model, with a plain name such as `Cart`, `Delivery`, `Product` or `Recipe`: camelCase data the way the app shows
+  it, read by the library. The cart mutations return the updated `Cart`.
+- Picnic's own JSON as Picnic sends it, with a `Raw` prefix such as `RawPaymentProfile` or `RawUser`. These follow
+  Picnic and can be snake_case; parts the library hasn't typed yet are `unknown`.
+
+Mutations without a useful result return `void`. The types are available as `PicnicClient.Types.<domain>`, e.g.
+`PicnicClient.Types.cart.Cart`.
 
 Catalog and user-defined recipes share `RecipeSummary`, `Recipe`, and
 `RecipeIngredient` types:
@@ -115,13 +120,13 @@ Catalog and user-defined recipes share `RecipeSummary`, `Recipe`, and
 const saved = await picnicClient.recipe.getSavedRecipes();
 const own = await picnicClient.recipe.getUserDefinedRecipes();
 if (saved.length) {
-  const recipe = await picnicClient.recipe.getRecipe(saved[0].id, 2);
+  const recipe = await picnicClient.recipe.getRecipe(saved[0].id, { portions: 2 });
   // recipe.name, recipe.imageId, recipe.ingredients; quantities are for 2 portions.
 }
 ```
 
-`getRecipe` reads catalog recipes and user defined recipes alike. Omit portions to use the stored default.
-Pass `{ resolveIngredientNames: true }` as the third argument to look up names missing from recipe tiles.
+`getRecipe` reads catalog recipes and user defined recipes alike. Omit `portions` to use the stored default, and
+pass `resolveIngredientNames: true` to look up names missing from recipe tiles.
 
 ## Contributing
 

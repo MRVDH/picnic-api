@@ -64,14 +64,14 @@ export type RemoveRecipeFromCartInput = {
 };
 
 /** Response of `assign-selling-group-to-basket`. */
-export type AddRecipeToCartResult = {
+export type RawAddRecipeToCartResult = {
   anyUnavailableIngredient: boolean;
   assignedNumberOfPortions: number;
   cart: SellingGroupCartSnapshot;
 };
 
 /** Response of `remove-selling-group-from-basket`. */
-export type RemoveRecipeFromCartResult = {
+export type RawRemoveRecipeFromCartResult = {
   cart: SellingGroupCartSnapshot;
   /** The ingredient (selling group component) ids that were in the basket. */
   selectedSellableComponentIds: string[];
@@ -244,6 +244,8 @@ export type Recipe = Pick<RecipeSummary, "id" | "name" | "imageType"> & {
 
 /** Optional extra requests when retrieving structured recipe details. */
 export type RecipeOptions = {
+  /** Positive integer portion count; defaults to the count Picnic renders the page with. */
+  portions?: number;
   /**
    * Fetch product pages for names missing from recipe tiles. Defaults to false.
    * Requests run concurrently, once per distinct product; request failures reject
@@ -295,7 +297,7 @@ export type CreateUserDefinedRecipeInput = {
 };
 
 /** Response of `create-user-defined-recipe`. */
-export type CreateUserDefinedRecipeResult = {
+export type RawCreateUserDefinedRecipeResult = {
   /** The id of the newly created recipe. */
   sellingGroupId: string;
   /** Present when the recipe was also added to the basket during creation. */
@@ -371,7 +373,7 @@ export type AddUserDefinedRecipeIngredientInput = {
 };
 
 /** Response of `add-ingredient-task`. */
-export type AddUserDefinedRecipeIngredientResult = {
+export type RawAddUserDefinedRecipeIngredientResult = {
   /** The id of the created ingredient (selling group component). */
   newComponentId: string;
 };
@@ -426,7 +428,7 @@ export type SellingGroupCartSnapshot = {
 };
 
 /** Response of `save-selling-group-edit-task`. */
-export type UpdateRecipeIngredientResult = {
+export type RawUpdateRecipeIngredientResult = {
   cart?: SellingGroupCartSnapshot;
   /**
    * `true` when the recipe is in the basket and the basket still holds the old
@@ -458,7 +460,7 @@ export type UpdateRecipeIngredientInCartInput = {
 };
 
 /** Response of `assign-sellable-component-to-day`. */
-export type UpdateRecipeIngredientInCartResult = {
+export type RawUpdateRecipeIngredientInCartResult = {
   cart?: SellingGroupCartSnapshot;
 };
 
@@ -476,7 +478,7 @@ export type RemoveRecipeIngredientInput = {
 };
 
 /** Response of `delete-selling-group-component`. */
-export type RemoveRecipeIngredientResult = {
+export type RawRemoveRecipeIngredientResult = {
   cart?: SellingGroupCartSnapshot;
 };
 
@@ -551,9 +553,55 @@ export type UserDefinedRecipeImageUpload = {
 };
 
 /** Response of `POST /user-defined-sellable/{sellableId}` (raw image body upload). */
-export type UserDefinedRecipeImageUploadResult = {
+export type RawUserDefinedRecipeImageUploadResult = {
   image_id?: string;
   imageId?: string;
   namespace?: string;
   [key: string]: unknown;
+};
+
+/** Options for `recipe.addRecipeToCart`. */
+export type AddRecipeToCartOptions = {
+  /** Which delivery day to plan the recipe for, relative to the selected slot. */
+  dayOffset?: number;
+  /** The number of portions. */
+  portions?: number;
+};
+
+/** Where and for how many a recipe in the cart is planned, for `recipe.updateRecipePortionsInCart`. */
+export type RecipePortionsInCart = {
+  /** Which delivery day the recipe is planned for, relative to the selected slot. */
+  dayOffset: number;
+  /** The new number of portions. */
+  portions: number;
+};
+
+/** An ingredient's selection, for `recipe.updateRecipeIngredient`. */
+export type RecipeIngredientSelection = {
+  /** Selling unit id → quantity for this ingredient; replaced units with quantity 0 when swapping. */
+  quantities: Record<string, number>;
+  /** The recipe's number of portions the quantities are based on. Default: 4. */
+  portions?: number;
+  /** The swap type, when the product was swapped. */
+  swapType?: RecipeIngredientSwapType | null;
+};
+
+/** The selection to put in the cart, for `recipe.updateRecipeIngredientInCart`. */
+export type RecipeIngredientCartSelection = {
+  /** The selected selling unit id → quantity (only the selected ones, no zeroes). */
+  quantities: Record<string, number>;
+  /** The recipe's number of portions the quantities are based on. */
+  portions: number;
+  /** The swap type that was sent with `updateRecipeIngredient`. */
+  swapType: RecipeIngredientSwapType;
+};
+
+/** Options for `recipe.addUserDefinedRecipeIngredient`. */
+export type NewIngredientOptions = {
+  /** Number of selling units for `portions` portions. Default: 1. */
+  quantity?: number;
+  /** The recipe's number of portions the quantity is based on. Default: 4. */
+  portions?: number;
+  /** Position in the ingredient list; the app sends the current ingredient count. Default: 0. */
+  order?: number;
 };
