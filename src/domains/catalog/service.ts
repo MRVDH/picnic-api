@@ -100,22 +100,14 @@ export class CatalogService {
     return this.http.sendRequest<any, SearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
   }
 
-  /**
-   * Returns the full product details page. The response is not typed as the content is dynamic.
-   * @param {string} productId The product ID to fetch the page for.
-   */
-  getProductDetailsPage(productId: string): Promise<FusionPage> {
+  /** Fetches the product details page (Fusion). */
+  private getProductDetailsPage(productId: string): Promise<FusionPage> {
     return this.pages.getFusionPage(productDetailsPageId(productId));
   }
 
   /**
-   * Returns structured product details extracted from the product details page.
-   * This is a convenience wrapper around {@link getProductDetailsPage} that parses
-   * the Fusion page response into a clean {@link ProductDetails} data model.
-   *
-   * **⚠️ Experimental:** This method parses dynamic Fusion/PML page structures and
-   * may break if Picnic changes their page layout. Use {@link getProductDetailsPage}
-   * for a stable alternative.
+   * Returns a product as the app's product page shows it (`product-details-page-root`): name,
+   * prices, promotions, images, the information sections, nutrition, allergens and the bundles.
    *
    * @param {string} productId The product ID to fetch details for.
    * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.

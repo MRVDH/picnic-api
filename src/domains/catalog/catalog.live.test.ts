@@ -17,15 +17,6 @@ describe("Catalog - search", () => {
   });
 });
 
-describe("Catalog - product details page", () => {
-  it("should retrieve the product details page", async () => {
-    const result = await client.catalog.getProductDetailsPage("s1001524");
-
-    expect(result).not.toBeNull();
-    expect(result.layout.id).toBe("product-details-page-root");
-  });
-});
-
 describe("Catalog - getProductDetails", () => {
   it("extracts details for a product without brand", async () => {
     const details = await client.catalog.getProductDetails("s1001504");

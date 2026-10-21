@@ -50,40 +50,27 @@ export class RecipeService {
     private pages: PageClient,
   ) {}
 
-  /**
-   * Returns the cookbook home (the app's recipes tab): rows of recipes and the category tree.
-   * See {@link getRecipeOverview} for the parsed content. To list the user's own recipes, use
-   * {@link getCookbookPage}.
-   */
-  getRecipesPage(): Promise<FusionPage> {
+  /** Fetches the cookbook home (`meals-page-root`, Fusion). */
+  private getRecipesPage(): Promise<FusionPage> {
     return this.pages.getFusionPage("meals-page-root");
   }
 
   /**
-   * Returns the cookbook page, listing the user's recipes grouped by segment.
-   * Each recipe tile carries a `segment_type` analytics context, e.g.
-   * `SAVED_RECIPES` (saved/favourites), `USER_DEFINED_RECIPES` (the user's own
-   * recipes), `NEW_RECIPES`, `THIS_WEEK_RECIPES`, …
+   * Fetches the cookbook page (`cookbook-page-content`, Fusion), which lists the user's recipes
+   * grouped by segment. Each recipe tile carries a `segment_type` analytics context, e.g.
+   * `SAVED_RECIPES`, `USER_DEFINED_RECIPES` (the user's own recipes), `NEW_RECIPES`.
    */
-  getCookbookPage(): Promise<FusionPage> {
+  private getCookbookPage(): Promise<FusionPage> {
     return this.pages.getFusionPage("cookbook-page-content");
   }
 
   /**
-   * Returns the detail page for a single recipe.
-   *
-   * Recipes are modelled as "selling groups", so a recipe id is a
-   * `selling_group_id` and the detail page is served from
-   * `selling-group-details-page`. The previous `recipe-details-page-root`
-   * route is no longer served and responds with HTTP 404
-   * (`page-template with id 'recipe-details-page-root' was not found`).
-   *
-   * Contains ingredients, cooking steps, servings, cooking time, and pricing.
-   * @param {string} recipeId The id of the recipe (a `selling_group_id`; 24 hex
-   *   chars for catalog recipes, 32 for the user's own recipes).
+   * Fetches the detail page of a recipe (Fusion). Recipes are "selling groups", so the page is
+   * `selling-group-details-page` with the recipe id as `selling_group_id`.
+   * @param {string} recipeId The recipe id (24 hex characters for catalog recipes, 32 for the user's own).
    * @param {number} [portions] Render this many portions; omit to use the app's selection.
    */
-  getRecipeDetailsPage(recipeId: string, portions?: number): Promise<FusionPage> {
+  private getRecipeDetailsPage(recipeId: string, portions?: number): Promise<FusionPage> {
     if (portions !== undefined && (!Number.isSafeInteger(portions) || portions <= 0)) {
       throw new RangeError("Recipe portions must be a positive integer");
     }
@@ -288,30 +275,16 @@ export class RecipeService {
   }
 
   /**
-   * Returns the same structured details as {@link getRecipe}, including ingredient
-   * names and quantities for the requested or default portions. Extra product-name
-   * requests are opt-in, as with getRecipe.
-   * @param {string} recipeId The user-defined recipe's selling group id.
-   * @param {number} [portions] Requested count; defaults to the count Picnic renders.
-   * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
+   * Fetches the image selection page of a user defined recipe (Fusion). Unlike most pages it
+   * returns the bare page layout without the `{ script, layout }` envelope.
    */
-  getUserDefinedRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<UserDefinedRecipeDetails> {
-    return this.getRecipe(recipeId, portions, options);
-  }
-
-  /**
-   * Returns the image selection page for a user defined recipe, listing the
-   * suggested images the user can pick from with {@link selectUserDefinedRecipeImage}.
-   * Unlike most pages this route returns the bare page layout without the `{ script, layout }` envelope.
-   * @param {string} recipeId The recipe id.
-   */
-  getUserDefinedRecipeImageSelectionPage(recipeId: string): Promise<FusionPageLayout> {
+  private getUserDefinedRecipeImageSelectionPage(recipeId: string): Promise<FusionPageLayout> {
     return this.pages.getFusionPage<FusionPageLayout>(`sellable-image-selection-page-root?origin=RECIPE_DETAILS&sellable_id=${encodeURIComponent(recipeId)}`);
   }
 
   /**
-   * Returns the suggested images for a user defined recipe, extracted from
-   * {@link getUserDefinedRecipeImageSelectionPage}. Pass an entry's `id` and
+   * Returns the suggested images for a user defined recipe, from the app's image selection page
+   * (`sellable-image-selection-page-root`). Pass an entry's `id` and
    * `referenceImage` to {@link selectUserDefinedRecipeImage}.
    * @param {string} recipeId The recipe id.
    */
@@ -553,7 +526,7 @@ export class RecipeService {
 
   /**
    * Sets the image of a user defined recipe, either a suggested image from
-   * {@link getUserDefinedRecipeImageSelectionPage} or a photo uploaded with
+   * {@link getUserDefinedRecipeSuggestedImages} or a photo uploaded with
    * {@link uploadUserDefinedRecipeImage}.
    * @param {string} recipeId The recipe id.
    * @param {string} imageId The image id to select.

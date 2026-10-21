@@ -16,7 +16,7 @@ beforeEach(() => {
 
 describe("RecipeService", () => {
   it("getRecipeDetailsPage uses the selling-group-details-page route (not the 404'ing recipe-details-page-root)", async () => {
-    await recipe.getRecipeDetailsPage("0123456789abcdef01234567");
+    await recipe["getRecipeDetailsPage"]("0123456789abcdef01234567");
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -29,7 +29,7 @@ describe("RecipeService", () => {
   });
 
   it("getCookbookPage requests the cookbook content page", async () => {
-    await recipe.getCookbookPage();
+    await recipe["getCookbookPage"]();
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/pages/cookbook-page-content"),
@@ -38,7 +38,7 @@ describe("RecipeService", () => {
   });
 
   it("getRecipesPage requests the meal-planner root", async () => {
-    await recipe.getRecipesPage();
+    await recipe["getRecipesPage"]();
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/pages/meals-page-root"),
@@ -64,7 +64,7 @@ describe("RecipeService", () => {
 
     it.each(["PIM", "USER"])("returns %s recipes at the portions Picnic renders when none are requested", async (creator) => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack", "Small pack", creator)));
-      const details = creator === "USER" ? await recipe.getUserDefinedRecipe(recipeId) : await recipe.getRecipe(recipeId);
+      const details = await recipe.getRecipe(recipeId);
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch.mock.calls[0][0]).not.toContain("portions=");
       expect(details).toMatchObject({ portions: 2, defaultPortions: 4, displayedPortions: 2, imageId: "recipes/image-2" });
@@ -80,9 +80,9 @@ describe("RecipeService", () => {
       expect(details.ingredients[0]).toMatchObject({ sellingUnitId: "large-pack" });
     });
 
-    it.each(["getRecipe", "getUserDefinedRecipe"] as const)("%s requests explicit portions in a single details call", async (method) => {
+    it("getRecipe requests explicit portions in a single details call", async () => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack")));
-      const details = await recipe[method](recipeId, 2);
+      const details = await recipe.getRecipe(recipeId, 2);
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch.mock.calls[0][0]).toContain("&portions=2");
       expect(details).toMatchObject({ portions: 2, defaultPortions: 4 });
@@ -108,7 +108,7 @@ describe("RecipeService", () => {
 
     it("propagates backend rendering errors without silently using different portions", async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: "Internal Server Error", text: async () => JSON.stringify({ error: { message: "Error rendering page_id='selling-group-details-page'" } }) });
-      await expect(recipe.getUserDefinedRecipe(recipeId, 2)).rejects.toThrow("Error rendering page_id='selling-group-details-page'");
+      await expect(recipe.getRecipe(recipeId, 2)).rejects.toThrow("Error rendering page_id='selling-group-details-page'");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -119,7 +119,7 @@ describe("RecipeService", () => {
       const resolvers: Array<(value: unknown) => void> = [];
       mockFetch.mockResolvedValueOnce(response(data));
       mockFetch.mockImplementation(() => new Promise(resolve => { resolvers.push(resolve); }));
-      const pending = recipe.getUserDefinedRecipe(recipeId, undefined, { resolveIngredientNames: true });
+      const pending = recipe.getRecipe(recipeId, undefined, { resolveIngredientNames: true });
       // Wait for the async details parse, while both product requests remain unresolved.
       for (let i = 0; i < 20 && resolvers.length < 2; i++) await Promise.resolve();
       expect(resolvers).toHaveLength(2);

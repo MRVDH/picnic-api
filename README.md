@@ -117,12 +117,10 @@ if (saved.length) {
   const recipe = await picnicClient.recipe.getRecipe(saved[0].id, 2);
   // recipe.name, recipe.imageId, recipe.ingredients; quantities are for 2 portions.
 }
-// getUserDefinedRecipe(id, portions?) returns the same detail structure.
 ```
 
-Omit portions to use the stored default. Pass `{ resolveIngredientNames: true }` as
-the third argument to look up names missing from recipe tiles. Raw pages remain
-available through `getCookbookPage()` and `getRecipeDetailsPage(id, portions?)`.
+`getRecipe` reads catalog recipes and user defined recipes alike. Omit portions to use the stored default.
+Pass `{ resolveIngredientNames: true }` as the third argument to look up names missing from recipe tiles.
 
 ## Contributing
 
