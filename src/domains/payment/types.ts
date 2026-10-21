@@ -1,4 +1,5 @@
-import { OrderLine } from "../cart/types";
+import { CartLineItem, OrderLine } from "../cart/types";
+import type { ReturnedContainerSummary } from "../delivery/types";
 
 // ─── Payment Profile ──────────────────────────────────────────────────────────
 
@@ -97,4 +98,36 @@ export type WalletTransactionDetails = {
   transaction_method: string;
   transaction_status: string;
   transaction_type: string;
+};
+
+// ─── Wallet transaction (parsed) ──────────────────────────────────────────────
+
+/** A product that was missing at delivery and what replaced it. */
+export type WalletSubstitution = {
+  /** The missing product, looked up in the order lines. */
+  original: { name: string; imageId: string | null; quantity: number };
+  /** The amount refunded for the missing product, in cents. */
+  refundAmount: number;
+  replacements: { name: string; imageId: string | null; quantity: number }[];
+};
+
+/** A payment as the app's wallet shows it ("Betaling"), with the order lines it covers. Amounts are in cents. */
+export type WalletPayment = {
+  id: string;
+  deliveryId: string | null;
+  /** The payment time in epoch milliseconds, or null. */
+  paidAt: number | null;
+  amount: number;
+  /** "PAYMENT", or e.g. "REFUND" for money back. */
+  type: string;
+  status: string;
+  /** The order lines, without the substituted products (see `substitutions`). */
+  items: CartLineItem[];
+  substitutions: WalletSubstitution[];
+  /** Deposits paid. */
+  depositTotal: number;
+  returnedContainers: ReturnedContainerSummary[];
+  /** Deposits returned. */
+  returnedDepositTotal: number;
+  paymentMethod: { displayName: string; account: string | null; iconUrl: string | null } | null;
 };

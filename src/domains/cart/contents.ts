@@ -1,7 +1,7 @@
 import type { Decorator } from "../../types/common";
 import type { PriceRange } from "../../types/fusion";
 import { extractDeliverySlots } from "./helpers";
-import type { Cart, CartContents, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
+import type { Cart, CartContents, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
 
 type RawRecord = Record<string, unknown>;
 
@@ -101,18 +101,28 @@ function readRecipes(sections: unknown): CartRecipe[] {
   );
 }
 
-/** Turns a cart response (from {@link CartService.getCart} or a cart mutation) into {@link CartContents}. */
-export function extractCartContents(cart: Cart): CartContents {
-  const overrides = cart.decorator_overrides ?? {};
-  const items = (cart.items ?? []).flatMap((line) => readCartLine(line, overrides) ?? []);
-  const deposits = asRecords(cart.deposit_breakdown).map((entry) => {
+/** Reads a deposit breakdown (`deposit_breakdown`), with the total per kind of container. */
+export function readDeposits(raw: unknown): CartDeposit[] {
+  return asRecords(raw).map((entry) => {
     const value = asNumber(entry.value);
     const count = asNumber(entry.count);
     return { type: asString(entry.type) ?? "", value, count, total: value * count };
   });
-  const fees: CartFee[] = asRecords(cart.fees)
+}
+
+/** Reads the fees and credits that aren't zero. */
+export function readFees(raw: unknown): CartFee[] {
+  return asRecords(raw)
     .map((fee) => ({ type: asString(fee.type) ?? "", name: asString(fee.name) ?? "", amount: asNumber(fee.amount) }))
     .filter((fee) => fee.amount !== 0);
+}
+
+/** Turns a cart response (from {@link CartService.getCart} or a cart mutation) into {@link CartContents}. */
+export function extractCartContents(cart: Cart): CartContents {
+  const overrides = cart.decorator_overrides ?? {};
+  const items = (cart.items ?? []).flatMap((line) => readCartLine(line, overrides) ?? []);
+  const deposits = readDeposits(cart.deposit_breakdown);
+  const fees = readFees(cart.fees);
   const slots = extractDeliverySlots({ delivery_slots: cart.delivery_slots ?? [], selected_slot: cart.selected_slot ?? null });
   const selectedSlot = slots.selectedSlot;
 
