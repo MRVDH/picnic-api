@@ -81,7 +81,8 @@ await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@exampl
 ```
 
 The fourth argument takes options: `includePicnicHeaders` (the `x-picnic-agent` and `x-picnic-did` headers many routes
-need), `headers`, `authenticated`, `binary` (return an `ArrayBuffer`) and `contentType` (for a raw body). Responses
+need), `headers`, `authenticated`, `binary` (return an `ArrayBuffer`) and `contentType` (for a raw body). The auth key
+is only sent to the API's own host unless you pass `authenticated: true`. Responses
 served as an RSC payload (`text/x-component`) are returned as raw text instead of parsed JSON.
 
 ## API reference

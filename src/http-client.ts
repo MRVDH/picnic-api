@@ -8,7 +8,11 @@ export type RequestOptions = {
   includePicnicHeaders?: boolean;
   /** Headers to add to the request. */
   headers?: Record<string, string>;
-  /** Whether to send the auth key. Default: true; set false for public routes and static files such as RSC client chunks. */
+  /**
+   * Whether to send the auth key. Default: only for requests to the API's own origin, so an
+   * absolute URL to another host (a payment redirect, a CDN file) never gets the user's key unless
+   * this is `true`. Set `false` for public routes.
+   */
   authenticated?: boolean;
   /** Whether to return the body as an ArrayBuffer instead of parsing it. Default: false. */
   binary?: boolean;
@@ -106,19 +110,21 @@ export default class HttpClient {
   ): Promise<Response> {
     const isRawBody = data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
 
+    // `path` may be an absolute URL (e.g. product images are served outside the API path), in
+    // which case it is used as-is rather than prefixed.
+    const requestUrl = /^https?:\/\//.test(path) ? path : `${this.url}${path}`;
+    const sendAuthKey = options.authenticated ?? new URL(requestUrl).origin === new URL(this.url).origin;
+    const { "x-picnic-auth": authKey, ...baseHeaders } = this.baseHeaders;
+
     const headers = new Headers({
-      ...this.baseHeaders,
+      ...baseHeaders,
+      ...(sendAuthKey && authKey && { "x-picnic-auth": authKey }),
       ...(options.includePicnicHeaders && this.picnicHeaders),
       ...(isRawBody && { "Content-Type": options.contentType ?? "application/octet-stream" }),
       ...options.headers,
     });
-    if (options.authenticated === false) headers.delete("x-picnic-auth");
 
     const body: RequestInit["body"] = data === null ? null : isRawBody ? (data as unknown as NonNullable<RequestInit["body"]>) : JSON.stringify(data);
-
-    // `path` may be an absolute URL (e.g. image requests target a different base
-    // than the API), in which case it must be used as-is rather than prefixed.
-    const requestUrl = /^https?:\/\//.test(path) ? path : `${this.url}${path}`;
 
     const response = await fetch(requestUrl, {
       method,

@@ -84,7 +84,7 @@ sendRequest<TRequestData, TResponseData>(
 type RequestOptions = {
   includePicnicHeaders?: boolean;               // Adds the x-picnic-agent and x-picnic-did headers
   headers?: Record<string, string>;             // Extra headers
-  authenticated?: boolean;                      // false: don't send the auth key (public routes, static files)
+  authenticated?: boolean;                      // Default: only to the API's own origin; true: also to other hosts; false: never
   binary?: boolean;                             // Return the body as an ArrayBuffer
   contentType?: string;                         // MIME type of a raw (non-JSON) body, e.g. image/jpeg
 };

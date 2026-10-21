@@ -194,3 +194,6 @@ The fourth argument of `sendRequest` is an options object:
 
 Passing a boolean throws a `TypeError`. `sendRequestWithHeaders` takes the same options and also returns the
 response headers.
+
+`sendRequest` sends the auth key only to the API's own host. A request to another host, such as a URL taken from
+Picnic's data, goes without it unless you pass `{ authenticated: true }`.
