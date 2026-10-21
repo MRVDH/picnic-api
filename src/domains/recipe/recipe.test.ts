@@ -60,14 +60,22 @@ describe("RecipeService", () => {
       ] } },
     });
 
-    it.each(["PIM", "USER"])("refetches all data at default portions for %s when product IDs change", async (creator) => {
+    it.each(["PIM", "USER"])("returns %s recipes at the portions Picnic renders when none are requested", async (creator) => {
       mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack", "Small pack", creator)));
-      mockFetch.mockResolvedValueOnce(response(detailsPage(4, 4, "large-pack", "Large pack", creator)));
       const details = creator === "USER" ? await recipe.getUserDefinedRecipe(recipeId) : await recipe.getRecipe(recipeId);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.mock.calls[0][0]).not.toContain("portions=");
+      expect(details).toMatchObject({ portions: 2, defaultPortions: 4, displayedPortions: 2, imageId: "recipes/image-2" });
+      expect(details.ingredients[0]).toMatchObject({ sellingUnitId: "small-pack", name: "Small pack", quantity: 2 });
+    });
+
+    it("refetches once when the page renders other portions than requested", async () => {
+      mockFetch.mockResolvedValueOnce(response(detailsPage(2, 4, "small-pack")));
+      mockFetch.mockResolvedValueOnce(response(detailsPage(4, 4, "large-pack")));
+      const details = await recipe.getRecipe(recipeId, 4);
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(mockFetch.mock.calls[1][0]).toContain(`/pages/selling-group-details-page?selling_group_id=${recipeId}&portions=4`);
-      expect(details).toMatchObject({ portions: 4, defaultPortions: 4, displayedPortions: 4, imageId: "recipes/image-4" });
-      expect(details.ingredients[0]).toMatchObject({ sellingUnitId: "large-pack", name: "Large pack", quantity: 1 });
+      expect(details).toMatchObject({ portions: 4 });
+      expect(details.ingredients[0]).toMatchObject({ sellingUnitId: "large-pack" });
     });
 
     it.each(["getRecipe", "getUserDefinedRecipe"] as const)("%s requests explicit portions in a single details call", async (method) => {

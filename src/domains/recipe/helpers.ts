@@ -1,15 +1,32 @@
-import { FusionPage } from "../../types/fusion";
+import { FusionPage, PriceRange } from "../../types/fusion";
 import {
+  accordionItems,
+  ancestorsOf,
+  childrenOf,
+  cleanMarkdown,
+  collectMarkdowns,
+  collectNutritionRows,
+  findNode,
+  findNodeById,
+  findPmlComponent,
+  PmlNode,
+  stripColorTags,
+} from "../../helpers/pml";
+import type { NutritionRow } from "../catalog/types";
+import {
+  RecipeAllergens,
   RecipeDetails,
   RecipeIngredient,
   RecipeSegment,
   RecipeSummary,
+  RecipeTime,
   UserDefinedRecipeReferenceImage,
   UserDefinedRecipeSuggestedImage,
 } from "./types";
 
 const RECIPE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/";
 const SEGMENT_SCHEMA = "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/";
+const PROMOTION_SCHEMA = "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/";
 
 type AnalyticsContext = { schema?: string; data?: Record<string, any> };
 
@@ -65,23 +82,199 @@ export function extractUserDefinedRecipes(page: FusionPage): RecipeSummary[] {
   return extractRecipes(page, "USER_DEFINED_RECIPES");
 }
 
-/** Ingredient names keyed by component id, including discontinued products. */
-function extractIngredientNames(page: unknown): Map<string, string> {
-  const names = new Map<string, string>();
+/** What an ingredient tile shows about the product it currently holds. */
+type IngredientTile = {
+  name: string | null;
+  brand: string | null;
+  /** The product the tile shows, or null when the tile doesn't say. */
+  sellingUnitId: string | null;
+  imageId: string | null;
+  unitQuantity: string | null;
+  neededText: string | null;
+  promotionLabel: string | null;
+  /** A text in the info column instead of the prices, e.g. "Morgen niet op voorraad". */
+  notice: string | null;
+};
+
+const markdownText = (node: PmlNode | undefined): string | null =>
+  typeof node?.markdown === "string" ? cleanMarkdown(node.markdown) || null : null;
+
+/**
+ * Reads an ingredient tile. Its info column holds a stack with the name (`SUBTITLE1`) and the
+ * brand, the prices, and a row with the package size and the needed amount ("(150 g nodig)").
+ */
+function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: Record<string, any> | undefined): IngredientTile {
+  const nameNode = findNode(tile.pml, (n) => n.type === "RICH_TEXT" && n.textType === "SUBTITLE1" && typeof n.markdown === "string");
+  // The nearest stack around the name holds the name and the brand; the one around it, the info column.
+  const [nameStack, infoColumn] = nameNode ? ancestorsOf(tile.pml, nameNode).filter((n) => n.type === "STACK") : [];
+  const textRow = (infoColumn ? childrenOf(infoColumn) : [])
+    .filter((n) => n.type === "STACK" && childrenOf(n).length > 0 && childrenOf(n).every((c) => c.type === "RICH_TEXT" && typeof c.markdown === "string"))
+    .pop();
+  const rowTexts = textRow ? childrenOf(textRow) : [];
+  const image = findNode(findNodeById(tile.pml, "selling-unit-image"), (n) => n.type === "IMAGE");
+  const imageSource = image?.source as PmlNode | undefined;
+  const promotion = contexts.find((c) => c.schema?.startsWith(PROMOTION_SCHEMA))?.data;
+
+  return {
+    name: markdownText(nameNode ?? undefined),
+    brand: nameStack ? findBrand(childrenOf(nameStack).slice(1)) : null,
+    sellingUnitId: typeof unit?.selling_unit_id === "string" ? unit.selling_unit_id : null,
+    imageId: typeof imageSource?.id === "string" ? imageSource.id : null,
+    unitQuantity: markdownText(rowTexts[0]),
+    neededText: markdownText(rowTexts[1]),
+    promotionLabel: typeof promotion?.promotion_label === "string" ? promotion.promotion_label : null,
+    notice: markdownText((infoColumn ? childrenOf(infoColumn) : []).find((n) => n.type === "RICH_TEXT")),
+  };
+}
+
+const findBrand = (nodes: PmlNode[]): string | null =>
+  markdownText(findNode(nodes, (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined);
+
+/** Ingredient tiles keyed by component id, including discontinued products. */
+function extractIngredientTiles(page: unknown): Map<string, IngredientTile> {
+  const tiles = new Map<string, IngredientTile>();
   walkObjects(page, (obj) => {
     if (obj.type !== "PML" || typeof obj.id !== "string" || !obj.id.includes("selling-unit-tile")) return;
     const contexts: AnalyticsContext[] = obj.analytics?.contexts ?? [];
     const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
     const units = recipe?.selling_units;
+    const unit = Array.isArray(units) && units.length === 1 ? units[0] : undefined;
     // Discontinued tiles omit analytics. Their edit link still carries the
     // component id; read the URL as text without executing its JavaScript.
-    const ingredientId = Array.isArray(units) && units.length === 1
-      ? units[0].ingredient_id
-      : JSON.stringify(obj.pml ?? {}).match(/ingredient_id=([a-f0-9-]+)&/)?.[1];
-    const name = textByType(obj.pml, "SUBTITLE1");
-    if (typeof ingredientId === "string" && name) names.set(ingredientId, name);
+    const ingredientId = unit ? unit.ingredient_id : JSON.stringify(obj.pml ?? {}).match(/ingredient_id=([a-f0-9-]+)&/)?.[1];
+    if (typeof ingredientId === "string" && !tiles.has(ingredientId)) tiles.set(ingredientId, readIngredientTile(obj, contexts, unit));
   });
-  return names;
+  return tiles;
+}
+
+/** An ingredient in the page state: its type, availability and the prices of its products. */
+type IngredientState = {
+  ingredientId: string;
+  ingredientType?: string;
+  isAvailable?: boolean;
+  sellingUnits?: Record<string, { price?: number; referencePrice?: number; priceRanges?: PriceRange[] }>;
+};
+
+/** The ingredients in the `sellableContentState` state boundary, keyed by component id. */
+function extractIngredientStates(page: unknown): Map<string, IngredientState> {
+  const states = new Map<string, IngredientState>();
+  walkObjects(page, (obj) => {
+    if (obj.type !== "STATE_BOUNDARY" || obj.id !== "sellableContentState") return;
+    for (const ingredient of obj.state?.ingredientsState ?? []) {
+      if (typeof ingredient?.ingredientId === "string") states.set(ingredient.ingredientId, ingredient);
+    }
+  });
+  return states;
+}
+
+/** The ingredients the app selects when the page opens (`sellablePageState`), or null. */
+function extractDefaultSelectedIngredientIds(page: unknown): Set<string> | null {
+  const state = findNode(page, (n) => n.type === "STATE_BOUNDARY" && n.id === "sellablePageState")?.state as PmlNode | undefined;
+  const ids = state?.defaultSelectedIngredientIds;
+  return Array.isArray(ids) ? new Set(ids.filter((id): id is string => typeof id === "string")) : null;
+}
+
+/** One ingredient in the allergen expressions: its component id and allergen codes. */
+type AllergenComponent = {
+  id: string;
+  excluded?: boolean;
+  transformations?: { allergy_info?: { allergy_info_contains?: string[] | null; allergy_info_may_contain?: string[] | null } };
+};
+
+/**
+ * Reads the allergens per ingredient. The allergen section shows or hides each allergen with an
+ * expression that embeds every ingredient's allergen codes (`const components = [...]`); the
+ * expression for the "may contain" text maps the codes to names (`const translationsMap = {...}`).
+ * Both are read as data, without running the expressions.
+ */
+function extractAllergensByIngredient(page: unknown): Map<string, RecipeAllergens> {
+  let components: AllergenComponent[] = [];
+  let names: Record<string, string> = {};
+  walkObjects(page, (obj) => {
+    if (obj.type !== "EXPRESSION" || typeof obj.expression !== "string") return;
+    if (components.length === 0) {
+      const list = obj.expression.match(/const components = (\[.*?\]);\n/s)?.[1];
+      components = parseJson<AllergenComponent[]>(list) ?? [];
+    }
+    if (Object.keys(names).length === 0) {
+      // A JavaScript object literal with unquoted keys: `{ CELERY: "Selderij", ... }`.
+      const map = obj.expression.match(/const translationsMap = (\{[^}]*\});/)?.[1];
+      names = parseJson<Record<string, string>>(map?.replace(/([A-Z_]+):/g, '"$1":')) ?? {};
+    }
+  });
+
+  const name = (code: string) => names[code] ?? code;
+  return new Map(
+    components
+      .filter((component) => typeof component.id === "string" && !component.excluded)
+      .map((component) => {
+        const info = component.transformations?.allergy_info;
+        return [component.id, { contains: (info?.allergy_info_contains ?? []).map(name), mayContain: (info?.allergy_info_may_contain ?? []).map(name) }];
+      })
+  );
+}
+
+function parseJson<T>(text: string | undefined): T | null {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** The allergens of the given ingredients, each listed once, in ingredient order. */
+function combineAllergens(allergens: RecipeAllergens[]): RecipeAllergens {
+  return {
+    contains: [...new Set(allergens.flatMap((a) => a.contains))],
+    mayContain: [...new Set(allergens.flatMap((a) => a.mayContain))],
+  };
+}
+
+/** The times below the heading: stacks with a value and a label, e.g. "20 min" and "Totaal". */
+function extractTimes(page: unknown): RecipeTime[] {
+  const component = findPmlComponent(findNodeById(page, "selling-group-time-and-price-section"));
+  return (component ? childrenOf(component) : []).flatMap((column) => {
+    const texts = childrenOf(column).filter((c) => c.type === "RICH_TEXT" && typeof c.markdown === "string");
+    return texts.length === 2 ? [{ value: cleanMarkdown(texts[0].markdown as string), label: cleanMarkdown(texts[1].markdown as string) }] : [];
+  });
+}
+
+/** Minutes in a time such as "20 min", "1 uur 10 min" or "1 Std. 10 Min.", or null. */
+function parseMinutes(value: string): number | null {
+  const hours = value.match(/(\d+)\s*(?:uur|u|std|h)\b/i)?.[1];
+  const minutes = value.match(/(\d+)\s*min/i)?.[1];
+  if (hours === undefined && minutes === undefined) return null;
+  return Number(hours ?? 0) * 60 + Number(minutes ?? 0);
+}
+
+/** The heading: an optional tag, the name (a header container) and an optional description. */
+function extractHeading(page: unknown): { tag: string | null; description: string | null } {
+  const component = findPmlComponent(findNodeById(page, "selling-group-details-heading"));
+  const parts = component ? childrenOf(component) : [];
+  const titleIndex = parts.findIndex((n) => n.type === "CONTAINER");
+  if (titleIndex < 0) return { tag: null, description: null };
+  return { tag: markdownText(parts.slice(0, titleIndex).pop()), description: markdownText(parts[titleIndex + 1]) };
+}
+
+/** The steps: stacks with a "Stap 1" header and the step text. */
+function extractSteps(page: unknown): string[] {
+  const component = findPmlComponent(findNodeById(page, "instructions-section"));
+  return (component ? childrenOf(component) : []).flatMap((step) => {
+    const text = childrenOf(step).filter((c) => c.type === "RICH_TEXT" && typeof c.markdown === "string")[1];
+    return text ? [stripColorTags(text.markdown as string)] : [];
+  });
+}
+
+function extractStepsPortions(page: unknown): number | null {
+  const text = collectMarkdowns(findNodeById(page, "instructions-portions-section"))[0];
+  const portions = text?.match(/\d+/)?.[0];
+  return portions ? Number(portions) : null;
+}
+
+function extractRecipeNutritionRows(page: unknown): NutritionRow[] {
+  const item = accordionItems(findNodeById(page, "accordion-list")).find((i) => /voedingswaarde|nährwert|valeurs nutritionnelles/i.test(collectMarkdowns(i.header)[0] ?? ""));
+  return item ? collectNutritionRows(item.body) : [];
 }
 
 /** Product-page fallback for ingredients without a visible tile, such as pantry staples. */
@@ -132,16 +325,43 @@ export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe
   });
 
   if (!recipeContext) throw new Error(`Could not extract recipe ${recipeId}: recipe context missing from details page`);
-  const names = extractIngredientNames(page);
-  const ingredients: RecipeIngredient[] = recipeContext.selling_units.map((unit: Record<string, any>) => ({
-    ingredientId: unit.ingredient_id,
-    name: names.get(unit.ingredient_id) ?? null,
-    sellingUnitId: unit.selling_unit_id ?? "",
-    quantity: unit.quantity ?? 1,
-    status: unit.status ?? "ACTIVE",
-    swapType: unit.swap_type ?? null,
-    checked: unit.checked ?? true,
-  }));
+  const tiles = extractIngredientTiles(page);
+  const states = extractIngredientStates(page);
+  const allergens = extractAllergensByIngredient(page);
+  const ingredients: RecipeIngredient[] = recipeContext.selling_units.map((unit: Record<string, any>) => {
+    const sellingUnitId: string = unit.selling_unit_id ?? "";
+    const tile = tiles.get(unit.ingredient_id);
+    // Package size and image belong to the product on the tile; an ingredient can list more products.
+    const showsThisUnit = tile?.sellingUnitId === null || tile?.sellingUnitId === sellingUnitId;
+    const state = states.get(unit.ingredient_id);
+    const prices = state?.sellingUnits?.[sellingUnitId];
+    const price = typeof prices?.price === "number" ? prices.price : null;
+    const referencePrice = typeof prices?.referencePrice === "number" ? prices.referencePrice : null;
+    const isAvailable = state?.isAvailable ?? unit.status === "ACTIVE";
+    return {
+      ingredientId: unit.ingredient_id,
+      name: tile?.name ?? null,
+      sellingUnitId,
+      quantity: unit.quantity ?? 1,
+      status: unit.status ?? "ACTIVE",
+      swapType: unit.swap_type ?? null,
+      checked: unit.checked ?? true,
+      type: state?.ingredientType ?? "CORE",
+      isAvailable,
+      unavailableReason: isAvailable ? null : (tile?.notice ?? null),
+      brand: tile?.brand ?? null,
+      imageId: showsThisUnit ? (tile?.imageId ?? null) : null,
+      unitQuantity: showsThisUnit ? (tile?.unitQuantity ?? null) : null,
+      neededText: tile?.neededText ?? null,
+      price,
+      originalPrice: price !== null && referencePrice !== null && referencePrice > price ? referencePrice : null,
+      priceRanges: Array.isArray(prices?.priceRanges) && prices.priceRanges.length > 1 ? prices.priceRanges : null,
+      promotionLabel: tile?.promotionLabel ?? null,
+      allergens: allergens.get(unit.ingredient_id) ?? { contains: [], mayContain: [] },
+    };
+  });
+  const selectedIngredientIds = extractDefaultSelectedIngredientIds(page) ?? new Set(ingredients.filter((i) => i.checked).map((i) => i.ingredientId));
+  const times = extractTimes(page);
 
   return {
     id: recipeId,
@@ -156,6 +376,14 @@ export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe
     imageId,
     ingredients,
     note,
+    ...extractHeading(page),
+    times,
+    cookingTimeMinutes: times.length > 0 ? parseMinutes(times[0].value) : null,
+    steps: extractSteps(page),
+    stepsPortions: extractStepsPortions(page),
+    stepsWarning: markdownText(findNode(findNodeById(page, "warning-banner"), (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined),
+    nutritionRows: extractRecipeNutritionRows(page),
+    allergens: combineAllergens([...allergens].filter(([id]) => selectedIngredientIds.has(id)).map(([, a]) => a)),
   };
 }
 

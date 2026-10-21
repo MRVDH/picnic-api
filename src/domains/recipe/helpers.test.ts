@@ -52,7 +52,7 @@ describe("recipe helpers", () => {
       ],
     };
 
-    expect(extractUserDefinedRecipeDetails(id, page(body))).toEqual({
+    expect(extractUserDefinedRecipeDetails(id, page(body))).toMatchObject({
       id,
       name: "Avocadopasta",
       portions: 4,
@@ -153,5 +153,96 @@ describe("recipe helpers", () => {
       { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 4, selling_units: [] } },
     ] }));
     expect(result.imageId).toBeNull();
+  });
+
+  it("extracts the catalog recipe sections, ingredient tiles, prices and allergens", () => {
+    const id = "recipe";
+    const pasta = "11111111-1111-1111-1111-111111111111";
+    const salt = "22222222-2222-2222-2222-222222222222";
+    const text = (markdown: string, extra: Record<string, unknown> = {}) => ({ type: "RICH_TEXT", markdown, ...extra });
+    const pml = (pmlId: string, component: unknown) => ({ type: "PML", id: pmlId, pml: { component } });
+    const components = JSON.stringify([
+      { id: pasta, excluded: false, transformations: { allergy_info: { allergy_info_contains: ["GLUTEN"], allergy_info_may_contain: ["SOY"] } } },
+      { id: salt, excluded: false, transformations: { allergy_info: { allergy_info_contains: ["CELERY"], allergy_info_may_contain: [] } } },
+    ]);
+    const tile = {
+      ...pml(`core-wide-selling-unit-tile-${pasta}`, {
+        type: "STACK",
+        children: [
+          { type: "REFERENCE_CONTAINER", id: "selling-unit-image", child: { type: "IMAGE", source: { id: "pasta-image" } } },
+          {
+            type: "STACK",
+            axis: "VERTICAL",
+            children: [
+              { type: "STACK", axis: "VERTICAL", children: [{ type: "CONTAINER", child: text("#(#333333)Casarecce #(#333333)", { textType: "SUBTITLE1" }) }, { type: "CONTAINER", child: text("Barilla") }] },
+              { type: "CONTAINER", child: { type: "STACK", children: [text("3.35")] } },
+              { type: "STACK", axis: "HORIZONTAL", children: [text("500 gram"), text("(175 g nodig)")] },
+            ],
+          },
+        ],
+      }),
+      analytics: { contexts: [
+        { schema: "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/1-1-0", data: { promotion_label: "Family" } },
+        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, selling_units: [{ ingredient_id: pasta, selling_unit_id: "s1" }] } },
+      ] },
+    };
+    const result = extractRecipeDetails(id, page({ children: [
+      { data: { recipe_id: id, recipe_name: "Pasta", portions: 6, selling_units: [
+        { ingredient_id: pasta, selling_unit_id: "s1", quantity: 2, status: "ACTIVE", checked: true },
+        { ingredient_id: salt, selling_unit_id: "s2", quantity: 1, status: "ACTIVE", checked: false },
+      ] } },
+      { type: "STATE_BOUNDARY", id: "sellablePageState", state: { defaultSelectedIngredientIds: [pasta] } },
+      { type: "STATE_BOUNDARY", id: "sellableContentState", state: { ingredientsState: [
+        { ingredientId: pasta, ingredientType: "CORE", isAvailable: true, sellingUnits: { s1: { price: 335, referencePrice: 399, priceRanges: [{ price: 335, from_quantity: 1 }, { price: 325, from_quantity: 2 }] } } },
+        { ingredientId: salt, ingredientType: "CUPBOARD", isAvailable: false, sellingUnits: { s2: { price: 99, referencePrice: 99, priceRanges: [{ price: 99, from_quantity: 1 }] } } },
+      ] } },
+      pml("selling-group-details-heading", { type: "STACK", children: [text("Zó klaar"), { type: "CONTAINER", child: text("Pasta") }, text("Snel klaar.")] }),
+      pml("selling-group-time-and-price-section", { type: "STACK", children: [
+        { type: "STACK", children: [text("1 uur 10 min"), text("Totaal")] },
+        { type: "STACK", children: [{ type: "STACK", children: [{ type: "RICH_TEXT", markdown: { type: "EXPRESSION" } }] }] },
+      ] }),
+      tile,
+      { type: "EXPRESSION", expression: `const id = "recipe";\n    const components = ${components};\n    return false;` },
+      { type: "EXPRESSION", expression: 'const translationsMap = {\n        CELERY: "Selderij",\n        GLUTEN: "Gluten",\n        SOY: "Soja"\n    };' },
+      pml("instructions-portions-section", text("4 porties")),
+      pml("warning-banner", { type: "CONTAINER", child: text("**Let op:** dit is de originele bereidingswijze voor 4 porties") }),
+      pml("instructions-section", { type: "STACK", children: [
+        { type: "STACK", children: [text("Stap 1"), text("Kook **175 g casarecce**.")] },
+        { type: "STACK", children: [text("Stap 2"), text("Serveer.")] },
+      ] }),
+      { id: "accordion-list", items: [{ header: text("**Voedingswaarden**"), body: { type: "STACK", children: [
+        { type: "STACK", axis: "HORIZONTAL", distribution: "SPACE_BETWEEN", children: [text("Energie", { textType: "HEADLINE2" }), text("2.186 kJ")] },
+      ] } }] },
+    ] }));
+
+    expect(result).toMatchObject({
+      tag: "Zó klaar",
+      description: "Snel klaar.",
+      times: [{ value: "1 uur 10 min", label: "Totaal" }],
+      cookingTimeMinutes: 70,
+      steps: ["Kook **175 g casarecce**.", "Serveer."],
+      stepsPortions: 4,
+      stepsWarning: "Let op: dit is de originele bereidingswijze voor 4 porties",
+      nutritionRows: [{ label: "Energie", value: "2.186 kJ", isCategory: true, backgroundColor: null }],
+      allergens: { contains: ["Gluten"], mayContain: ["Soja"] },
+    });
+    expect(result.ingredients).toMatchObject([
+      {
+        name: "Casarecce",
+        brand: "Barilla",
+        isAvailable: true,
+        unavailableReason: null,
+        type: "CORE",
+        imageId: "pasta-image",
+        unitQuantity: "500 gram",
+        neededText: "(175 g nodig)",
+        price: 335,
+        originalPrice: 399,
+        priceRanges: [{ price: 335, from_quantity: 1 }, { price: 325, from_quantity: 2 }],
+        promotionLabel: "Family",
+        allergens: { contains: ["Gluten"], mayContain: ["Soja"] },
+      },
+      { name: null, type: "CUPBOARD", isAvailable: false, unavailableReason: null, price: 99, originalPrice: null, priceRanges: null, allergens: { contains: ["Selderij"], mayContain: [] } },
+    ]);
   });
 });

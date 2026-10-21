@@ -59,4 +59,17 @@ describe("Catalog - getProductDetails", () => {
       unitQuantity: "200 gram",
     });
   });
+
+  it("extracts price tiers, a size badge and a computed unit price", async () => {
+    const details = await client.catalog.getProductDetails("s1004201");
+
+    expect(details).toMatchObject({ name: "Halfvolle melk", unitQuantity: "1.5 liter", quantityBadges: [{ text: "XL" }] });
+    expect(details.unitPrice).toMatch(/^€\d+\.\d{2}\/l$/);
+    expect(details.priceRanges?.length).toBeGreaterThan(1);
+    expect(details.displayPrice).toBe(details.priceRanges?.[0].price);
+  });
+
+  it("throws a ProductNotFoundError for an unknown product", async () => {
+    await expect(client.catalog.getProductDetails("s0000001")).rejects.toThrow(PicnicClient.ProductNotFoundError);
+  });
 });

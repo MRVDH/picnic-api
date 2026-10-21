@@ -158,7 +158,110 @@ export type ProductPromotion = {
   label: string;
 };
 
-/** A bundle option shown on the product details page (buy-more-pay-less). */
+/** A colored badge on the product details page, such as a label ("Biologisch") or an allergen. */
+export type ProductBadge = {
+  /** The badge text. */
+  text: string;
+  /** Text color, e.g. "#4B8505". */
+  textColor: string;
+  /** Background color, e.g. "#ffffff". */
+  backgroundColor: string;
+};
+
+/** A highlight line, e.g. "**Romig** van smaak" with a stars icon. */
+export type ProductHighlight = {
+  /** The text; may contain markdown and color tags. */
+  text: string;
+  /** The app's icon key, e.g. "starsOutlined", or `null`. */
+  iconKey: string | null;
+  /** The deeplink the highlight opens, or `null`. */
+  linkTarget: string | null;
+};
+
+/** The allergens of a product, split as the app shows them. */
+export type ProductAllergens = {
+  /** Allergens under "Bevat" ("Enthält", "Contient"). */
+  contains: ProductBadge[];
+  /** Allergens under "Bevat mogelijk" ("Kann enthalten", "Peut contenir"). */
+  mayContain: ProductBadge[];
+};
+
+/** A row of a nutrition table. */
+export type NutritionRow = {
+  /** The nutrient or heading, e.g. "Energie", "waarvan suikers", "Per 100 g". */
+  label: string;
+  /** The value, e.g. "206 kJ /", or `null` for a heading row. */
+  value: string | null;
+  /** Whether the row is a main nutrient rather than a sub-row ("waarvan ..."). */
+  isCategory: boolean;
+  /** The row's background color (the app stripes rows), or `null`. */
+  backgroundColor: string | null;
+};
+
+/** A colored tag next to the unit quantity, e.g. "Diepvries". */
+export type ProductTag = {
+  text: string;
+  /** The text color, or `null` when it's the regular text color. */
+  color: string | null;
+};
+
+/** Structured product details extracted from the Fusion product details page. */
+export type ProductDetails = {
+  /** The selling unit ID (e.g. "s1001524"). */
+  id: string;
+  /** The product name (e.g. "Blond"). */
+  name: string;
+  /** The brand name (e.g. "Affligem"), or `null`. */
+  brand: string | null;
+  /** The unit quantity description (e.g. "6 x 300 ml"). */
+  unitQuantity: string;
+  /**
+   * The unit price description (e.g. "€4.81/l"), or `null` when the page has none. For products
+   * with `priceRanges` it is the unit price of the first tier, which the app shows while the
+   * product isn't in the cart.
+   */
+  unitPrice: string | null;
+  /** Badges shown before the unit quantity, e.g. a size badge "XL". */
+  quantityBadges: ProductBadge[];
+  /** Tags shown after the unit price, e.g. "Diepvries". */
+  tags: ProductTag[];
+  /** The price in cents for one unit. */
+  displayPrice: number;
+  /** The original price in cents when the product is discounted, otherwise `null`. */
+  originalPrice: number | null;
+  /** The color the app shows the price in (e.g. red for a discount), or `null` for the regular color. */
+  displayPriceColor: string | null;
+  /** The product's own price tiers (price per unit from a quantity), or `null` without tiers. */
+  priceRanges: PriceRange[] | null;
+  /** Maximum number of items that can be added to the cart. */
+  maxCount: number;
+  /** Image IDs for the product gallery. */
+  imageIds: string[];
+  /** Label badges, e.g. "Biologisch". Can include the promotion label. */
+  labels: ProductBadge[];
+  /** Product description text (may contain markdown). `null` if not available. */
+  description: string | null;
+  /** Highlight lines with their icons. */
+  highlightItems: ProductHighlight[];
+  /** @deprecated use `highlightItems`. The highlight texts without markdown. */
+  highlights: string[];
+  /** Allergens, split into "contains" and "may contain" as the app shows them. */
+  allergenGroups: ProductAllergens;
+  /** @deprecated use `allergenGroups`. The names of all allergens, both groups. */
+  allergens: string[];
+  /** Collapsible info sections (Ingredients, Nutritional Values, Extra Information, etc.). */
+  infoSections: ProductInfoSection[];
+  /** The nutrition table from the "Voedingswaarde" (or "Nährwerte") section, or empty. */
+  nutritionRows: NutritionRow[];
+  /** Active promotion on this product, if any. */
+  promotion: ProductPromotion | null;
+  /** @deprecated use `priceRanges`. Always empty: product pages don't show separate bundle products. */
+  bundles: BundleItem[];
+  /** Similar/alternative products. */
+  similarProducts: SimilarProduct[];
+};
+
+/** @deprecated use `ProductDetails.priceRanges`. Product pages don't show separate bundle products. */
 export type BundleItem = {
   /** The selling unit ID for this bundle option. */
   id: string;
@@ -170,42 +273,6 @@ export type BundleItem = {
   imageId: string;
   /** Maximum number of items that can be added to the cart. */
   maxCount: number;
-};
-
-/** Structured product details extracted from the Fusion product details page. */
-export type ProductDetails = {
-  /** The selling unit ID (e.g. "s1001524"). */
-  id: string;
-  /** The product name (e.g. "Blond"). */
-  name: string;
-  /** The brand name (e.g. "Affligem"). */
-  brand: string | null;
-  /** The unit quantity description (e.g. "6 x 300 ml"). */
-  unitQuantity: string;
-  /** The unit price description (e.g. "€4.81/l"). `null` if not available. */
-  unitPrice: string | null;
-  /** The display price in cents (e.g. 865 for €8.65). */
-  displayPrice: number;
-  /** Maximum number of items that can be added to the cart. */
-  maxCount: number;
-  /** Image IDs for the product gallery. */
-  imageIds: string[];
-  /** Product description text (may contain markdown). `null` if not available. */
-  description: string | null;
-  /** Short product highlights (e.g. ["Goudblond abdijbier", "Met hints van tropisch fruit"]). */
-  highlights: string[];
-  /** Known allergens (e.g. ["Gluten"]). */
-  allergens: string[];
-  /** Collapsible info sections (Ingredients, Nutritional Values, Extra Information, etc.). */
-  infoSections: ProductInfoSection[];
-  /** Active promotion on this product, if any. */
-  promotion: ProductPromotion | null;
-  /** Bundle options (buy-more-pay-less). Empty when no bundles are available. */
-  bundles: BundleItem[];
-  /** Progressive discount price tiers from the selling unit data. Usually `null` on the PDP (embedded in PML scripts instead); available on search results via `ProductTile.priceRanges`. */
-  priceRanges: PriceRange[] | null;
-  /** Selling units for similar/alternative products. */
-  similarProducts: SimilarProduct[];
 };
 
 /** A similar/alternative product shown on the product details page. */

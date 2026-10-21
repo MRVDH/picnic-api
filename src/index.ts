@@ -16,6 +16,7 @@ import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
+import { ProductNotFoundError, isProductNotFoundError } from "./errors/product-not-found-error";
 import * as PublicTypes from "./types/public";
 
 class PicnicClient extends HttpClient {
@@ -28,6 +29,9 @@ class PicnicClient extends HttpClient {
   /** Error thrown when a page is served in a different format (Fusion or RSC) than the method expects. */
   static readonly UnexpectedPageFormatError = UnexpectedPageFormatError;
   static readonly isUnexpectedPageFormatError = isUnexpectedPageFormatError;
+  /** Error thrown by `catalog.getProductDetails` when the product doesn't exist or isn't available. */
+  static readonly ProductNotFoundError = ProductNotFoundError;
+  static readonly isProductNotFoundError = isProductNotFoundError;
 
   public readonly app: AppService;
   public readonly auth: AuthService;
