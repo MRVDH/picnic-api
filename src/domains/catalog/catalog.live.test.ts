@@ -73,3 +73,21 @@ describe("Catalog - getProductDetails", () => {
     await expect(client.catalog.getProductDetails("s0000001")).rejects.toThrow(PicnicClient.ProductNotFoundError);
   });
 });
+
+describe("Catalog - categories", () => {
+  it("follows the category tree down to the products of a subcategory", async () => {
+    const tree = await client.catalog.getCategories();
+    const category = tree.flatMap((section) => section.links).find((link) => link.target.type === "subcategories");
+    expect(category).toBeDefined();
+    if (category?.target.type !== "subcategories") return;
+
+    const subcategories = await client.catalog.getSubcategories(category.target.categoryId);
+    expect(subcategories.title).toBe(category.name);
+    const subcategory = subcategories.links.find((link) => link.target.type === "products");
+    if (subcategory?.target.type !== "products") throw new Error("No subcategory with products");
+
+    const products = await client.catalog.getCategoryProducts(subcategory.target.categoryId);
+    expect(products.title).toBe(subcategory.name);
+    expect(products.results.sections.some((section) => section.products.length > 0)).toBe(true);
+  });
+});

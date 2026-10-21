@@ -140,6 +140,51 @@ export type SearchSortingOption = {
   title: string;
 };
 
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+/**
+ * What a category link opens: the subcategories of a category ({@link CatalogService.getSubcategories}),
+ * the products of a subcategory ({@link CatalogService.getCategoryProducts}), the promotions of a
+ * category ({@link CatalogService.getCategoryPromotions}), or another page (follow `deeplink`).
+ */
+export type CategoryLinkTarget =
+  | { type: "subcategories"; categoryId: string }
+  | { type: "products"; categoryId: string }
+  | { type: "promotions"; categoryId: string }
+  | { type: "page" };
+
+/** An entry of a category list, e.g. "Fruit" or "Alle acties". */
+export type CategoryLink = {
+  name: string;
+  imageId: string | null;
+  /** A label next to the name, e.g. "1200+ producten", or null. */
+  label: string | null;
+  /** The deep link the app opens. */
+  deeplink: string;
+  target: CategoryLinkTarget;
+};
+
+/** A part of the category tree, under a heading such as "Alle categorieën", or without one. */
+export type CategorySection = {
+  title: string | null;
+  links: CategoryLink[];
+};
+
+/** The subcategories of a category (`subcategory-page`), e.g. "Fruit": its promotions and subcategories. */
+export type Subcategories = {
+  categoryId: string;
+  title: string;
+  links: CategoryLink[];
+};
+
+/** The products of a subcategory (`category-product-overview`) or the promotions of a category. */
+export type CategoryProducts = {
+  categoryId: string;
+  title: string;
+  /** The products in sections, with the filters; the same model as the search results. */
+  results: SearchProductResults;
+};
+
 // ─── Product Details ──────────────────────────────────────────────────────────
 
 /** A collapsible info section from the product details page (e.g. Ingredients, Nutritional Values). */

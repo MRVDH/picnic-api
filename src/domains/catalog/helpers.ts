@@ -131,7 +131,7 @@ function extractSearchRecipe(tile: RscRecord): SearchRecipe | null {
   };
 }
 
-function extractFilters(value: unknown): SearchFilter[] {
+export function extractFilters(value: unknown): SearchFilter[] {
   return asArray(value).flatMap((item) => {
     const filter = asRecord(item);
     const facetId = asString(filter.facetId);
