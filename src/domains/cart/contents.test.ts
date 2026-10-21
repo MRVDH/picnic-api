@@ -57,6 +57,7 @@ describe("extractCartContents", () => {
             { type: "PRICE_STYLE", price_color: "RED2" },
             { type: "UNIT_QUANTITY", unit_quantity_text: "2 x 250 gram" },
             { type: "PRODUCT_CHARACTERISTICS", characteristics: [{ type: "ORGANIC" }] },
+            { type: "BUNDLES_BUTTON", deeplink: "app.picnic://bundles", icon_color: "#FFFFFF", background_color: "#295813" },
           ],
         },
       })
@@ -82,6 +83,7 @@ describe("extractCartContents", () => {
         isUnavailable: false,
         unavailableReason: null,
         replacements: [],
+        bundlesLink: "app.picnic://bundles",
         recipeId: "recipe-1",
       },
     ]);

@@ -51,6 +51,17 @@ describe("recipe lists", () => {
     ]);
   });
 
+  it("finds the name by its text type when the tile shows another name than its analytics", () => {
+    const shown = JSON.parse(
+      JSON.stringify(tile("c", "Curry"))
+        .replace('"recipe_name":"Curry"', '"recipe_name":"Curry (analytics)"')
+        .replace('"markdown":"Curry "', '"markdown":"Curry ","textType":"SUBTITLE1"')
+    );
+    expect(extractRecipeTiles({ children: [shown] })).toMatchObject([
+      { name: "Curry (analytics)", subtitle: "met paratha", tags: ["15 + 25 min", "Vegan"] },
+    ]);
+  });
+
   it("groups the cookbook home into recipe rows and category sections", () => {
     const aisle = (rank: number, name: string, pill: string) => ({ schema: schema("aisle"), data: { aisle_ranking: rank, assortment_aisle: name, pill_display_name: pill } });
     const category = (heading: string, name: string, deeplink: string) => ({

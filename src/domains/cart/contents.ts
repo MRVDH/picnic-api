@@ -86,6 +86,7 @@ export function readCartLine(line: OrderLine, overrides: Record<string, Decorato
     isUnavailable: unavailable !== undefined,
     unavailableReason: asString(asRecord(unavailable?.explanation)?.short_explanation),
     replacements: asRecords(unavailable?.replacements).flatMap((r) => readReplacement(r) ?? []),
+    bundlesLink: asString(find("BUNDLES_BUTTON")?.deeplink),
     recipeId: asString(lineDecorators.find((d) => d.type === "BASKET_GROUP")?.id),
   };
 }

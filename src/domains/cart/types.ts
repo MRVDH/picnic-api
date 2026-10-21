@@ -287,6 +287,8 @@ export type CartLineItem = {
   /** Why, as the app shows it, or null. */
   unavailableReason: string | null;
   replacements: CartReplacement[];
+  /** The deep link of the line's bundles button, which opens the product's bundle offers, or null. */
+  bundlesLink: string | null;
   /** The recipe (selling group) the line was added for, or null. */
   recipeId: string | null;
 };

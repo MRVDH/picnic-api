@@ -56,7 +56,8 @@ export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
   if (!recipe) return null;
   const texts = visibleTexts(tile.pml).map((t) => ({ text: cleanMarkdown(t.markdown), textType: t.textType })).filter((t) => t.text);
   const analyticsName = typeof recipe.recipe_name === "string" ? recipe.recipe_name.trim() : "";
-  const nameIndex = analyticsName ? texts.findIndex((t) => t.text === analyticsName) : texts.findIndex((t) => t.textType === "SUBTITLE1");
+  const shownName = analyticsName ? texts.findIndex((t) => t.text === analyticsName) : -1;
+  const nameIndex = shownName >= 0 ? shownName : texts.findIndex((t) => t.textType === "SUBTITLE1");
   const name = analyticsName || (nameIndex >= 0 ? texts[nameIndex].text : "");
   const after = nameIndex >= 0 ? texts.slice(nameIndex + 1).filter((t) => t.text !== ">") : [];
   const subtitle = after.find((t) => t.textType === "SUBTITLE2")?.text ?? null;
