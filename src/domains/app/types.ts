@@ -1,4 +1,4 @@
-import type { FusionComponent, Icon } from "../../pages/fusion";
+import type { FusionComponent } from "../../pages/fusion";
 
 export type RawDeeplinkResolution = {
   url: string;

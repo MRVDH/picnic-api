@@ -677,6 +677,3 @@ export type FusionPage = {
   /** The page layout tree. */
   layout: FusionPageLayout;
 };
-
-/** @deprecated Renamed to {@link FusionPageLayout}. */
-export type HomePage = FusionPageLayout;

@@ -107,7 +107,7 @@ export class CatalogService {
 
   /**
    * Returns a product as the app's product page shows it (`product-details-page-root`): name,
-   * prices, promotions, images, the information sections, nutrition, allergens and the bundles.
+   * prices, price tiers, promotions, images, the information sections, nutrition and allergens.
    *
    * @param {string} productId The product ID to fetch details for.
    * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.

@@ -76,13 +76,10 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
     labels,
     description: extractDescription(page),
     highlightItems,
-    highlights: highlightItems.map((highlight) => cleanMarkdown(highlight.text)),
     allergenGroups,
-    allergens: [...allergenGroups.contains, ...allergenGroups.mayContain].map((badge) => badge.text),
     infoSections: extractInfoSections(page),
     nutritionRows: extractNutritionRows(page),
     promotion: extractPromotion(labels, page),
-    bundles: [],
     similarProducts: extractSimilarProducts(page),
   };
 }

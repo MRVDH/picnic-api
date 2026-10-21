@@ -178,8 +178,6 @@ describe("extractProductDetails", () => {
       contains: [{ text: "Melk", textColor: "#333333", backgroundColor: "#1575a3" }],
       mayContain: [{ text: "Noten", textColor: "#333333", backgroundColor: "#966e35" }],
     });
-    expect(details.highlights).toEqual(["Biologisch", "Nutri-Score B"]);
-    expect(details.allergens).toEqual(["Melk", "Noten"]);
     expect(details.infoSections.map((section) => section.title)).toEqual(["Ingrediënten", "Voedingswaarde"]);
     expect(details.nutritionRows).toEqual([
       { label: "Energie", value: "200 kJ", isCategory: true, backgroundColor: null },

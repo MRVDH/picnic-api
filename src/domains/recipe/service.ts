@@ -32,7 +32,6 @@ import type {
   RawRemoveRecipeIngredientResult,
   UpdateRecipeIngredientInCartInput,
   RawUpdateRecipeIngredientInCartResult,
-  RecipeIngredientSwapType,
   UserDefinedRecipeReferenceImage,
   UserDefinedRecipeSuggestedImage,
   UpdateUserDefinedRecipeNoteInput,
