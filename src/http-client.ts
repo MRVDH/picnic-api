@@ -1,4 +1,5 @@
 import { ApiConfig, CountryCode } from "./types/common";
+import { PicnicApiError, parseErrorBody } from "./errors/api-error";
 import { parseCheckoutIssueError } from "./errors/checkout-error";
 
 /** Options for {@link HttpClient.sendRequest} and {@link HttpClient.sendRequestWithHeaders}. */
@@ -59,7 +60,8 @@ export default class HttpClient {
    * Objects passed as `data` are sent as JSON. A `Blob`, `ArrayBuffer` or typed array
    * (e.g. `Uint8Array`) is sent as-is, with `Content-Type` set to `options.contentType`.
    * Responses served as a React Server Components payload (`text/x-component`) are returned as
-   * the raw text instead of being parsed as JSON.
+   * the raw text instead of being parsed as JSON. An error status throws a `PicnicApiError` with
+   * the status and Picnic's error code, or a `CheckoutIssueError` when the cart can't be checked out.
    * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.
    * @param {string} path The path, optionally including query params, e.g. `/cart/set_delivery_slot`, or an absolute URL.
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
@@ -88,6 +90,9 @@ export default class HttpClient {
     data: TRequestData | null = null,
     options: RequestOptions = {},
   ): Promise<{ data: TResponseData; headers: Headers }> {
+    if (typeof options === "boolean") {
+      throw new TypeError("The fourth argument of sendRequest is an options object, e.g. { includePicnicHeaders: true }.");
+    }
     const response = await this.fetchResponse(method, path, data, options);
     return { data: await this.readResponseBody<TResponseData>(response, options.binary ?? false), headers: response.headers };
   }
@@ -123,18 +128,9 @@ export default class HttpClient {
 
     if (!response.ok) {
       const responseBody = await response.text();
-
-      try {
-        const errorData: unknown = JSON.parse(responseBody);
-        const checkoutIssue = parseCheckoutIssueError(errorData);
-        if (checkoutIssue) throw checkoutIssue;
-
-        const parsed = errorData as { error?: { message?: string } };
-        throw new Error(`${parsed.error?.message || response.statusText}`);
-      } catch (e) {
-        if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
-        throw new Error(`${response.status} ${response.statusText}${responseBody ? ` - ${responseBody}` : ""}`);
-      }
+      const checkoutIssue = parseCheckoutIssueError(parseErrorBody(responseBody));
+      if (checkoutIssue) throw checkoutIssue;
+      throw new PicnicApiError(response.status, response.statusText, responseBody);
     }
 
     return response;

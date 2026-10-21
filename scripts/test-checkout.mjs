@@ -12,7 +12,7 @@ import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
 const PicnicClient = require("../lib/index.js");
-const { isCheckoutIssueError } = require("../lib/errors/checkout-error.js");
+const { isCheckoutIssueError } = PicnicClient;
 
 const args = new Set(process.argv.slice(2));
 const initiateOnly = args.has("--initiate-only");
@@ -55,7 +55,7 @@ try {
 
   let checkout;
   try {
-    checkout = await client.cart.startCheckout({ mts: cart.mts });
+    checkout = await client.checkout.startCheckout({ mts: cart.mts });
   } catch (error) {
     if (isCheckoutIssueError(error)) {
       logStep("Checkout issue", {
@@ -67,10 +67,10 @@ try {
       });
 
       if (error.isAgeVerificationIssue() && error.resolveKey) {
-        logStep("Retry with resolve_key", error.resolveKey);
-        checkout = await client.cart.startCheckout({
+        logStep("Retry with resolveKey", error.resolveKey);
+        checkout = await client.checkout.startCheckout({
           mts: cart.mts,
-          resolve_key: error.resolveKey,
+          resolveKey: error.resolveKey,
         });
       } else {
         throw error;
@@ -91,7 +91,7 @@ try {
     process.exit(0);
   }
 
-  const payment = await client.cart.initiatePayment(
+  const payment = await client.checkout.initiatePayment(
     checkout.order_id,
     "https://localhost:3000/checkout/return",
   );
@@ -102,7 +102,7 @@ try {
     redirect_url: payment.action?.redirect_url,
   });
 
-  await client.cart.cancelCheckout(payment.transaction_id);
+  await client.checkout.cancelCheckout(payment.transaction_id);
   logStep("Cancelled", "Transaction cancelled — confirmOrder was NOT called.");
 } catch (error) {
   console.error("\nCheckout test failed:", error);

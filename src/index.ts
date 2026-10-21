@@ -14,12 +14,19 @@ import { ConsentService } from "./domains/consent/service";
 import { CustomerServiceService } from "./domains/customer-service/service";
 import { ContentService } from "./domains/content/service";
 import { RecipeService } from "./domains/recipe/service";
+import { PicnicApiError, isPicnicApiError } from "./errors/api-error";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
 import { ProductNotFoundError, isProductNotFoundError } from "./errors/product-not-found-error";
 import * as PublicTypes from "./types/public";
 
 class PicnicClient extends HttpClient {
+  /**
+   * Error thrown when Picnic answers with an error status. It carries the `status` and Picnic's
+   * error `code` (e.g. `AUTH_INVALID_CRED` for a wrong password, `OTP_NOT_VALID` for a wrong 2FA code).
+   */
+  static readonly PicnicApiError = PicnicApiError;
+  static readonly isPicnicApiError = isPicnicApiError;
   /**
    * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).
    * Exposed so consumers can catch it by type without deep-importing internals.

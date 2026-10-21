@@ -331,7 +331,7 @@ export type CartFee = {
 export type Cart = {
   /** The cart id. */
   id: string;
-  /** The cart's modification timestamp; pass it to `cart.startCheckout`. */
+  /** The cart's modification timestamp; pass it to `checkout.startCheckout`. */
   mts: number;
   /** The lines in the order of the response. */
   items: CartLineItem[];

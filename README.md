@@ -10,6 +10,8 @@ Unofficial Node.js wrapper for the API of the [Picnic](https://picnic.app) onlin
 npm install picnic-api
 ```
 
+Upgrading from 4.x? See [MIGRATING.md](./MIGRATING.md).
+
 ## Quick start
 
 Import the package and create a client. All configuration options are optional.

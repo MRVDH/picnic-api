@@ -1,8 +1,7 @@
 import type HttpClient from "../../http-client";
-import type { BootstrapData } from "../../pages/fusion";
 import type { PageClient } from "../../pages/page-client";
 import type { Page } from "../../pages/types";
-import { DeeplinkResolution, MessageDisplayPosition, MessagesWrapper } from "./types";
+import { BootstrapData, DeeplinkResolution, MessageDisplayPosition, MessagesWrapper } from "./types";
 
 export class AppService {
   constructor(

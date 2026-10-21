@@ -65,7 +65,7 @@ export class DeliveryService {
    * @param {string} deliveryId
    */
   cancelDelivery(deliveryId: string): Promise<any> {
-    return this.http.sendRequest<any, any>("POST", `/order/delivery/${deliveryId}/cancel`);
+    return this.http.sendRequest<any, any>("POST", `/order/delivery/${encodeURIComponent(deliveryId)}/cancel`);
   }
 
   /**
@@ -74,7 +74,7 @@ export class DeliveryService {
    * @param {number} rating
    */
   setDeliveryRating(deliveryId: string, rating: number): Promise<string> {
-    return this.http.sendRequest<any, string>("POST", `/deliveries/${deliveryId}/rating`, { rating });
+    return this.http.sendRequest<any, string>("POST", `/deliveries/${encodeURIComponent(deliveryId)}/rating`, { rating });
   }
 
   /**
@@ -82,7 +82,7 @@ export class DeliveryService {
    * @param {string} deliveryId
    */
   sendDeliveryInvoiceEmail(deliveryId: string): Promise<string> {
-    return this.http.sendRequest<any, string>("POST", `/deliveries/${deliveryId}/resend_invoice_email`);
+    return this.http.sendRequest<any, string>("POST", `/deliveries/${encodeURIComponent(deliveryId)}/resend_invoice_email`);
   }
 
   /**

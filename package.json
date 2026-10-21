@@ -20,6 +20,7 @@
   ],
   "main": "./lib/index.js",
   "scripts": {
+    "prebuild": "node -e \"require('fs').rmSync('lib', { recursive: true, force: true })\"",
     "build": "tsc -p tsconfig.build.json",
     "test": "jest"
   },
