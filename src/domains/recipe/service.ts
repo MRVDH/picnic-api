@@ -1,5 +1,8 @@
 import type HttpClient from "../../http-client";
 import type {
+  RecipeCategory,
+  RecipeCategoryGroup,
+  RecipeOverview,
   RecipeSavingInput,
   RecipeSummary,
   RecipeDetails,
@@ -38,15 +41,19 @@ import type {
 import { FusionPage, FusionPageLayout } from "../../types/fusion";
 import { CatalogService } from "../catalog/service";
 import { RscPageClient } from "../app/rsc-client";
+import type { AppService } from "../app/service";
 import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./helpers";
+import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles } from "./lists";
 
 export class RecipeService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private app: AppService,
+  ) {}
 
   /**
-   * Returns the meals / meal-planner overview page.
-   * This Fusion page is the meal planner root; its recipe content is loaded
-   * lazily via SUSPENSE boundaries. To list the user's recipes, use
+   * Returns the cookbook home (the app's recipes tab): rows of recipes and the category tree.
+   * See {@link getRecipeOverview} for the parsed content. To list the user's own recipes, use
    * {@link getCookbookPage}.
    */
   getRecipesPage(): Promise<FusionPage> {
@@ -86,13 +93,39 @@ export class RecipeService {
   }
 
   /**
-   * Lists saved recipes from the cookbook's SAVED_RECIPES segment.
-   * Returns the same summary shape as {@link getUserDefinedRecipes}; use
-   * {@link getRecipe} for structured ingredients and other details.
+   * Lists the user's saved recipes, as the app's saved recipes page (`saved-deep-dive-page`)
+   * shows them. Use {@link getRecipe} for structured ingredients and other details.
    * Parses dynamic Fusion/PML tiles and may need updates if Picnic changes them.
    */
   async getSavedRecipes(): Promise<RecipeSummary[]> {
-    return extractRecipes(await this.getCookbookPage(), "SAVED_RECIPES");
+    return extractRecipeTiles(await this.http.sendRequest<null, FusionPage>("GET", `/pages/saved-deep-dive-page-content`, null, true));
+  }
+
+  /**
+   * Returns the cookbook home as the app shows it: the rows of recipes (each with its selected
+   * filter pill) and the category tree, whose links open {@link getRecipeCategory} and
+   * {@link getRecipeCategoryGroup}.
+   */
+  async getRecipeOverview(): Promise<RecipeOverview> {
+    return extractRecipeOverview(await this.getRecipesPage());
+  }
+
+  /**
+   * Returns the recipes of a category, from the `meals-category-page` RSC page.
+   * @param {string} categoryId The `category_id` of a category link from {@link getRecipeOverview}.
+   */
+  async getRecipeCategory(categoryId: string): Promise<RecipeCategory> {
+    const content = await this.app.getRscPageContent(`meals-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    return extractRecipeCategory(categoryId, content);
+  }
+
+  /**
+   * Returns the categories of a group, from the `meals-category-group-page` RSC page.
+   * @param {string} groupName The `group_name` of a group link from {@link getRecipeOverview}, e.g. "Kids".
+   */
+  async getRecipeCategoryGroup(groupName: string): Promise<RecipeCategoryGroup> {
+    const content = await this.app.getRscPageContent(`meals-category-group-page?group_name=${encodeURIComponent(groupName)}`);
+    return extractRecipeCategoryGroup(groupName, content);
   }
 
   /**
