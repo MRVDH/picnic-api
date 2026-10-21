@@ -1,12 +1,10 @@
 import type HttpClient from "../../http-client";
 import {
   AddProductInput,
-  AddProductsItem,
   RawCart,
   Cart,
   CartFooter,
   DeliverySlots,
-  RawDeliverySlots,
   RemoveGroupInput,
   SellingUnitContext,
   SetDeliverySlotInput,
@@ -64,18 +62,6 @@ export class CartService {
   }
 
   /**
-   * Adds multiple products to the cart in a single request and returns the cart.
-   * @param {AddProductsItem[]} products The products with their ids and quantities.
-   */
-  addProductsToCart(products: AddProductsItem[]): Promise<Cart> {
-    const body: Record<string, number> = {};
-    for (const { productId, quantity } of products) {
-      body[productId] = quantity;
-    }
-    return this.mutate<Record<string, number>>(`/cart/products/add`, body);
-  }
-
-  /**
    * Removes a product from the cart and returns the cart.
    * @param {string} productId The id of the product to remove.
    * @param {number} [count=1] The amount of this product to remove.
@@ -97,10 +83,12 @@ export class CartService {
   }
 
   /**
-   * Returns the delivery slots with a green-choice flag, and the selected slot with its window.
+   * Returns the delivery slots with a green-choice flag and minimum order value, and the selected
+   * slot with its window. Read from the cart, which carries the slots the app's slot selector shows.
    */
   async getDeliverySlots(): Promise<DeliverySlots> {
-    return extractDeliverySlots(await this.http.sendRequest<null, RawDeliverySlots>("GET", `/cart/delivery_slots`));
+    const cart = await this.http.sendRequest<null, RawCart>("GET", `/cart`, null, { includePicnicHeaders: true });
+    return extractDeliverySlots({ delivery_slots: cart.delivery_slots ?? [], selected_slot: cart.selected_slot ?? null });
   }
 
   /**

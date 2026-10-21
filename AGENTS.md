@@ -32,7 +32,6 @@ src/
     payment/            # Payment methods, billing
     recipe/             # Recipes, cookbook
     user/               # User details, profile, settings
-    user-onboarding/    # Onboarding flows
 ```
 
 Each domain folder contains:

@@ -198,11 +198,6 @@ export type AddProductInput = {
   selling_unit_contexts?: SellingUnitContext[];
 };
 
-export type AddProductsItem = {
-  productId: string;
-  quantity: number;
-};
-
 export type RawDeliverySlots = {
   delivery_slots: RawDeliverySlot[];
   slot_selector_message: SlotSelectorMessage;

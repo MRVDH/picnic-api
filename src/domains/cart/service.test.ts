@@ -13,34 +13,6 @@ beforeEach(() => {
   cart = new CartService(http, new PageClient(http));
 });
 
-describe("CartService - addProductsToCart", () => {
-  it("should send the correct bulk add request", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      body: {},
-      json: () => Promise.resolve({ id: "cart-id" }),
-    });
-
-    const products = [
-      { productId: "s11295810", quantity: 2 },
-      { productId: "s10000123", quantity: 1 },
-    ];
-
-    await cart.addProductsToCart(products);
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/cart/products/add"),
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          s11295810: 2,
-          s10000123: 1,
-        }),
-      }),
-    );
-  });
-});
-
 describe("CartService - getDeliverySlots", () => {
   it("fetches the delivery slots and returns them parsed", async () => {
     const slot = (id: string, end: string) => ({
@@ -61,13 +33,13 @@ describe("CartService - getDeliverySlots", () => {
         }),
     });
 
-    const overview = await cart.getDeliverySlots();
+    const slots = await cart.getDeliverySlots();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/cart/delivery_slots"), expect.objectContaining({ method: "GET" }));
-    expect(overview.slots.map((s) => [s.slotId, s.isGreenChoice])).toEqual([
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/cart$/);
+    expect(slots.slots.map((s) => [s.slotId, s.isGreenChoice])).toEqual([
       ["regular", false],
       ["green", true],
     ]);
-    expect(overview.selectedSlot).toMatchObject({ slotId: "green", windowEnd: "2026-10-17T20:00:00.000+02:00", isExplicitSelection: true });
+    expect(slots.selectedSlot).toMatchObject({ slotId: "green", windowEnd: "2026-10-17T20:00:00.000+02:00", isExplicitSelection: true });
   });
 });

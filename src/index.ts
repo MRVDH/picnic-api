@@ -13,7 +13,6 @@ import { PaymentService } from "./domains/payment/service";
 import { ConsentService } from "./domains/consent/service";
 import { CustomerServiceService } from "./domains/customer-service/service";
 import { ContentService } from "./domains/content/service";
-import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
@@ -45,7 +44,6 @@ class PicnicClient extends HttpClient {
   public readonly consent: ConsentService;
   public readonly customerService: CustomerServiceService;
   public readonly content: ContentService;
-  public readonly userOnboarding: UserOnboardingService;
   public readonly recipe: RecipeService;
 
   /**
@@ -72,7 +70,6 @@ class PicnicClient extends HttpClient {
     this.consent = new ConsentService(this);
     this.customerService = new CustomerServiceService(this);
     this.content = new ContentService(this);
-    this.userOnboarding = new UserOnboardingService(this);
     this.recipe = new RecipeService(this, pages);
   }
 }

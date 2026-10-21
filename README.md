@@ -47,14 +47,8 @@ await picnicClient.auth.verify2FA("123456");
 // Search for products and recipes
 const results = await picnicClient.catalog.getSearchResults("Affligem blond");
 
-// Add a product to the cart
-await picnicClient.cart.addProductToCart(11295810, 2);
-
-// Bulk add products to the cart
-await picnicClient.cart.addProductsToCart([
-  { productId: "s11295810", quantity: 2 },
-  { productId: "s10000123", quantity: 1 },
-]);
+// Add a product to the cart; returns the updated cart
+const cart = await picnicClient.cart.addProductToCart("s11295810", 2);
 ```
 
 ### Pages (Fusion and RSC)
@@ -106,7 +100,6 @@ The client exposes the following domain services, each grouping a set of related
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
 | **Recipe** | `client.recipe` | Recipe browsing and saving, plus creating and editing your own (user defined) recipes: name, portions, ingredients, note and image. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
-| **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
 Each service method is fully typed. Methods return the data the way the app shows it, as camelCase models such as
 `Cart`, `Delivery`, `Product` and `Recipe`; the cart mutations return the updated `Cart`. Types prefixed with `Raw`
