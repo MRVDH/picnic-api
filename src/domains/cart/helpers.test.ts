@@ -1,7 +1,7 @@
 import { extractDeliverySlots } from "./helpers";
-import { DeliverySlot } from "./types";
+import { RawDeliverySlot } from "./types";
 
-const slot = (id: string, start: string, end: string, extra: Partial<DeliverySlot> = {}): DeliverySlot => ({
+const slot = (id: string, start: string, end: string, extra: Partial<RawDeliverySlot> = {}): RawDeliverySlot => ({
   slot_id: id,
   hub_id: "hub",
   fc_id: "fc",

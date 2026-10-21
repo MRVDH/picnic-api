@@ -56,6 +56,7 @@ npx ts-node playground.ts      # Run the playground file
 
 ## General Instructions
 
+- Naming: a method returns a model of what the app shows, in camelCase, under the plain name (`cart.getCart(): Cart`, `delivery.getDelivery(): Delivery`, `catalog.getProduct(): Product`). Types that mirror Picnic's JSON get a `Raw` prefix when a model of the same data exists (`RawCart`, `RawDelivery`); services fetch those privately and don't return them. Use the app's words for the user's world (recipe, cart, ingredient), not Picnic's internal ones (selling group, basket, sellable component), except in route paths and request bodies.
 - The current Picnic app is the reference. Implement a feature the way the app does it (same routes, request bodies and page formats), and follow the app when it changes. Don't keep old behaviour alive with a workaround such as pinning an older agent for one request.
 - When you're testing the API, use the `playground.ts` file in the root of the API repository to call the functions. Run it with `npx ts-node playground.ts`.
 - If you get a request to update a certain route, check the decompiled app for the latest implementation of that route. The decompiled app is located in the picnic-app folder. Besides that, also call the function using the playground to compare the actual API response with your findings.

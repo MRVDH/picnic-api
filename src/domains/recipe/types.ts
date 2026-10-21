@@ -27,51 +27,51 @@ export type RecipeSavingInput = {
  * Payload for assigning a selling group (recipe bundle) to the basket.
  * Extracted from the `onAddButtonPostRecipeHandler` PML expression in `cookbook-page-content`.
  */
-export type AssignSellingGroupPayload = {
+export type AddRecipeToCartPayload = {
   selling_group_id: string;
   day_offset?: number;
   portions?: number;
 };
 
-export type AssignSellingGroupInput = {
-  payload: AssignSellingGroupPayload;
+export type AddRecipeToCartInput = {
+  payload: AddRecipeToCartPayload;
 };
 
 /**
  * Payload for updating the number of portions of a selling group already in the basket.
  * Extracted from the portion-update PML expression in `cookbook-page-content`.
  */
-export type UpdateSellingGroupPortionsPayload = {
+export type UpdateRecipePortionsInCartPayload = {
   selling_group_id: string;
   day_offset: number;
   portions: number;
 };
 
-export type UpdateSellingGroupPortionsInput = {
-  payload: UpdateSellingGroupPortionsPayload;
+export type UpdateRecipePortionsInCartInput = {
+  payload: UpdateRecipePortionsInCartPayload;
 };
 
 /**
  * Payload for removing a selling group from the basket.
  * Extracted from the "REMOVE" case PML expression in `cookbook-page-content`.
  */
-export type RemoveSellingGroupPayload = {
+export type RemoveRecipeFromCartPayload = {
   selling_group_id: string;
 };
 
-export type RemoveSellingGroupInput = {
-  payload: RemoveSellingGroupPayload;
+export type RemoveRecipeFromCartInput = {
+  payload: RemoveRecipeFromCartPayload;
 };
 
 /** Response of `assign-selling-group-to-basket`. */
-export type AssignSellingGroupToBasketResult = {
+export type AddRecipeToCartResult = {
   anyUnavailableIngredient: boolean;
   assignedNumberOfPortions: number;
   cart: SellingGroupCartSnapshot;
 };
 
 /** Response of `remove-selling-group-from-basket`. */
-export type RemoveSellingGroupFromBasketResult = {
+export type RemoveRecipeFromCartResult = {
   cart: SellingGroupCartSnapshot;
   /** The ingredient (selling group component) ids that were in the basket. */
   selectedSellableComponentIds: string[];
@@ -94,7 +94,7 @@ export type RecipeSummary = {
   name: string;
   /**
    * Image type from tile analytics, or null when absent. Tiles can report GALLERY
-   * when details report COMPOSED, so prefer RecipeDetails.imageType when available.
+   * when details report COMPOSED, so prefer Recipe.imageType when available.
    */
   imageType: RecipeImageType | null;
   /** The image id including its namespace (e.g. recipes/abc), or null. */
@@ -160,11 +160,11 @@ export type RecipeIngredient = {
   name: string | null;
   /** Product id, e.g. s1143210; empty for some discontinued products. */
   sellingUnitId: string;
-  /** Selling-unit count for RecipeDetails.portions, not a weight or volume. */
+  /** Selling-unit count for Recipe.portions, not a weight or volume. */
   quantity: number;
   /** Backend status; discontinued products can still report ACTIVE. */
   status: "ACTIVE" | "UNAVAILABLE" | string;
-  swapType: SellingGroupSwapType | null;
+  swapType: RecipeIngredientSwapType | null;
   /** Whether selected by default when adding the recipe to the basket. */
   checked: boolean;
   /**
@@ -208,7 +208,7 @@ export type RecipeTime = {
 };
 
 /** Shared structured details for catalog and user-defined recipes. */
-export type RecipeDetails = Pick<RecipeSummary, "id" | "name" | "imageType"> & {
+export type Recipe = Pick<RecipeSummary, "id" | "name" | "imageType"> & {
   /** Portion count for the returned products and quantities. */
   portions: number;
   /** Stored default portion count, which can differ from a requested count. */
@@ -243,7 +243,7 @@ export type RecipeDetails = Pick<RecipeSummary, "id" | "name" | "imageType"> & {
 };
 
 /** Optional extra requests when retrieving structured recipe details. */
-export type RecipeDetailsOptions = {
+export type RecipeOptions = {
   /**
    * Fetch product pages for names missing from recipe tiles. Defaults to false.
    * Requests run concurrently, once per distinct product; request failures reject
@@ -274,17 +274,7 @@ export type UserDefinedRecipeIngredientSource = "search" | "usuals-suggestion" |
  * products is `WITHIN_SELLING_GROUP_COMPONENT`, one of the suggestions below it is
  * `POPULAR_SELECTION`, anything else came from search.
  */
-export type SellingGroupSwapType = "WITHIN_SELLING_GROUP_COMPONENT" | "POPULAR_SELECTION" | "SEARCH_SELECTION";
-
-/** Compatibility name for the shared recipe image type. */
-export type UserDefinedRecipeImageType = RecipeImageType;
-
-/** Compatibility name for the shared recipe summary. */
-export type UserDefinedRecipeSummary = RecipeSummary;
-/** Compatibility name for the shared recipe ingredient. */
-export type UserDefinedRecipeIngredient = RecipeIngredient;
-/** Compatibility name for the shared recipe details. */
-export type UserDefinedRecipeDetails = RecipeDetails;
+export type RecipeIngredientSwapType = "WITHIN_SELLING_GROUP_COMPONENT" | "POPULAR_SELECTION" | "SEARCH_SELECTION";
 
 /** Payload for `POST /pages/task/create-user-defined-recipe`. */
 export type CreateUserDefinedRecipePayload = {
@@ -390,17 +380,17 @@ export type AddUserDefinedRecipeIngredientResult = {
  * Payload for `POST /pages/task/save-selling-group-edit-task`.
  * Extracted from `selling-group-component-edit-page?is_udr=true&...`.
  */
-export type UpdateUserDefinedRecipeIngredientPayload = {
+export type UpdateRecipeIngredientPayload = {
   requested_sellable_portions: string;
   selling_group_component_id: string;
   selling_group_id: string;
   /** Selling unit id → quantity. Use a different selling unit id to swap the product. */
   selling_unit_quantity_by_id: Record<string, number>;
-  swapType?: SellingGroupSwapType | null;
+  swapType?: RecipeIngredientSwapType | null;
 };
 
-export type UpdateUserDefinedRecipeIngredientInput = {
-  payload: UpdateUserDefinedRecipeIngredientPayload;
+export type UpdateRecipeIngredientInput = {
+  payload: UpdateRecipeIngredientPayload;
 };
 
 /** A basket line's link to the recipe it was added for. */
@@ -412,7 +402,7 @@ export type SellingGroupCartLineContext = {
         sellingGroupId: string;
         sellingGroupComponentId: string;
         sellingGroupComponentType: string;
-        sellingGroupComponentSwapType: SellingGroupSwapType | null;
+        sellingGroupComponentSwapType: RecipeIngredientSwapType | null;
       }
     | { type: "MEAL_PLAN"; dayRelativeToSlot: number; numberOfServings: number }
     | { type: string; [key: string]: unknown }
@@ -436,12 +426,12 @@ export type SellingGroupCartSnapshot = {
 };
 
 /** Response of `save-selling-group-edit-task`. */
-export type UpdateUserDefinedRecipeIngredientResult = {
+export type UpdateRecipeIngredientResult = {
   cart?: SellingGroupCartSnapshot;
   /**
    * `true` when the recipe is in the basket and the basket still holds the old
    * selection. The app then posts `assign-sellable-component-to-day`; see
-   * {@link AssignSellableComponentToDayPayload}.
+   * {@link UpdateRecipeIngredientInCartPayload}.
    */
   shouldUpdateCart?: boolean;
 };
@@ -452,8 +442,8 @@ export type UpdateUserDefinedRecipeIngredientResult = {
  * sends it after `save-selling-group-edit-task` answered `shouldUpdateCart: true`,
  * so the basket picks up the new ingredient selection.
  */
-export type AssignSellableComponentToDayPayload = {
-  component_swap_type: SellingGroupSwapType;
+export type UpdateRecipeIngredientInCartPayload = {
+  component_swap_type: RecipeIngredientSwapType;
   /** The recipe's number of portions, sent as a string like the app does. */
   portions: string;
   /** Selling unit id → quantity for this ingredient. */
@@ -463,12 +453,12 @@ export type AssignSellableComponentToDayPayload = {
   selling_group_id: string;
 };
 
-export type AssignSellableComponentToDayInput = {
-  payload: AssignSellableComponentToDayPayload;
+export type UpdateRecipeIngredientInCartInput = {
+  payload: UpdateRecipeIngredientInCartPayload;
 };
 
 /** Response of `assign-sellable-component-to-day`. */
-export type AssignSellableComponentToDayResult = {
+export type UpdateRecipeIngredientInCartResult = {
   cart?: SellingGroupCartSnapshot;
 };
 
@@ -476,17 +466,17 @@ export type AssignSellableComponentToDayResult = {
  * Payload for `POST /pages/task/delete-selling-group-component`.
  * Extracted from `selling-group-component-edit-page?is_udr=true&...`.
  */
-export type RemoveUserDefinedRecipeIngredientPayload = {
+export type RemoveRecipeIngredientPayload = {
   selling_group_component_id: string;
   selling_group_id: string;
 };
 
-export type RemoveUserDefinedRecipeIngredientInput = {
-  payload: RemoveUserDefinedRecipeIngredientPayload;
+export type RemoveRecipeIngredientInput = {
+  payload: RemoveRecipeIngredientPayload;
 };
 
 /** Response of `delete-selling-group-component`. */
-export type RemoveUserDefinedRecipeIngredientResult = {
+export type RemoveRecipeIngredientResult = {
   cart?: SellingGroupCartSnapshot;
 };
 

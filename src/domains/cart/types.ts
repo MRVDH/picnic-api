@@ -3,7 +3,7 @@ import { Decorator } from "../../types/common";
 
 // ─── Delivery Slots ───────────────────────────────────────────────────────────
 
-export type DeliverySlot = {
+export type RawDeliverySlot = {
   slot_id: string;
   hub_id: string;
   fc_id: string;
@@ -23,7 +23,7 @@ export type DeliverySlot = {
   slot_characteristics: string[];
 };
 
-export type SelectedSlot = {
+export type RawSelectedSlot = {
   slot_id: string;
   /** E.g. "IMPLICIT" | "ACTIVE" | "EXPLICIT" */
   state: string;
@@ -100,12 +100,12 @@ export type CartAnalyticsItem = {
  * The active shopping cart returned by GET /cart.
  * This is distinct from a placed Order that lives inside a Delivery.
  */
-export type Cart = {
+export type RawCart = {
   type: "ORDER";
   id: string;
   items: OrderLine[];
-  delivery_slots: DeliverySlot[];
-  selected_slot: SelectedSlot;
+  delivery_slots: RawDeliverySlot[];
+  selected_slot: RawSelectedSlot;
   /** Null when no slot-selector message is configured. */
   slot_selector_message: SlotSelectorMessage | null;
   total_count: number;
@@ -194,14 +194,14 @@ export type AddProductsItem = {
   quantity: number;
 };
 
-export type GetDeliverySlotsResult = {
-  delivery_slots: DeliverySlot[];
+export type RawDeliverySlots = {
+  delivery_slots: RawDeliverySlot[];
   slot_selector_message: SlotSelectorMessage;
-  selected_slot: SelectedSlot;
+  selected_slot: RawSelectedSlot;
 };
 
-/** A delivery slot as returned by `cart.getDeliverySlotOverview`. */
-export type DeliverySlotSummary = {
+/** A delivery slot as returned by `cart.getDeliverySlots`. */
+export type DeliverySlot = {
   slotId: string;
   windowStart: string;
   windowEnd: string;
@@ -217,7 +217,7 @@ export type DeliverySlotSummary = {
   minimumOrderValue: number | null;
 };
 
-export type SelectedSlotSummary = {
+export type SelectedDeliverySlot = {
   slotId: string;
   /** E.g. "IMPLICIT" | "ACTIVE" | "EXPLICIT" */
   state: string;
@@ -228,10 +228,10 @@ export type SelectedSlotSummary = {
   isExplicitSelection: boolean;
 };
 
-export type DeliverySlotOverview = {
+export type DeliverySlots = {
   /** In the order of the API response. */
-  slots: DeliverySlotSummary[];
-  selectedSlot: SelectedSlotSummary | null;
+  slots: DeliverySlot[];
+  selectedSlot: SelectedDeliverySlot | null;
 };
 
 // ─── Cart contents (parsed) ───────────────────────────────────────────────────
@@ -324,7 +324,11 @@ export type CartFee = {
 };
 
 /** The cart as the app's basket shows it. Amounts are in cents. */
-export type CartContents = {
+export type Cart = {
+  /** The cart id. */
+  id: string;
+  /** The cart's modification timestamp; pass it to `cart.startCheckout`. */
+  mts: number;
   /** The lines in the order of the response. */
   items: CartLineItem[];
   /** The number of products. */
@@ -343,11 +347,11 @@ export type CartContents = {
   fees: CartFee[];
   /** The minimum order value of the selected slot, or null. */
   minimumOrderValue: number | null;
-  selectedSlot: SelectedSlotSummary | null;
+  selectedSlot: SelectedDeliverySlot | null;
   recipes: CartRecipe[];
 };
 
-// ─── Basket footer ────────────────────────────────────────────────────────────
+// ─── Cart footer ────────────────────────────────────────────────────────────
 
 /** A text from the basket footer, with its color when Picnic sets one. */
 export type CartFooterText = {
@@ -396,7 +400,7 @@ export type UserSlotMinimumOrderValue = {
 
 export type CheckoutConfirmation = {
   order_id: string;
-  delivery_slot: DeliverySlot;
+  delivery_slot: RawDeliverySlot;
   analytics: Record<string, any> | null;
 };
 
@@ -415,7 +419,7 @@ export type CheckoutStartResult = {
   total_deposit: number;
   total_savings: number;
   transaction_expiry: string;
-  delivery_slots: DeliverySlot[];
+  delivery_slots: RawDeliverySlot[];
   deposit_breakdown: DepositBreakdown[];
   address?: {
     street?: string;

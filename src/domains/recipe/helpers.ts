@@ -16,7 +16,7 @@ import type { NutritionRow } from "../catalog/types";
 import { parseMinutes, readRecipeTile } from "./lists";
 import {
   RecipeAllergens,
-  RecipeDetails,
+  Recipe,
   RecipeIngredient,
   RecipeSegment,
   RecipeSummary,
@@ -295,7 +295,7 @@ export function extractIngredientProductName(page: FusionPage): string | null {
  * @param {string} recipeId The recipe id that was requested.
  * @param {FusionPage} page The raw page response.
  */
-export function extractRecipeDetails(recipeId: string, page: FusionPage): RecipeDetails {
+export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe {
   let recipeContext: Record<string, any> | undefined;
   let header: Record<string, any> | undefined;
   let owner: Record<string, any> | undefined;

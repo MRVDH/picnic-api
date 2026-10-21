@@ -1,6 +1,6 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { CategoryProducts, CategorySection, ProductDetails, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
+import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
 import { FusionPage } from "../../pages/fusion";
 import { extractSearchResults } from "./helpers";
 import { extractProductDetails, productDetailsPageId } from "./product-details";
@@ -112,28 +112,30 @@ export class CatalogService {
    * @param {string} productId The product ID to fetch details for.
    * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.
    */
-  async getProductDetails(productId: string): Promise<ProductDetails> {
+  async getProduct(productId: string): Promise<Product> {
     const page = await this.getProductDetailsPage(productId);
     return extractProductDetails(productId, page);
   }
 
   /**
-   * Retrieves a product image from the server as an ArrayBuffer.
+   * Returns a product image as PNG bytes.
    * @param {string} imageId The image id to retrieve.
    * @param {ImageSize} size The size of the image to return.
    */
-  getImage(imageId: string, size: ImageSize): Promise<string> {
-    const alternateRoute = this.http.url.split("/api/")[0];
-    return this.http.sendRequest<any, string>("GET", `${alternateRoute}/static/images/${imageId}/${size}.png`, null, false, true);
+  getImage(imageId: string, size: ImageSize): Promise<ArrayBuffer> {
+    const staticUrl = this.http.url.split("/api/")[0];
+    return this.http.sendRequest<null, ArrayBuffer>("GET", `${staticUrl}/static/images/${imageId}/${size}.png`, null, false, true);
   }
 
   /**
-   * Retrieves a product image from the server as a Data URI.
+   * Returns a product image as a data URI.
    * @param {string} imageId The image id to retrieve.
    * @param {ImageSize} size The size of the image to return.
    */
   async getImageAsDataUri(imageId: string, size: ImageSize): Promise<string> {
-    const arrayBuffer = await this.getImage(imageId, size);
-    return "data:image/png;base64," + Buffer.from(arrayBuffer, "binary").toString("base64");
+    const bytes = new Uint8Array(await this.getImage(imageId, size));
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return `data:image/png;base64,${btoa(binary)}`;
   }
 }

@@ -1,5 +1,5 @@
 import { CartLineItem, OrderLine } from "../cart/types";
-import type { ReturnedContainerSummary } from "../delivery/types";
+import type { ReturnedContainer } from "../delivery/types";
 
 // ─── Payment Profile ──────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ export type WalletTransactionsInput = {
   page_number: number;
 };
 
-export type WalletTransaction = {
+export type WalletTransactionSummary = {
   account: string;
   amount_in_cents: number;
   brand: string;
@@ -67,7 +67,7 @@ export type WalletTransaction = {
   transaction_type: string;
 };
 
-export type ReturnedContainer = {
+export type RawReturnedContainer = {
   localized_name: string;
   price: number;
   quantity: number;
@@ -80,7 +80,7 @@ export type Deposit = {
   value: number;
 };
 
-export type WalletTransactionDetails = {
+export type RawWalletTransaction = {
   amount_in_cents: number;
   article_issue_refunds: any[];
   debt_resolution: any | null;
@@ -93,7 +93,7 @@ export type WalletTransactionDetails = {
   payment_option_account: string;
   payment_option_display_name: string;
   refunded_items: any[];
-  returned_containers: ReturnedContainer[];
+  returned_containers: RawReturnedContainer[];
   shop_items: OrderLine[];
   transaction_method: string;
   transaction_status: string;
@@ -112,7 +112,7 @@ export type WalletSubstitution = {
 };
 
 /** A payment as the app's wallet shows it ("Betaling"), with the order lines it covers. Amounts are in cents. */
-export type WalletPayment = {
+export type WalletTransaction = {
   id: string;
   deliveryId: string | null;
   /** The payment time in epoch milliseconds, or null. */
@@ -126,7 +126,7 @@ export type WalletPayment = {
   substitutions: WalletSubstitution[];
   /** Deposits paid. */
   depositTotal: number;
-  returnedContainers: ReturnedContainerSummary[];
+  returnedContainers: ReturnedContainer[];
   /** Deposits returned. */
   returnedDepositTotal: number;
   paymentMethod: { displayName: string; account: string | null; iconUrl: string | null } | null;

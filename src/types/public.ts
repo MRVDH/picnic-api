@@ -1,7 +1,7 @@
 // Public types, grouped by domain. Consumers reach them through the client class:
 //   import type PicnicClient from "picnic-api";
 //   type Summary = PicnicClient.Types.delivery.DeliverySummary;
-// Grouped by domain because some domains define the same name (e.g. ReturnedContainer in delivery and payment).
+// Grouped by domain because some domains define the same name (e.g. RawReturnedContainer in delivery and payment).
 
 export * as app from "../domains/app/types";
 export * as auth from "../domains/auth/types";

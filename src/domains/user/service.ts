@@ -12,7 +12,7 @@ export class UserService {
   /**
    * Gets the details of the current logged in user.
    */
-  getUserDetails(): Promise<User> {
+  getUser(): Promise<User> {
     return this.http.sendRequest<any, User>("GET", `/user`);
   }
 

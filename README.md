@@ -72,7 +72,7 @@ if (page.format === "fusion") {
 }
 ```
 
-The domain methods (`catalog.getProductDetails`, `recipe.getRecipe`, ...) read the page they need themselves. When
+The domain methods (`catalog.getProduct`, `recipe.getRecipe`, ...) read the page they need themselves. When
 Picnic serves such a page in a format the method doesn't read yet, it throws an `UnexpectedPageFormatError`.
 
 ### Custom requests
@@ -105,9 +105,12 @@ The client exposes the following domain services, each grouping a set of related
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
 | **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
-Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
+Each service method is fully typed. Methods return the data the way the app shows it, as camelCase models such as
+`Cart`, `Delivery`, `Product` and `Recipe`; the cart mutations return the updated `Cart`. Types prefixed with `Raw`
+mirror Picnic's own JSON (snake_case) and are what the models are read from. The types are available as
+`PicnicClient.Types.<domain>`, e.g. `PicnicClient.Types.cart.Cart`.
 
-Catalog and user-defined recipes share `RecipeSummary`, `RecipeDetails`, and
+Catalog and user-defined recipes share `RecipeSummary`, `Recipe`, and
 `RecipeIngredient` types:
 
 ```ts

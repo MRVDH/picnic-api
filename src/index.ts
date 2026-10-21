@@ -29,7 +29,7 @@ class PicnicClient extends HttpClient {
   /** Error thrown when a page is served in a different format (Fusion or RSC) than the method expects. */
   static readonly UnexpectedPageFormatError = UnexpectedPageFormatError;
   static readonly isUnexpectedPageFormatError = isUnexpectedPageFormatError;
-  /** Error thrown by `catalog.getProductDetails` when the product doesn't exist or isn't available. */
+  /** Error thrown by `catalog.getProduct` when the product doesn't exist or isn't available. */
   static readonly ProductNotFoundError = ProductNotFoundError;
   static readonly isProductNotFoundError = isProductNotFoundError;
 

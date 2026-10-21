@@ -1,5 +1,5 @@
-import { extractCartContents } from "./contents";
-import type { Cart } from "./types";
+import { extractCart } from "./contents";
+import type { RawCart } from "./types";
 
 const article = (id: string, extra: Record<string, unknown> = {}) => ({
   type: "ORDER_ARTICLE",
@@ -13,7 +13,7 @@ const article = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
-const cart = (extra: Partial<Record<keyof Cart, unknown>> = {}) =>
+const cart = (extra: Partial<Record<keyof RawCart, unknown>> = {}) =>
   ({
     type: "ORDER",
     id: "cart",
@@ -33,11 +33,11 @@ const cart = (extra: Partial<Record<keyof Cart, unknown>> = {}) =>
     fees: [{ type: "SALDO", name: "Verrekening", amount: -100 }, { type: "OTHER", name: "Zero", amount: 0 }],
     basket_sections: [{ title: "Koken", groups: [{ id: "recipe-1", title: "Traybake", pre_title: "2 porties", subtitle: "6 ingrediënten", image_id: "recipes/1" }] }],
     ...extra,
-  }) as unknown as Cart;
+  }) as unknown as RawCart;
 
-describe("extractCartContents", () => {
+describe("extractCart", () => {
   it("applies the decorator overrides of the line and the article", () => {
-    const contents = extractCartContents(
+    const contents = extractCart(
       cart({
         items: [
           {
@@ -97,7 +97,7 @@ describe("extractCartContents", () => {
       explanation: { short_explanation: "Niet leverbaar" },
       replacements: [{ id: "s3", name: "Other", image_ids: ["image-s3"], display_price: 149, unit_quantity: "1 liter", max_count: 24 }],
     };
-    const contents = extractCartContents(
+    const contents = extractCart(
       cart({ items: [{ type: "ORDER_LINE", id: "line-2", price: 199, display_price: 199, items: [article("s2", { decorators: [unavailable] })] }] })
     );
 
@@ -110,7 +110,7 @@ describe("extractCartContents", () => {
   });
 
   it("reads the totals, deposits, fees, the selected slot and the recipes", () => {
-    const contents = extractCartContents(cart());
+    const contents = extractCart(cart());
 
     expect(contents).toMatchObject({
       totalCount: 3,

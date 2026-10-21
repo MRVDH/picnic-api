@@ -17,9 +17,9 @@ describe("Catalog - search", () => {
   });
 });
 
-describe("Catalog - getProductDetails", () => {
+describe("Catalog - getProduct", () => {
   it("extracts details for a product without brand", async () => {
-    const details = await client.catalog.getProductDetails("s1001504");
+    const details = await client.catalog.getProduct("s1001504");
 
     expect(details).toMatchObject({
       id: "s1001504",
@@ -30,7 +30,7 @@ describe("Catalog - getProductDetails", () => {
   });
 
   it("extracts details for a product with brand", async () => {
-    const details = await client.catalog.getProductDetails("s1139960");
+    const details = await client.catalog.getProduct("s1139960");
 
     expect(details).toMatchObject({
       id: "s1139960",
@@ -41,7 +41,7 @@ describe("Catalog - getProductDetails", () => {
   });
 
   it("extracts details for a product with a label before texts", async () => {
-    const details = await client.catalog.getProductDetails("s1009498");
+    const details = await client.catalog.getProduct("s1009498");
 
     expect(details).toMatchObject({
       id: "s1009498",
@@ -52,7 +52,7 @@ describe("Catalog - getProductDetails", () => {
   });
 
   it("extracts price tiers, a size badge and a computed unit price", async () => {
-    const details = await client.catalog.getProductDetails("s1004201");
+    const details = await client.catalog.getProduct("s1004201");
 
     expect(details).toMatchObject({ name: "Halfvolle melk", unitQuantity: "1.5 liter", quantityBadges: [{ text: "XL" }] });
     expect(details.unitPrice).toMatch(/^€\d+\.\d{2}\/l$/);
@@ -61,7 +61,7 @@ describe("Catalog - getProductDetails", () => {
   });
 
   it("throws a ProductNotFoundError for an unknown product", async () => {
-    await expect(client.catalog.getProductDetails("s0000001")).rejects.toThrow(PicnicClient.ProductNotFoundError);
+    await expect(client.catalog.getProduct("s0000001")).rejects.toThrow(PicnicClient.ProductNotFoundError);
   });
 });
 

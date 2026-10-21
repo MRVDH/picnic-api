@@ -1,7 +1,7 @@
 import { readCartLine } from "../cart/contents";
 import type { OrderLine } from "../cart/types";
 import { readReturnedContainers } from "../delivery/details";
-import type { WalletPayment, WalletSubstitution, WalletTransactionDetails } from "./types";
+import type { WalletTransaction, WalletSubstitution, RawWalletTransaction } from "./types";
 
 type RawRecord = Record<string, unknown>;
 
@@ -43,11 +43,11 @@ function readSubstitution(refund: RawRecord, articles: Map<string, RawRecord>): 
 }
 
 /**
- * Turns a wallet transaction (from {@link PaymentService.getWalletTransactionDetails}) into a
- * {@link WalletPayment}. Products that were substituted show in `substitutions`, not in `items`,
+ * Turns a wallet transaction (`/wallet/transactions/{id}`) into a
+ * {@link WalletTransaction}. Products that were substituted show in `substitutions`, not in `items`,
  * as in the app.
  */
-export function extractWalletPayment(transactionId: string, transaction: WalletTransactionDetails): WalletPayment {
+export function extractWalletTransaction(transactionId: string, transaction: RawWalletTransaction): WalletTransaction {
   const raw = (asRecord(transaction) ?? {}) as RawRecord;
   const lines = asRecords(raw.shop_items);
   const articles = articlesById(lines);

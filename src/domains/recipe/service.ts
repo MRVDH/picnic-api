@@ -5,15 +5,13 @@ import type {
   RecipeOverview,
   RecipeSavingInput,
   RecipeSummary,
-  RecipeDetails,
-  RecipeDetailsOptions,
-  AssignSellingGroupInput,
-  UpdateSellingGroupPortionsInput,
-  RemoveSellingGroupInput,
-  AssignSellingGroupToBasketResult,
-  RemoveSellingGroupFromBasketResult,
-  UserDefinedRecipeSummary,
-  UserDefinedRecipeDetails,
+  Recipe,
+  RecipeOptions,
+  AddRecipeToCartInput,
+  UpdateRecipePortionsInCartInput,
+  RemoveRecipeFromCartInput,
+  AddRecipeToCartResult,
+  RemoveRecipeFromCartResult,
   NewUserDefinedRecipeIngredient,
   UserDefinedRecipeIngredientSource,
   CreateUserDefinedRecipeInput,
@@ -23,13 +21,13 @@ import type {
   DeleteUserDefinedRecipeInput,
   AddUserDefinedRecipeIngredientInput,
   AddUserDefinedRecipeIngredientResult,
-  UpdateUserDefinedRecipeIngredientInput,
-  UpdateUserDefinedRecipeIngredientResult,
-  RemoveUserDefinedRecipeIngredientInput,
-  RemoveUserDefinedRecipeIngredientResult,
-  AssignSellableComponentToDayInput,
-  AssignSellableComponentToDayResult,
-  SellingGroupSwapType,
+  UpdateRecipeIngredientInput,
+  UpdateRecipeIngredientResult,
+  RemoveRecipeIngredientInput,
+  RemoveRecipeIngredientResult,
+  UpdateRecipeIngredientInCartInput,
+  UpdateRecipeIngredientInCartResult,
+  RecipeIngredientSwapType,
   UserDefinedRecipeReferenceImage,
   UserDefinedRecipeSuggestedImage,
   UpdateUserDefinedRecipeNoteInput,
@@ -135,9 +133,9 @@ export class RecipeService {
    * Some recipes reject particular portion counts with a page-rendering error.
    * @param {string} recipeId The selling group id of either kind of recipe.
    * @param {number} [portions] Positive integer portion count; defaults to the count Picnic renders.
-   * @param {RecipeDetailsOptions} [options] Optional product-name lookup requests.
+   * @param {RecipeOptions} [options] Optional product-name lookup requests.
    */
-  async getRecipe(recipeId: string, portions?: number, options: RecipeDetailsOptions = {}): Promise<RecipeDetails> {
+  async getRecipe(recipeId: string, portions?: number, options: RecipeOptions = {}): Promise<Recipe> {
     let details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, portions));
     if (portions !== undefined && details.portions !== portions) {
       details = extractRecipeDetails(recipeId, await this.getRecipeDetailsPage(recipeId, portions));
@@ -200,18 +198,18 @@ export class RecipeService {
   }
 
   /**
-   * Assigns a selling group (recipe bundle) to the basket in the meal planner.
-   * @param {string} sellingGroupId The selling group / recipe id.
+   * Adds a recipe's ingredients to the cart, planned for a delivery day.
+   * @param {string} recipeId The recipe id.
    * @param {number} [dayOffset] Which delivery day to plan for (relative to the selected slot).
    * @param {number} [portions] Number of servings.
    */
-  assignSellingGroupToBasket(sellingGroupId: string, dayOffset?: number, portions?: number): Promise<AssignSellingGroupToBasketResult> {
-    return this.http.sendRequest<AssignSellingGroupInput, AssignSellingGroupToBasketResult>(
+  addRecipeToCart(recipeId: string, dayOffset?: number, portions?: number): Promise<AddRecipeToCartResult> {
+    return this.http.sendRequest<AddRecipeToCartInput, AddRecipeToCartResult>(
       "POST",
       `/pages/task/assign-selling-group-to-basket`,
       {
         payload: {
-          selling_group_id: sellingGroupId,
+          selling_group_id: recipeId,
           ...(dayOffset !== undefined && { day_offset: dayOffset }),
           ...(portions !== undefined && { portions }),
         },
@@ -221,18 +219,18 @@ export class RecipeService {
   }
 
   /**
-   * Updates the number of portions for a selling group already in the basket.
-   * @param {string} sellingGroupId The selling group / recipe id.
+   * Changes the number of portions of a recipe that is in the cart.
+   * @param {string} recipeId The recipe id.
    * @param {number} dayOffset Which delivery day the recipe is planned for.
    * @param {number} portions The new number of servings.
    */
-  updateSellingGroupPortions(sellingGroupId: string, dayOffset: number, portions: number): Promise<Record<string, never>> {
-    return this.http.sendRequest<UpdateSellingGroupPortionsInput, Record<string, never>>(
+  updateRecipePortionsInCart(recipeId: string, dayOffset: number, portions: number): Promise<Record<string, never>> {
+    return this.http.sendRequest<UpdateRecipePortionsInCartInput, Record<string, never>>(
       "POST",
       `/pages/task/update-selling-group-number-of-portions-task`,
       {
         payload: {
-          selling_group_id: sellingGroupId,
+          selling_group_id: recipeId,
           day_offset: dayOffset,
           portions,
         },
@@ -242,18 +240,93 @@ export class RecipeService {
   }
 
   /**
-   * Removes a selling group (recipe bundle) from the basket.
-   * @param {string} sellingGroupId The selling group / recipe id to remove.
+   * Removes a recipe and its ingredients from the cart.
+   * @param {string} recipeId The recipe id.
    */
-  removeSellingGroupFromBasket(sellingGroupId: string): Promise<RemoveSellingGroupFromBasketResult> {
-    return this.http.sendRequest<RemoveSellingGroupInput, RemoveSellingGroupFromBasketResult>(
+  removeRecipeFromCart(recipeId: string): Promise<RemoveRecipeFromCartResult> {
+    return this.http.sendRequest<RemoveRecipeFromCartInput, RemoveRecipeFromCartResult>(
       "POST",
       `/pages/task/remove-selling-group-from-basket`,
       {
         payload: {
-          selling_group_id: sellingGroupId,
+          selling_group_id: recipeId,
         },
       },
+      true,
+    );
+  }
+
+  /**
+   * Updates an ingredient of a recipe, a catalog recipe or a user defined one: change its
+   * quantity, or swap the product by passing a different selling unit id. Mirrors the save button
+   * of the app's ingredient editor (`selling-group-component-edit-page`). When swapping an
+   * ingredient that has more than one selling unit, include each of its current selling unit ids
+   * with quantity `0` next to the new selection.
+   *
+   * A response with `shouldUpdateCart: true` means the recipe is in the cart with a selection
+   * that differs from this one; call {@link updateRecipeIngredientInCart} with the same
+   * selection to update the cart.
+   * @param {string} recipeId The recipe id.
+   * @param {string} ingredientId The ingredient (selling group component) id.
+   * @param {Record<string, number>} sellingUnitQuantities Selling unit id → quantity for this ingredient.
+   * @param {number} [portions=4] The recipe's number of portions the quantities are based on.
+   * @param {RecipeIngredientSwapType|null} [swapType] Swap type, when the product was swapped.
+   */
+  updateRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number = 4, swapType?: RecipeIngredientSwapType | null): Promise<UpdateRecipeIngredientResult> {
+    return this.http.sendRequest<UpdateRecipeIngredientInput, UpdateRecipeIngredientResult>(
+      "POST",
+      `/pages/task/save-selling-group-edit-task`,
+      {
+        payload: {
+          requested_sellable_portions: String(portions),
+          selling_group_component_id: ingredientId,
+          selling_group_id: recipeId,
+          selling_unit_quantity_by_id: sellingUnitQuantities,
+          swapType: swapType ?? undefined,
+        },
+      },
+      true,
+    );
+  }
+
+  /**
+   * Puts an updated ingredient selection of a recipe that is in the cart into the cart. The app
+   * calls this after {@link updateRecipeIngredient} returned `shouldUpdateCart: true`. The edit
+   * task removes the replaced product from the cart; this call adds the new selection, so without
+   * it the cart lacks that ingredient.
+   * @param {string} recipeId The recipe id.
+   * @param {string} ingredientId The ingredient (selling group component) id.
+   * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).
+   * @param {number} portions The recipe's number of portions the quantities are based on.
+   * @param {RecipeIngredientSwapType} swapType The swap type that was sent to the edit task.
+   */
+  updateRecipeIngredientInCart(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number, swapType: RecipeIngredientSwapType): Promise<UpdateRecipeIngredientInCartResult> {
+    return this.http.sendRequest<UpdateRecipeIngredientInCartInput, UpdateRecipeIngredientInCartResult>(
+      "POST",
+      `/pages/task/assign-sellable-component-to-day`,
+      {
+        payload: {
+          component_swap_type: swapType,
+          portions: String(portions),
+          required_amount_by_selling_unit_id: sellingUnitQuantities,
+          selected_component_id: ingredientId,
+          selling_group_id: recipeId,
+        },
+      },
+      true,
+    );
+  }
+
+  /**
+   * Removes an ingredient from a recipe, a catalog recipe or a user defined one.
+   * @param {string} recipeId The recipe id.
+   * @param {string} ingredientId The ingredient (selling group component) id.
+   */
+  removeRecipeIngredient(recipeId: string, ingredientId: string): Promise<RemoveRecipeIngredientResult> {
+    return this.http.sendRequest<RemoveRecipeIngredientInput, RemoveRecipeIngredientResult>(
+      "POST",
+      `/pages/task/delete-selling-group-component`,
+      { payload: { selling_group_component_id: ingredientId, selling_group_id: recipeId } },
       true,
     );
   }
@@ -270,7 +343,7 @@ export class RecipeService {
    * Fetches the cookbook page and extracts the tiles of the `USER_DEFINED_RECIPES`
    * ("Eigen recepten") segment, with the same summary shape as {@link getSavedRecipes}.
    */
-  async getUserDefinedRecipes(): Promise<UserDefinedRecipeSummary[]> {
+  async getUserDefinedRecipes(): Promise<RecipeSummary[]> {
     return extractRecipes(await this.getCookbookPage(), "USER_DEFINED_RECIPES");
   }
 
@@ -296,7 +369,7 @@ export class RecipeService {
   /**
    * Creates a new user defined recipe.
    * Mirrors the "Lijstje opslaan" button of `user-defined-recipe-root`, which posts
-   * to `create-user-defined-recipe` and receives the new `sellingGroupId`.
+   * to `create-user-defined-recipe` and receives the new `recipeId`.
    * @param {string} name The recipe name (the app limits it to 43 characters).
    * @param {NewUserDefinedRecipeIngredient[]} ingredients The products to include.
    * @param {number} [portions=4] Default number of portions the quantities are based on.
@@ -358,7 +431,7 @@ export class RecipeService {
    * Deletes a user defined recipe and all its ingredients.
    * The app follows this with `remove-sellable-context-from-basket` for the same
    * `sellable_id` when the recipe is in the basket; call
-   * {@link removeSellingGroupFromBasket} first if you need that behaviour.
+   * {@link removeRecipeFromCart} first if you need that behaviour.
    * @param {string} recipeId The recipe id.
    */
   deleteUserDefinedRecipe(recipeId: string): Promise<Record<string, never>> {
@@ -392,82 +465,6 @@ export class RecipeService {
           selling_unit_id: sellingUnitId,
         },
       },
-      true,
-    );
-  }
-
-  /**
-   * Updates an ingredient of a user defined recipe: change its quantity, or swap
-   * the product by passing a different selling unit id.
-   * Mirrors the save button of `selling-group-component-edit-page?is_udr=true`. When
-   * swapping an ingredient that has more than one selling unit, include each of its
-   * current selling unit ids with quantity `0` next to the new selection.
-   *
-   * A response with `shouldUpdateCart: true` means the recipe is in the basket with a
-   * selection that differs from this one; call {@link assignSellableComponentToDay}
-   * with the same selection to update the basket.
-   * @param {string} recipeId The recipe id.
-   * @param {string} ingredientId The ingredient (selling group component) id.
-   * @param {Record<string, number>} sellingUnitQuantities Selling unit id → quantity for this ingredient.
-   * @param {number} [portions=4] The recipe's number of portions the quantities are based on.
-   * @param {SellingGroupSwapType|null} [swapType] Swap type, when the product was swapped.
-   */
-  updateUserDefinedRecipeIngredient(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number = 4, swapType?: SellingGroupSwapType | null): Promise<UpdateUserDefinedRecipeIngredientResult> {
-    return this.http.sendRequest<UpdateUserDefinedRecipeIngredientInput, UpdateUserDefinedRecipeIngredientResult>(
-      "POST",
-      `/pages/task/save-selling-group-edit-task`,
-      {
-        payload: {
-          requested_sellable_portions: String(portions),
-          selling_group_component_id: ingredientId,
-          selling_group_id: recipeId,
-          selling_unit_quantity_by_id: sellingUnitQuantities,
-          swapType: swapType ?? undefined,
-        },
-      },
-      true,
-    );
-  }
-
-  /**
-   * Pushes an updated ingredient selection of a recipe that is in the basket to the
-   * basket. The app calls this after {@link updateUserDefinedRecipeIngredient}
-   * returned `shouldUpdateCart: true`. The edit task itself removes the replaced
-   * product from the basket; this call adds the new selection, so without it the
-   * basket lacks that ingredient.
-   * @param {string} recipeId The recipe id.
-   * @param {string} ingredientId The ingredient (selling group component) id.
-   * @param {Record<string, number>} sellingUnitQuantities The selected selling unit id → quantity (only the selected ones, no zeroes).
-   * @param {number} portions The recipe's number of portions the quantities are based on.
-   * @param {SellingGroupSwapType} swapType The swap type that was sent to the edit task.
-   */
-  assignSellableComponentToDay(recipeId: string, ingredientId: string, sellingUnitQuantities: Record<string, number>, portions: number, swapType: SellingGroupSwapType): Promise<AssignSellableComponentToDayResult> {
-    return this.http.sendRequest<AssignSellableComponentToDayInput, AssignSellableComponentToDayResult>(
-      "POST",
-      `/pages/task/assign-sellable-component-to-day`,
-      {
-        payload: {
-          component_swap_type: swapType,
-          portions: String(portions),
-          required_amount_by_selling_unit_id: sellingUnitQuantities,
-          selected_component_id: ingredientId,
-          selling_group_id: recipeId,
-        },
-      },
-      true,
-    );
-  }
-
-  /**
-   * Removes an ingredient from a user defined recipe.
-   * @param {string} recipeId The recipe id.
-   * @param {string} ingredientId The ingredient (selling group component) id.
-   */
-  removeUserDefinedRecipeIngredient(recipeId: string, ingredientId: string): Promise<RemoveUserDefinedRecipeIngredientResult> {
-    return this.http.sendRequest<RemoveUserDefinedRecipeIngredientInput, RemoveUserDefinedRecipeIngredientResult>(
-      "POST",
-      `/pages/task/delete-selling-group-component`,
-      { payload: { selling_group_component_id: ingredientId, selling_group_id: recipeId } },
       true,
     );
   }

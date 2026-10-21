@@ -41,7 +41,7 @@ describe("CartService - addProductsToCart", () => {
   });
 });
 
-describe("CartService - getDeliverySlotOverview", () => {
+describe("CartService - getDeliverySlots", () => {
   it("fetches the delivery slots and returns them parsed", async () => {
     const slot = (id: string, end: string) => ({
       slot_id: id,
@@ -61,7 +61,7 @@ describe("CartService - getDeliverySlotOverview", () => {
         }),
     });
 
-    const overview = await cart.getDeliverySlotOverview();
+    const overview = await cart.getDeliverySlots();
 
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/cart/delivery_slots"), expect.objectContaining({ method: "GET" }));
     expect(overview.slots.map((s) => [s.slotId, s.isGreenChoice])).toEqual([

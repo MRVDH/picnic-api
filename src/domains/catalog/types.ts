@@ -251,7 +251,7 @@ export type ProductTag = {
 };
 
 /** Structured product details extracted from the Fusion product details page. */
-export type ProductDetails = {
+export type Product = {
   /** The selling unit ID (e.g. "s1001524"). */
   id: string;
   /** The product name (e.g. "Blond"). */
@@ -306,7 +306,7 @@ export type ProductDetails = {
   similarProducts: SimilarProduct[];
 };
 
-/** @deprecated use `ProductDetails.priceRanges`. Product pages don't show separate bundle products. */
+/** @deprecated use `Product.priceRanges`. Product pages don't show separate bundle products. */
 export type BundleItem = {
   /** The selling unit ID for this bundle option. */
   id: string;

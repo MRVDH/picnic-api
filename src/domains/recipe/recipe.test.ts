@@ -223,8 +223,8 @@ describe("RecipeService", () => {
       });
     });
 
-    it("updateUserDefinedRecipeIngredient posts to save-selling-group-edit-task", async () => {
-      await recipe.updateUserDefinedRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 2 }, 4);
+    it("updateRecipeIngredient posts to save-selling-group-edit-task", async () => {
+      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 2 }, 4);
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/save-selling-group-edit-task");
       expect(body).toEqual({
@@ -237,8 +237,8 @@ describe("RecipeService", () => {
       });
     });
 
-    it("removeUserDefinedRecipeIngredient posts to delete-selling-group-component", async () => {
-      await recipe.removeUserDefinedRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c");
+    it("removeRecipeIngredient posts to delete-selling-group-component", async () => {
+      await recipe.removeRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c");
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/delete-selling-group-component");
       expect(body).toEqual({ payload: { selling_group_component_id: "88c457541b974e8ab682e0a449a2d94c", selling_group_id: recipeId } });
@@ -254,15 +254,15 @@ describe("RecipeService", () => {
       expect(lastCall().body).toEqual({ payload: { selling_group_id: recipeId } });
     });
 
-    it("updateUserDefinedRecipeIngredient includes the swap type when given", async () => {
-      await recipe.updateUserDefinedRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 0, s1189145: 1 }, 2, "SEARCH_SELECTION");
+    it("updateRecipeIngredient includes the swap type when given", async () => {
+      await recipe.updateRecipeIngredient(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1143210: 0, s1189145: 1 }, 2, "SEARCH_SELECTION");
       const { body } = lastCall();
       expect(body.payload.swapType).toBe("SEARCH_SELECTION");
       expect(body.payload.selling_unit_quantity_by_id).toEqual({ s1143210: 0, s1189145: 1 });
     });
 
-    it("assignSellableComponentToDay posts the selection with portions as a string", async () => {
-      await recipe.assignSellableComponentToDay(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1189145: 1 }, 2, "SEARCH_SELECTION");
+    it("updateRecipeIngredientInCart posts the selection with portions as a string", async () => {
+      await recipe.updateRecipeIngredientInCart(recipeId, "88c457541b974e8ab682e0a449a2d94c", { s1189145: 1 }, 2, "SEARCH_SELECTION");
       const { url, body } = lastCall();
       expect(url).toContain("/pages/task/assign-sellable-component-to-day");
       expect(body).toEqual({

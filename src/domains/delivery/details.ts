@@ -1,15 +1,17 @@
 import { readCartLine, readDeposits, readFees } from "../cart/contents";
 import type { DeliveryStatus, Order } from "../cart/types";
 import type {
-  DeliveryDetail,
-  DeliveryDetails,
-  DeliveryOrderDetails,
+  RawDelivery,
+  Delivery,
+  DeliveryOrder,
   DeliveryPayment,
-  DeliveryPosition,
+  RawDeliveryPosition,
   DeliveryRoutePoint,
-  DeliveryScenario,
+  RawDeliveryScenario,
   DeliveryTracking,
-  ReturnedContainerSummary,
+  DeliveryPosition,
+  DeliveryRoute,
+  ReturnedContainer,
 } from "./types";
 
 type RawRecord = Record<string, unknown>;
@@ -22,7 +24,7 @@ const asString = (value: unknown): string | null => (typeof value === "string" &
 const asNumber = (value: unknown, fallback = 0): number => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
 
 /** Reads the returned containers (`returned_containers`) of a delivery or a payment. */
-export function readReturnedContainers(raw: unknown): ReturnedContainerSummary[] {
+export function readReturnedContainers(raw: unknown): ReturnedContainer[] {
   return asRecords(raw).map((entry) => ({
     type: asString(entry.type) ?? "",
     name: asString(entry.localized_name) ?? asString(entry.type) ?? "",
@@ -39,7 +41,7 @@ function readPayment(raw: unknown): DeliveryPayment | null {
   return { paymentType, redactedIban, bankId: asString(info?.bank_id) };
 }
 
-function readOrder(order: Order): DeliveryOrderDetails | null {
+function readOrder(order: Order): DeliveryOrder | null {
   const raw = order as unknown as RawRecord;
   const id = asString(raw.id);
   if (!id) return null;
@@ -63,10 +65,10 @@ function readOrder(order: Order): DeliveryOrderDetails | null {
 }
 
 /**
- * Turns a delivery (from {@link DeliveryService.getDelivery}) into {@link DeliveryDetails}: its
+ * Turns a delivery (`/deliveries/{id}`) into {@link Delivery}: its
  * orders with their lines read like the cart's, and the totals over all orders.
  */
-export function extractDeliveryDetails(delivery: DeliveryDetail): DeliveryDetails {
+export function extractDelivery(delivery: RawDelivery): Delivery {
   const raw = delivery as unknown as RawRecord;
   // The window comes from the slot, then delivery_time, then eta2, as in getDeliverySummaries.
   const slot = asRecord(raw.slot);
@@ -112,32 +114,36 @@ function closestPoint(route: DeliveryRoutePoint[], ts: number): DeliveryRoutePoi
   return best;
 }
 
-/**
- * Combines a delivery's position (`getDeliveryPosition`, polled every `query_interval`) and its
- * route (`getDeliveryScenario`) into {@link DeliveryTracking}. The position points into the route
- * by time (`scenario_ts`); the destination falls back to the end of the route.
- */
-export function extractDeliveryTracking(position: DeliveryPosition, scenario: DeliveryScenario): DeliveryTracking {
-  const pos = asRecord(position) ?? {};
-  const route = asRecords(asRecord(scenario)?.scenario).flatMap((point) => readRoutePoint(point) ?? []);
+/** Reads a delivery's position (`/deliveries/{id}/position`). */
+export function extractDeliveryPosition(raw: RawDeliveryPosition): DeliveryPosition {
+  const pos = asRecord(raw) ?? {};
   const etaWindow = asRecord(pos.eta_window);
-  const driver = asRecord(asRecord(scenario)?.driver);
-  const vehicle = asRecord(asRecord(scenario)?.vehicle);
-  const destination = asRecord(asRecord(scenario)?.destination);
-  const end = route[route.length - 1];
-  const lat = asNumber(destination?.lat) || (end?.lat ?? 0);
-  const lng = asNumber(destination?.lng) || (end?.lng ?? 0);
-  const image = asString(vehicle?.image);
-
   return {
-    scenarioVersion: asNumber(asRecord(scenario)?.version),
+    routeVersion: asNumber(pos.version),
     inProgress: pos.scenario_in_progress === true,
     queryInterval: asNumber(pos.query_interval, 15000),
     eta: asNumber(pos.eta) || null,
     etaWindowStart: asString(etaWindow?.start),
     etaWindowEnd: asString(etaWindow?.end),
-    currentPosition: closestPoint(route, asNumber(pos.scenario_ts)),
-    route,
+    routeTime: asNumber(pos.scenario_ts),
+  };
+}
+
+/** Reads a delivery's route (`/deliveries/{id}/scenario`); the destination falls back to the end of the route. */
+export function extractDeliveryRoute(raw: RawDeliveryScenario): DeliveryRoute {
+  const scenario = asRecord(raw) ?? {};
+  const points = asRecords(scenario.scenario).flatMap((point) => readRoutePoint(point) ?? []);
+  const driver = asRecord(scenario.driver);
+  const vehicle = asRecord(scenario.vehicle);
+  const destination = asRecord(scenario.destination);
+  const end = points[points.length - 1];
+  const lat = asNumber(destination?.lat) || (end?.lat ?? 0);
+  const lng = asNumber(destination?.lng) || (end?.lng ?? 0);
+  const image = asString(vehicle?.image);
+
+  return {
+    version: asNumber(scenario.version),
+    points,
     driverName: asString(driver?.name),
     driverPhotoUrl: asString(driver?.photo_url),
     vehicleName: asString(vehicle?.name),
@@ -147,4 +153,9 @@ export function extractDeliveryTracking(position: DeliveryPosition, scenario: De
         ? { lat, lng, street: asString(destination?.street), city: asString(destination?.city), postcode: asString(destination?.postcode) }
         : null,
   };
+}
+
+/** Combines a position and a route: the position points into the route by time (`routeTime`). */
+export function combineDeliveryTracking(position: DeliveryPosition, route: DeliveryRoute): DeliveryTracking {
+  return { ...position, currentPosition: closestPoint(route.points, position.routeTime), route };
 }
