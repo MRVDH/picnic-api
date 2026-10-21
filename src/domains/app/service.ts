@@ -23,7 +23,9 @@ export class AppService {
    *
    * Some pages are served as a React Server Components payload instead, depending on the
    * page and the `agent` version; for those this throws an `UnexpectedPageFormatError` and
-   * `getRscPageContent` should be used. Known RSC pages: `category-tree-root`, `profile-root`,
+   * `getRscPageContent` should be used. Known RSC pages: `category-tree-root`,
+   * `subcategory-page?category_id=<id>`, `category-product-overview?category_id=<id>`,
+   * `promotion-category-page?category_id=<id>`, `profile-root`,
    * `promo-group-deep-dive?promo_group_id=<id>`, `search-page-results?search_term=<term>`,
    * `search-page-index`, `meals-category-page`, `meals-category-group-page` and
    * `unavailability-replacements-page-root`.

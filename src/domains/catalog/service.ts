@@ -1,11 +1,13 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { ProductDetails, SearchOptions, SearchResults, SearchSuggestion } from "./types";
+import { CategoryProducts, CategorySection, ProductDetails, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
 import { FusionPage } from "../../types/fusion";
 import { extractSearchResults } from "./helpers";
 import { extractProductDetails } from "./product-details";
 import type { RscPageClient } from "../app/rsc-client";
-import { decodeRscValue, findRscElementProps } from "../app/rsc";
+import { decodeRscValue, findRscElementProps, parseRscPageContent } from "../app/rsc";
+import type { RscPageContent } from "../app/types";
+import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
 
 /** The search page component that holds the search parameters (search id, session id). */
 const SEARCH_PARAMS_MODULE = "search-page-params/search-page-params-provider.tsx";
@@ -17,6 +19,47 @@ export class CatalogService {
     private http: HttpClient,
     private rsc: RscPageClient,
   ) {}
+
+  /** Fetches an RSC page and parses it into its component tree. */
+  private async getRscContent(pageId: string): Promise<RscPageContent> {
+    return parseRscPageContent(pageId, await this.rsc.getPage(pageId));
+  }
+
+  /**
+   * Returns the category tree as the app shows it (`category-tree-root`): links to promotions and
+   * recipes, then the categories under "Alle categorieën". A link's `target` says which method
+   * opens it.
+   */
+  async getCategories(): Promise<CategorySection[]> {
+    return extractCategoryTree(await this.getRscContent("category-tree-root"));
+  }
+
+  /**
+   * Returns a category's promotions link and subcategories (`subcategory-page`).
+   * @param {string} categoryId The category id of a link with target `subcategories`, e.g. "21724".
+   */
+  async getSubcategories(categoryId: string): Promise<Subcategories> {
+    const content = await this.getRscContent(`subcategory-page?category_id=${encodeURIComponent(categoryId)}`);
+    return extractSubcategories(categoryId, content);
+  }
+
+  /**
+   * Returns the products of a subcategory in sections, with the filters (`category-product-overview`).
+   * @param {string} categoryId The category id of a link with target `products`, e.g. "21746".
+   */
+  async getCategoryProducts(categoryId: string): Promise<CategoryProducts> {
+    const content = await this.getRscContent(`category-product-overview?category_id=${encodeURIComponent(categoryId)}`);
+    return extractCategoryProducts(categoryId, content);
+  }
+
+  /**
+   * Returns the products on promotion in a category, in sections per promotion (`promotion-category-page`).
+   * @param {string} categoryId The category id of a link with target `promotions`, e.g. "21724".
+   */
+  async getCategoryPromotions(categoryId: string): Promise<CategoryProducts> {
+    const content = await this.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    return extractCategoryProducts(categoryId, content);
+  }
 
   /**
    * Searches for products and recipes the way the app does: it fetches the search page (an RSC

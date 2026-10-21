@@ -1,5 +1,6 @@
 import type HttpClient from "../../http-client";
-import { PaymentProfile, WalletTransaction, WalletTransactionDetails, WalletTransactionsInput } from "./types";
+import { PaymentProfile, WalletPayment, WalletTransaction, WalletTransactionDetails, WalletTransactionsInput } from "./types";
+import { extractWalletPayment } from "./transaction";
 
 export class PaymentService {
   constructor(private http: HttpClient) {}
@@ -25,5 +26,14 @@ export class PaymentService {
    */
   getWalletTransactionDetails(walletTransactionId: string): Promise<WalletTransactionDetails> {
     return this.http.sendRequest<any, WalletTransactionDetails>("GET", `/wallet/transactions/${walletTransactionId}`);
+  }
+
+  /**
+   * Returns a payment (or refund) as the app's wallet shows it: the amount, the order lines it
+   * covers (read like the cart's), the substituted products, deposits and the payment method.
+   * @param {string} walletTransactionId The id of the transaction.
+   */
+  async getWalletPayment(walletTransactionId: string): Promise<WalletPayment> {
+    return extractWalletPayment(walletTransactionId, await this.getWalletTransactionDetails(walletTransactionId));
   }
 }
