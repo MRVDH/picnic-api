@@ -2,7 +2,7 @@
 
 Picnic is moving its app from Fusion pages to React Server Components (RSC) pages. Version 5 prepares for
 that: the methods return models of what the app shows instead of Picnic's raw responses and pages, so a page
-that changes format only changes the library's internals. This guide lists every breaking change with what to
+that changes format only changes the library's internals. This guide lists every breaking change since 4.12.0 with what to
 use instead.
 
 ## Pages
@@ -27,6 +27,7 @@ if (page.format === "fusion") {
 | `recipe.getCookbookPage()` | `recipe.getUserDefinedRecipes()`, or `app.getPage("cookbook-page-content")` |
 | `recipe.getRecipeDetailsPage(id, portions)` | `recipe.getRecipe(id, portions)` |
 | `recipe.getUserDefinedRecipeImageSelectionPage(id)` | `recipe.getUserDefinedRecipeSuggestedImages(id)` |
+| `app.getRscPage(id)` | `app.getPage(id)`, read `content` when `format` is `"rsc"` |
 
 When Picnic serves a page in a format a method doesn't read yet, the method throws an `UnexpectedPageFormatError`
 with the page id.
@@ -97,7 +98,8 @@ Some types moved to another domain, following their methods:
 | `Types.customerService.Message`, `MessagesWrapper`, `MessageDisplayPosition` | `Types.app` |
 | `Types.customerService.Parcel`, `Reminder`, `RemindersWrapper` and their parts | `Types.delivery` |
 
-The Fusion page types (`FusionPage`, `PML`, ...) are public as `Types.fusion`.
+The Fusion page types (`FusionPage`, `PML`, ...) are public as `Types.fusion`. The `HomePage` alias is removed; use
+`FusionPageLayout`.
 
 ## Methods
 
@@ -140,7 +142,10 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 | 4.x | 5.0 |
 | --- | --- |
 | `payment.getWalletTransactionDetails(id)` and `payment.getWalletPayment(id)` | `payment.getWalletTransaction(id)` returns the `WalletTransaction` model |
+| `catalog.search(query)` | `catalog.getSearchResults(query, options)`: products in sections, recipes and the sorting options, loaded the way the app loads them |
 | `catalog.getProductDetails(id)` | `catalog.getProduct(id)` |
+| `Product.highlights`, `Product.allergens` | `Product.highlightItems` (with icons), `Product.allergenGroups` (split into "contains" and "may contain") |
+| `Product.bundles` and the `BundleItem` type | Removed: product pages don't show bundle products; the price tiers are `Product.priceRanges` |
 | `catalog.getImage(id, size)` typed as a string | Returns an `ArrayBuffer` |
 | `user.getUserDetails()` | `user.getUser()` |
 | `customerService.getMessages(positions)` | `app.getMessages(positions)` |
@@ -153,7 +158,7 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 
 | 4.x | 5.0 |
 | --- | --- |
-| `recipe.getRecipe(id, portions, { resolveIngredientNames })` and `recipe.getUserDefinedRecipe(...)` | `recipe.getRecipe(id, { portions, resolveIngredientNames })` |
+| `recipe.getRecipe(id, portions, { resolveIngredientNames })` and `recipe.getUserDefinedRecipe(...)` | `recipe.getRecipe(id, { portions, resolveIngredientNames })`. Without `portions`, a catalog recipe comes back at the count Picnic renders, as in the app, instead of its original count (`defaultPortions`) |
 | `recipe.assignSellingGroupToBasket(id, dayOffset, portions)` | `recipe.addRecipeToCart(id, { dayOffset, portions })` |
 | `recipe.updateSellingGroupPortions(id, dayOffset, portions)` | `recipe.updateRecipePortionsInCart(id, { dayOffset, portions })` |
 | `recipe.removeSellingGroupFromBasket(id)` | `recipe.removeRecipeFromCart(id)` |
@@ -162,6 +167,12 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 | `recipe.removeUserDefinedRecipeIngredient(id, ingredientId)` | `recipe.removeRecipeIngredient(id, ingredientId)` |
 | `recipe.addUserDefinedRecipeIngredient(id, sellingUnitId, quantity, portions, order)` | `recipe.addUserDefinedRecipeIngredient(id, sellingUnitId, { quantity, portions, order })` |
 | Recipe methods that returned `Record<string, never>` (`saveRecipe`, `renameUserDefinedRecipe`, ...) | Return `void` |
+
+## Default agent
+
+The client identifies itself as app version 1.251.0 (`agent` in the config). Which pages Picnic serves as RSC depends
+on this version. If you pass your own `agent`, pages may come back in another format than the methods expect; leave
+it out unless you need a specific version.
 
 ## Errors
 

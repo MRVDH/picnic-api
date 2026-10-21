@@ -288,36 +288,16 @@ export type Product = {
   description: string | null;
   /** Highlight lines with their icons. */
   highlightItems: ProductHighlight[];
-  /** @deprecated use `highlightItems`. The highlight texts without markdown. */
-  highlights: string[];
   /** Allergens, split into "contains" and "may contain" as the app shows them. */
   allergenGroups: ProductAllergens;
-  /** @deprecated use `allergenGroups`. The names of all allergens, both groups. */
-  allergens: string[];
   /** Collapsible info sections (Ingredients, Nutritional Values, Extra Information, etc.). */
   infoSections: ProductInfoSection[];
   /** The nutrition table from the "Voedingswaarde" (or "Nährwerte") section, or empty. */
   nutritionRows: NutritionRow[];
   /** Active promotion on this product, if any. */
   promotion: ProductPromotion | null;
-  /** @deprecated use `priceRanges`. Always empty: product pages don't show separate bundle products. */
-  bundles: BundleItem[];
   /** Similar/alternative products. */
   similarProducts: SimilarProduct[];
-};
-
-/** @deprecated use `Product.priceRanges`. Product pages don't show separate bundle products. */
-export type BundleItem = {
-  /** The selling unit ID for this bundle option. */
-  id: string;
-  /** Number of items in this bundle (1, 2, 3, …). */
-  quantity: number;
-  /** Price per unit in cents for this bundle option. */
-  pricePerUnit: number;
-  /** Product image ID for this bundle option. */
-  imageId: string;
-  /** Maximum number of items that can be added to the cart. */
-  maxCount: number;
 };
 
 /** A similar/alternative product shown on the product details page. */
