@@ -33,7 +33,7 @@ describe("Recipe - getRecipe", () => {
   it("extracts the steps, nutrition and ingredients with prices of a catalog recipe", async () => {
     // Catalog recipes change over time, so take one from the search results.
     const { recipes } = await client.catalog.getSearchResults("pasta");
-    const details = await client.recipe.getRecipe(recipes[0].id, 2);
+    const details = await client.recipe.getRecipe(recipes[0].id, { portions: 2 });
 
     expect(details.portions).toBe(2);
     expect(details.steps.length).toBeGreaterThan(0);

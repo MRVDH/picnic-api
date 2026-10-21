@@ -1,9 +1,9 @@
 import HttpClient from "../../http-client";
 import { CatalogService } from "./service";
-import type { RscPageClient } from "../app/rsc-client";
-import { parseRscPayload } from "../app/rsc";
+import type { PageClient } from "../../pages/page-client";
+import { parseRscPayload } from "../../pages/rsc";
 
-/** An RscPageClient stand-in that serves a search page and an empty action result. */
+/** A PageClient stand-in that serves a search page and an empty action result. */
 function fakeRsc() {
   const searchPage = parseRscPayload(
     [
@@ -12,7 +12,7 @@ function fakeRsc() {
     ].join("\n"),
   );
   return {
-    getPage: jest.fn().mockResolvedValue({ ...searchPage, version: "v1" }),
+    getRscPayload: jest.fn().mockResolvedValue({ ...searchPage, version: "v1" }),
     findServerActionId: jest.fn().mockResolvedValue("act_fetchSearchResults_1"),
     runServerAction: jest.fn().mockResolvedValue(parseRscPayload('0:["$","$L2",null,{"searchQuery":"pasta","storeResults":{}}]')),
   };
@@ -21,11 +21,11 @@ function fakeRsc() {
 describe("CatalogService.getSearchResults", () => {
   it("opens the search page and runs the action with the page's search parameters", async () => {
     const rsc = fakeRsc();
-    const catalog = new CatalogService(new HttpClient(), rsc as unknown as RscPageClient);
+    const catalog = new CatalogService(new HttpClient(), rsc as unknown as PageClient);
 
     const results = await catalog.getSearchResults("pasta");
 
-    expect(rsc.getPage).toHaveBeenCalledWith("search-page-results?search_term=pasta");
+    expect(rsc.getRscPayload).toHaveBeenCalledWith("search-page-results?search_term=pasta");
     expect(rsc.runServerAction).toHaveBeenCalledWith(
       "act_fetchSearchResults_1",
       [expect.objectContaining({ searchId: "id-1", searchSessionId: "session-1", searchQuery: "pasta", requestedSorting: "RELEVANCE" })],
@@ -36,11 +36,11 @@ describe("CatalogService.getSearchResults", () => {
 
   it("sends the cookbook's page parameters for the MEALS context", async () => {
     const rsc = fakeRsc();
-    const catalog = new CatalogService(new HttpClient(), rsc as unknown as RscPageClient);
+    const catalog = new CatalogService(new HttpClient(), rsc as unknown as PageClient);
 
     await catalog.getSearchResults("pasta", { context: "MEALS", sorting: "PRICE" });
 
-    expect(rsc.getPage).toHaveBeenCalledWith("search-page-results?search_term=pasta&page_context=MEALS&is_recipe=true");
+    expect(rsc.getRscPayload).toHaveBeenCalledWith("search-page-results?search_term=pasta&page_context=MEALS&is_recipe=true");
     expect(rsc.runServerAction.mock.calls[0][1][0].requestedSorting).toBe("PRICE");
   });
 });

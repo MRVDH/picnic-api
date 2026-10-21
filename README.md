@@ -10,6 +10,8 @@ Unofficial Node.js wrapper for the API of the [Picnic](https://picnic.app) onlin
 npm install picnic-api
 ```
 
+Upgrading from 4.x? See [MIGRATING.md](./MIGRATING.md).
+
 ## Quick start
 
 Import the package and create a client. All configuration options are optional.
@@ -31,7 +33,7 @@ const picnicClient = new PicnicClient({
 
 Most endpoints require authentication. Call `auth.login()` to obtain an auth key, which is automatically stored in the client and sent with subsequent requests. If you already have a key from a previous session, pass it as `authKey` in the constructor instead.
 
-If the login endpoint responds with a 2FA requirement (`second_factor_authentication_required: true`), then call `auth.generate2FACode("SMS")` to generate a 2FA code and pass it to `auth.verify2FA(<code>)` to complete the login process.
+If the login requires a second factor (`secondFactorAuthenticationRequired` in the result), call `auth.generate2FACode("SMS")` to send a code and pass it to `auth.verify2FACode(<code>)` to complete the login.
 
 ```ts
 await picnicClient.auth.login("email", "password");
@@ -47,31 +49,27 @@ await picnicClient.auth.verify2FA("123456");
 // Search for products and recipes
 const results = await picnicClient.catalog.getSearchResults("Affligem blond");
 
-// Add a product to the cart
-await picnicClient.cart.addProductToCart(11295810, 2);
-
-// Bulk add products to the cart
-await picnicClient.cart.addProductsToCart([
-  { productId: "s11295810", quantity: 2 },
-  { productId: "s10000123", quantity: 1 },
-]);
+// Add a product to the cart; returns the updated cart
+const cart = await picnicClient.cart.addProductToCart("s11295810", 2);
 ```
 
 ### Pages (Fusion and RSC)
 
-Most pages are Fusion pages (JSON), fetched with `app.getPage(pageId)`. Some are served as
-[React Server Components](https://react.dev/reference/rsc/server-components) instead; fetch those with
-`app.getRscPageContent(pageId)`, which returns the page as a tree of its components. Each method throws an
-`UnexpectedPageFormatError` for the other format:
+Picnic serves a page either as a Fusion page (JSON) or as
+[React Server Components](https://react.dev/reference/rsc/server-components), and is moving more pages to RSC.
+`app.getPage(pageId)` returns the page in the format it came in; an RSC page comes as a tree of its components:
 
 ```ts
-try {
-  const page = await picnicClient.app.getPage("home_page_root");
-} catch (error) {
-  if (!PicnicClient.isUnexpectedPageFormatError(error)) throw error;
-  const content = await picnicClient.app.getRscPageContent(error.pageId);
+const page = await picnicClient.app.getPage("home_page_root");
+if (page.format === "fusion") {
+  console.log(page.page);
+} else {
+  console.log(page.content.nodes);
 }
 ```
+
+The domain methods (`catalog.getProduct`, `recipe.getRecipe`, ...) read the page they need themselves. When
+Picnic serves such a page in a format the method doesn't read yet, it throws an `UnexpectedPageFormatError`.
 
 ### Custom requests
 
@@ -79,10 +77,13 @@ For endpoints not yet covered by a domain service, use `sendRequest` directly:
 
 ```ts
 await picnicClient.sendRequest("GET", "/unknown/route");
-await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@example.com" });
+await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@example.com" }, { includePicnicHeaders: true });
 ```
 
-Responses served as an RSC payload (`text/x-component`) are returned as raw text instead of parsed JSON.
+The fourth argument takes options: `includePicnicHeaders` (the `x-picnic-agent` and `x-picnic-did` headers many routes
+need), `headers`, `authenticated`, `binary` (return an `ArrayBuffer`) and `contentType` (for a raw body). The auth key
+is only sent to the API's own host unless you pass `authenticated: true`. Responses
+served as an RSC payload (`text/x-component`) are returned as raw text instead of parsed JSON.
 
 ## API reference
 
@@ -90,37 +91,43 @@ The client exposes the following domain services, each grouping a set of related
 
 | Service | Accessor | Description |
 | --- | --- | --- |
-| **App** | `client.app` | Bootstrap data, pages, and deeplink resolution. |
+| **App** | `client.app` | Bootstrap data, pages in either format, in-app messages, and deeplink resolution. |
 | **Auth** | `client.auth` | Login, logout, 2FA, and phone verification. |
-| **Cart** | `client.cart` | Cart management, delivery slots and selling units (recipes, meal plans, selling groups). |
-| **Catalog** | `client.catalog` | Product search, suggestions, details, and images. |
+| **Cart** | `client.cart` | The cart, adding and removing products, delivery slots, and the cart footer. |
+| **Catalog** | `client.catalog` | Product search, suggestions, categories, product details, and images. |
+| **Checkout** | `client.checkout` | Starting the checkout, paying, and confirming the order. |
 | **Consent** | `client.consent` | Consent settings and GDPR declarations. |
 | **Content** | `client.content` | Static content pages (FAQ, search empty state). |
-| **Customer Service** | `client.customerService` | Contact info, messages, reminders, and parcels. |
-| **Delivery** | `client.delivery` | Delivery history, live position, ratings, and invoices. |
+| **Customer Service** | `client.customerService` | Contact info and opening times. |
+| **Delivery** | `client.delivery` | Delivery history, tracking, ratings, invoices, and parcels. |
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
 | **Recipe** | `client.recipe` | Recipe browsing and saving, plus creating and editing your own (user defined) recipes: name, portions, ingredients, note and image. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |
-| **User Onboarding** | `client.userOnboarding` | Household/business details and push subscriptions. |
 
-Each service method is fully typed — explore the type definitions under `src/domains/<service>/types.ts` for request and response shapes.
+Each service method is fully typed and returns one of two kinds of data:
 
-Catalog and user-defined recipes share `RecipeSummary`, `RecipeDetails`, and
+- A model, with a plain name such as `Cart`, `Delivery`, `Product` or `Recipe`: camelCase data the way the app shows
+  it, read by the library. The cart mutations return the updated `Cart`.
+- Picnic's own JSON as Picnic sends it, with a `Raw` prefix such as `RawPaymentProfile` or `RawUser`. These follow
+  Picnic and can be snake_case; parts the library hasn't typed yet are `unknown`.
+
+Mutations without a useful result return `void`. The types are available as `PicnicClient.Types.<domain>`, e.g.
+`PicnicClient.Types.cart.Cart`.
+
+Catalog and user-defined recipes share `RecipeSummary`, `Recipe`, and
 `RecipeIngredient` types:
 
 ```ts
 const saved = await picnicClient.recipe.getSavedRecipes();
 const own = await picnicClient.recipe.getUserDefinedRecipes();
 if (saved.length) {
-  const recipe = await picnicClient.recipe.getRecipe(saved[0].id, 2);
+  const recipe = await picnicClient.recipe.getRecipe(saved[0].id, { portions: 2 });
   // recipe.name, recipe.imageId, recipe.ingredients; quantities are for 2 portions.
 }
-// getUserDefinedRecipe(id, portions?) returns the same detail structure.
 ```
 
-Omit portions to use the stored default. Pass `{ resolveIngredientNames: true }` as
-the third argument to look up names missing from recipe tiles. Raw pages remain
-available through `getCookbookPage()` and `getRecipeDetailsPage(id, portions?)`.
+`getRecipe` reads catalog recipes and user defined recipes alike. Omit `portions` to use the stored default, and
+pass `resolveIngredientNames: true` to look up names missing from recipe tiles.
 
 ## Contributing
 

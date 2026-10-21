@@ -1,6 +1,6 @@
-import type { FusionPage } from "../../types/fusion";
-import type { RscNode, RscPageContent } from "../app/types";
-import { analyticsContexts, cleanMarkdown, findNode, PmlNode, walkNodes } from "../../helpers/pml";
+import type { FusionPage } from "../../pages/fusion";
+import type { RscNode, RscPageContent } from "../../pages/types";
+import { analyticsContexts, cleanMarkdown, findNode, PmlNode, walkNodes } from "../../pages/pml";
 import type {
   RecipeCategory,
   RecipeCategoryGroup,

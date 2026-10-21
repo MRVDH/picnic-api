@@ -1,20 +1,11 @@
 import type HttpClient from "../../http-client";
-import { Delivery, DeliveryDetail, DeliveryDetails, DeliveryPosition, DeliveryScenario, DeliverySummary, DeliveryTracking } from "./types";
+import { RawParcel, RawDelivery, Delivery, DeliveryPosition, DeliveryRoute, RawDeliveryPosition, RawDeliveryScenario, DeliverySummary, DeliveryTracking } from "./types";
 import { DeliveryStatus } from "../cart/types";
-import { extractDeliverySummaries } from "./helpers";
-import { extractDeliveryDetails, extractDeliveryTracking } from "./details";
+import { extractDeliverySummaries } from "./summaries";
+import { combineDeliveryTracking, extractDelivery, extractDeliveryPosition, extractDeliveryRoute } from "./delivery";
 
 export class DeliveryService {
   constructor(private http: HttpClient) {}
-
-  /**
-   * Returns all past and current deliveries, as returned by the API.
-   * @deprecated use getDeliverySummaries, which returns typed, summed entries.
-   * @param {DeliveryStatus[]} [filter=[]] An array of delivery statuses to filter on.
-   */
-  getDeliveries(filter: DeliveryStatus[] = []): Promise<Delivery[]> {
-    return this.http.sendRequest<any, Delivery[]>("POST", `/deliveries/summary`, filter);
-  }
 
   /**
    * Returns all past and current deliveries as summaries, newest first.
@@ -27,65 +18,54 @@ export class DeliveryService {
   }
 
   /**
-   * Returns the details of a specific delivery.
-   * @param {string} deliveryId The id of the delivery to look up.
-   */
-  getDelivery(deliveryId: string): Promise<DeliveryDetail> {
-    return this.http.sendRequest<any, DeliveryDetail>("GET", `/deliveries/${deliveryId}`);
-  }
-
-  /**
    * Returns a delivery as the app's order history shows it: its orders with their lines (read
    * like the cart's), the returned containers and the totals over all orders.
    * @param {string} deliveryId The id of the delivery to look up.
    */
-  async getDeliveryDetails(deliveryId: string): Promise<DeliveryDetails> {
-    return extractDeliveryDetails(await this.getDelivery(deliveryId));
+  async getDelivery(deliveryId: string): Promise<Delivery> {
+    return extractDelivery(await this.http.sendRequest<null, RawDelivery>("GET", `/deliveries/${encodeURIComponent(deliveryId)}`));
   }
 
   /**
-   * Returns the position data of a specific delivery.
+   * Returns a delivery's position, which the app polls while the driver is on the way: the
+   * arrival estimate, whether the delivery is in progress and the version of its route.
    * @param {string} deliveryId The id of the delivery to look up.
    */
-  getDeliveryPosition(deliveryId: string): Promise<DeliveryPosition> {
-    return this.http.sendRequest<any, DeliveryPosition>("GET", `/deliveries/${deliveryId}/position`, null, true);
+  async getDeliveryPosition(deliveryId: string): Promise<DeliveryPosition> {
+    return extractDeliveryPosition(await this.http.sendRequest<null, RawDeliveryPosition>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/position`, null, { includePicnicHeaders: true }));
   }
 
   /**
-   * Returns the driver and route information of a delivery.
+   * Returns a delivery's route, driver, vehicle and destination.
    * @param {string} deliveryId The id of the delivery to look up.
    */
-  getDeliveryScenario(deliveryId: string): Promise<DeliveryScenario> {
-    return this.http.sendRequest<any, DeliveryScenario>("GET", `/deliveries/${deliveryId}/scenario`, null, true);
+  async getDeliveryRoute(deliveryId: string): Promise<DeliveryRoute> {
+    return extractDeliveryRoute(await this.http.sendRequest<null, RawDeliveryScenario>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/scenario`, null, { includePicnicHeaders: true }));
   }
 
   /**
-   * Returns where a delivery is: the position combined with the route, the arrival estimate, the
-   * driver and the destination. Poll again after `queryInterval` while `inProgress`. To poll
-   * without fetching the route each time, use {@link parseTracking} with a cached scenario.
+   * Returns where a delivery is: the position combined with the route. Poll again after
+   * `queryInterval` while `inProgress`, passing the `route` of the previous result: the route is
+   * only fetched again when the position reports another route version.
    * @param {string} deliveryId The id of the delivery to look up.
+   * @param {DeliveryRoute} [knownRoute] The route from a previous call for this delivery.
    */
-  async getDeliveryTracking(deliveryId: string): Promise<DeliveryTracking> {
-    const [position, scenario] = await Promise.all([this.getDeliveryPosition(deliveryId), this.getDeliveryScenario(deliveryId)]);
-    return extractDeliveryTracking(position, scenario);
-  }
-
-  /**
-   * Combines a position and a route into {@link DeliveryTracking} without a request. The route
-   * only changes when the position reports another `version`.
-   * @param {DeliveryPosition} position From {@link getDeliveryPosition}.
-   * @param {DeliveryScenario} scenario From {@link getDeliveryScenario}.
-   */
-  parseTracking(position: DeliveryPosition, scenario: DeliveryScenario): DeliveryTracking {
-    return extractDeliveryTracking(position, scenario);
+  async getDeliveryTracking(deliveryId: string, knownRoute?: DeliveryRoute): Promise<DeliveryTracking> {
+    if (!knownRoute) {
+      const [position, route] = await Promise.all([this.getDeliveryPosition(deliveryId), this.getDeliveryRoute(deliveryId)]);
+      return combineDeliveryTracking(position, route);
+    }
+    const position = await this.getDeliveryPosition(deliveryId);
+    const route = knownRoute.version === position.routeVersion ? knownRoute : await this.getDeliveryRoute(deliveryId);
+    return combineDeliveryTracking(position, route);
   }
 
   /**
    * Cancels an order by delivery id.
    * @param {string} deliveryId
    */
-  cancelDelivery(deliveryId: string): Promise<any> {
-    return this.http.sendRequest<any, any>("POST", `/order/delivery/${deliveryId}/cancel`);
+  cancelDelivery(deliveryId: string): Promise<void> {
+    return this.http.sendRequest<null, void>("POST", `/order/delivery/${encodeURIComponent(deliveryId)}/cancel`);
   }
 
   /**
@@ -93,15 +73,23 @@ export class DeliveryService {
    * @param {string} deliveryId
    * @param {number} rating
    */
-  setDeliveryRating(deliveryId: string, rating: number): Promise<string> {
-    return this.http.sendRequest<any, string>("POST", `/deliveries/${deliveryId}/rating`, { rating });
+  setDeliveryRating(deliveryId: string, rating: number): Promise<void> {
+    return this.http.sendRequest<{ rating: number }, void>("POST", `/deliveries/${encodeURIComponent(deliveryId)}/rating`, { rating });
   }
 
   /**
    * (Re)sends the invoice email for a delivery.
    * @param {string} deliveryId
    */
-  sendDeliveryInvoiceEmail(deliveryId: string): Promise<string> {
-    return this.http.sendRequest<any, string>("POST", `/deliveries/${deliveryId}/resend_invoice_email`);
+  sendDeliveryInvoiceEmail(deliveryId: string): Promise<void> {
+    return this.http.sendRequest<null, void>("POST", `/deliveries/${encodeURIComponent(deliveryId)}/resend_invoice_email`);
   }
+
+  /**
+   * Returns parcels (externally shipped packages tracked via a carrier).
+   */
+  getParcels(): Promise<RawParcel[]> {
+    return this.http.sendRequest<null, RawParcel[]>("GET", `/parcels`, null, { includePicnicHeaders: true });
+  }
+
 }

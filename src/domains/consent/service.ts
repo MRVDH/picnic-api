@@ -1,11 +1,11 @@
 import type HttpClient from "../../http-client";
 import {
-  ConsentRequest,
-  ConsentSetting,
+  RawConsentRequest,
+  RawConsentSetting,
   ConsentTopic,
   ConsentTopicsStrategy,
   SetConsentSettingsInput,
-  SetConsentSettingsResult,
+  RawSetConsentSettingsResult,
   SetGeneralConsentsInput,
 } from "./types";
 
@@ -13,19 +13,25 @@ export class ConsentService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Returns the list of consent settings.
-   * @param {boolean} [general=false] If true, returns only the 'general' consent settings.
+   * Returns the consent settings.
    */
-  getConsentSettings(general: boolean = false): Promise<ConsentSetting[]> {
-    return this.http.sendRequest<any, ConsentSetting[]>("GET", `/consents${general ? "/general" : ""}/settings-page`);
+  getConsentSettings(): Promise<RawConsentSetting[]> {
+    return this.http.sendRequest<null, RawConsentSetting[]>("GET", `/consents/settings-page`);
+  }
+
+  /**
+   * Returns the general consent settings.
+   */
+  getGeneralConsentSettings(): Promise<RawConsentSetting[]> {
+    return this.http.sendRequest<null, RawConsentSetting[]>("GET", `/consents/general/settings-page`);
   }
 
   /**
    * Sets one or multiple consent options.
    * @param {SetConsentSettingsInput} consentSettingsInput An object containing consent declarations.
    */
-  setConsentSettings(consentSettingsInput: SetConsentSettingsInput): Promise<SetConsentSettingsResult> {
-    return this.http.sendRequest<any, SetConsentSettingsResult>("PUT", `/consents`, consentSettingsInput);
+  setConsentSettings(consentSettingsInput: SetConsentSettingsInput): Promise<RawSetConsentSettingsResult> {
+    return this.http.sendRequest<SetConsentSettingsInput, RawSetConsentSettingsResult>("PUT", `/consents`, consentSettingsInput);
   }
 
   /**
@@ -33,18 +39,18 @@ export class ConsentService {
    * @param {ConsentTopic[]} consentTopics List of consent topic keys to filter by.
    * @param {ConsentTopicsStrategy} strategy Strategy to apply when fetching consents ("WIDE" or "NARROW").
    */
-  getConsents(consentTopics: ConsentTopic[], strategy: ConsentTopicsStrategy): Promise<ConsentRequest[]> {
+  getConsents(consentTopics: ConsentTopic[], strategy: ConsentTopicsStrategy): Promise<RawConsentRequest[]> {
     const params = new URLSearchParams();
     consentTopics.forEach((t) => params.append("consent_topics", t));
     params.set("strategy", strategy);
-    return this.http.sendRequest<any, ConsentRequest[]>("GET", `/consents?${params.toString()}`);
+    return this.http.sendRequest<null, RawConsentRequest[]>("GET", `/consents?${params.toString()}`);
   }
 
   /**
    * Returns the general consent request.
    */
-  getGeneralConsents(): Promise<ConsentRequest> {
-    return this.http.sendRequest<any, ConsentRequest>("GET", `/consents/general`);
+  getGeneralConsents(): Promise<RawConsentRequest> {
+    return this.http.sendRequest<null, RawConsentRequest>("GET", `/consents/general`);
   }
 
   /**

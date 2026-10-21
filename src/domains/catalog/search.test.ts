@@ -1,4 +1,4 @@
-import { extractSearchResults } from "./helpers";
+import { extractSearchResults } from "./search";
 
 describe("extractSearchResults", () => {
   const props = {

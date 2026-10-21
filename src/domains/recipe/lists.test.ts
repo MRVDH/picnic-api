@@ -1,6 +1,6 @@
 import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles, parseMinutes } from "./lists";
-import type { FusionPage } from "../../types/fusion";
-import type { RscPageContent } from "../app/types";
+import type { FusionPage } from "../../pages/fusion";
+import type { RscPageContent } from "../../pages/types";
 
 const schema = (name: string) => `iglu:tech.picnic.snowplow.analytics/${name}/jsonschema/1-0-0`;
 const text = (markdown: string, extra: Record<string, unknown> = {}) => ({ type: "RICH_TEXT", markdown, ...extra });

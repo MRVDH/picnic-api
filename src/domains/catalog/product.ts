@@ -1,4 +1,4 @@
-import type { FusionPage, PriceRange } from "../../types/fusion";
+import type { FusionPage, PriceRange } from "../../pages/fusion";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import {
   accordionItems,
@@ -18,12 +18,12 @@ import {
   PmlNode,
   stripColorTags,
   walkNodes,
-} from "../../helpers/pml";
+} from "../../pages/pml";
 import type {
   NutritionRow,
   ProductAllergens,
   ProductBadge,
-  ProductDetails,
+  Product,
   ProductHighlight,
   ProductInfoSection,
   ProductPromotion,
@@ -57,7 +57,7 @@ const NUTRITION_TITLE = /voedingswaarde|nährwert|valeurs nutritionnelles/i;
  * @param {string} productId The product ID that was requested.
  * @param {FusionPage} page The raw Fusion page response.
  */
-export function extractProductDetails(productId: string, page: FusionPage): ProductDetails {
+export function extractProductDetails(productId: string, page: FusionPage): Product {
   const mainContainer = findNodeById(page, MAIN_CONTAINER_ID);
   if (!mainContainer) throw new ProductNotFoundError(productId);
   const header = extractHeader(mainContainer);
@@ -93,7 +93,7 @@ function findMainSellingUnit(page: unknown, productId: string): PmlNode | null {
   return units.find((u) => u.id === productId && u.max_count !== undefined) ?? units.find((u) => u.id === productId) ?? null;
 }
 
-type Header = Pick<ProductDetails, "name" | "brand" | "unitQuantity" | "unitPrice" | "quantityBadges" | "tags">;
+type Header = Pick<Product, "name" | "brand" | "unitQuantity" | "unitPrice" | "quantityBadges" | "tags">;
 
 /**
  * Reads the header of the main container. Its stack holds: a container with the `HEADER1` name,
@@ -149,7 +149,7 @@ function innerColor(markdown: string): string | null {
   return colors.length > 0 ? colors[Math.floor((colors.length - 1) / 2)] : null;
 }
 
-type Prices = Pick<ProductDetails, "displayPrice" | "originalPrice" | "displayPriceColor" | "priceRanges">;
+type Prices = Pick<Product, "displayPrice" | "originalPrice" | "displayPriceColor" | "priceRanges">;
 
 /**
  * Reads the prices from the main container. A plain price is a `PRICE` component, crossed out for
@@ -292,4 +292,9 @@ function extractSimilarProducts(page: unknown): SimilarProduct[] {
       ...(u.deposit !== undefined ? { deposit: Number(u.deposit) } : {}),
       ...(Array.isArray(u.price_ranges) ? { priceRanges: u.price_ranges as PriceRange[] } : {}),
     }));
+}
+
+/** The id of a product's details page, with the parameters the app sends. */
+export function productDetailsPageId(productId: string): string {
+  return `product-details-page-root?id=${encodeURIComponent(productId)}&show_category_action=true&show_remove_from_purchases_page_action=true`;
 }

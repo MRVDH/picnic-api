@@ -1,4 +1,4 @@
-import { extractCartFooter } from "./footer-helpers";
+import { extractCartFooter } from "./footer";
 
 const loyaltyNudge = {
   id: "loyalty-point-nudge-content",

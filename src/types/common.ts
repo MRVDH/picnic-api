@@ -131,7 +131,7 @@ export type Replacement = {
   unit_quantity: string;
   unit_quantity_sub?: string;
   price: number;
-  tags: any[];
+  tags: unknown[];
   decorators: Decorator[];
   max_count: number;
 };

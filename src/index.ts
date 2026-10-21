@@ -2,24 +2,31 @@ import HttpClient from "./http-client";
 import { ApiConfig } from "./types/common";
 
 import { AppService } from "./domains/app/service";
-import { RscPageClient } from "./domains/app/rsc-client";
+import { PageClient } from "./pages/page-client";
 import { AuthService } from "./domains/auth/service";
 import { UserService } from "./domains/user/service";
 import { CatalogService } from "./domains/catalog/service";
 import { CartService } from "./domains/cart/service";
+import { CheckoutService } from "./domains/checkout/service";
 import { DeliveryService } from "./domains/delivery/service";
 import { PaymentService } from "./domains/payment/service";
 import { ConsentService } from "./domains/consent/service";
 import { CustomerServiceService } from "./domains/customer-service/service";
 import { ContentService } from "./domains/content/service";
-import { UserOnboardingService } from "./domains/user-onboarding/service";
 import { RecipeService } from "./domains/recipe/service";
+import { PicnicApiError, isPicnicApiError } from "./errors/api-error";
 import { CheckoutIssueError, isCheckoutIssueError } from "./errors/checkout-error";
 import { UnexpectedPageFormatError, isUnexpectedPageFormatError } from "./errors/page-format-error";
 import { ProductNotFoundError, isProductNotFoundError } from "./errors/product-not-found-error";
 import * as PublicTypes from "./types/public";
 
 class PicnicClient extends HttpClient {
+  /**
+   * Error thrown when Picnic answers with an error status. It carries the `status` and Picnic's
+   * error `code` (e.g. `AUTH_INVALID_CRED` for a wrong password, `OTP_NOT_VALID` for a wrong 2FA code).
+   */
+  static readonly PicnicApiError = PicnicApiError;
+  static readonly isPicnicApiError = isPicnicApiError;
   /**
    * Error thrown when the cart cannot proceed to checkout (e.g. alcohol age check).
    * Exposed so consumers can catch it by type without deep-importing internals.
@@ -29,7 +36,7 @@ class PicnicClient extends HttpClient {
   /** Error thrown when a page is served in a different format (Fusion or RSC) than the method expects. */
   static readonly UnexpectedPageFormatError = UnexpectedPageFormatError;
   static readonly isUnexpectedPageFormatError = isUnexpectedPageFormatError;
-  /** Error thrown by `catalog.getProductDetails` when the product doesn't exist or isn't available. */
+  /** Error thrown by `catalog.getProduct` when the product doesn't exist or isn't available. */
   static readonly ProductNotFoundError = ProductNotFoundError;
   static readonly isProductNotFoundError = isProductNotFoundError;
 
@@ -38,12 +45,12 @@ class PicnicClient extends HttpClient {
   public readonly user: UserService;
   public readonly catalog: CatalogService;
   public readonly cart: CartService;
+  public readonly checkout: CheckoutService;
   public readonly delivery: DeliveryService;
   public readonly payment: PaymentService;
   public readonly consent: ConsentService;
   public readonly customerService: CustomerServiceService;
   public readonly content: ContentService;
-  public readonly userOnboarding: UserOnboardingService;
   public readonly recipe: RecipeService;
 
   /**
@@ -57,20 +64,20 @@ class PicnicClient extends HttpClient {
   constructor(options?: ApiConfig) {
     super(options);
 
-    // Shared by the services that read RSC pages, so they share its chunk and action id caches.
-    const rsc = new RscPageClient(this);
-    this.app = new AppService(this, rsc);
+    // Every service reads pages through one client, so they share its chunk and action id caches.
+    const pages = new PageClient(this);
+    this.app = new AppService(this, pages);
     this.auth = new AuthService(this);
-    this.user = new UserService(this, this.app);
-    this.catalog = new CatalogService(this, rsc);
-    this.cart = new CartService(this);
+    this.user = new UserService(this, pages);
+    this.catalog = new CatalogService(this, pages);
+    this.cart = new CartService(this, pages);
+    this.checkout = new CheckoutService(this);
     this.delivery = new DeliveryService(this);
     this.payment = new PaymentService(this);
     this.consent = new ConsentService(this);
     this.customerService = new CustomerServiceService(this);
     this.content = new ContentService(this);
-    this.userOnboarding = new UserOnboardingService(this);
-    this.recipe = new RecipeService(this, this.app);
+    this.recipe = new RecipeService(this, pages);
   }
 }
 

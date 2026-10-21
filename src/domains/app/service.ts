@@ -1,66 +1,42 @@
 import type HttpClient from "../../http-client";
-import { UnexpectedPageFormatError } from "../../errors/page-format-error";
-import type { BootstrapData, FusionPage } from "../../types/fusion";
-import { parseRscPageContent } from "./rsc";
-import type { RscPageClient } from "./rsc-client";
-import { DeeplinkResolution, RscPageContent } from "./types";
+import type { PageClient } from "../../pages/page-client";
+import type { Page } from "../../pages/types";
+import { RawBootstrapData, RawDeeplinkResolution, MessageDisplayPosition, RawMessages } from "./types";
 
 export class AppService {
   constructor(
     private http: HttpClient,
-    private rsc: RscPageClient,
+    private pages: PageClient,
   ) {}
 
   /**
    * Returns the bootstrap data; tab bar configuration, third-party SDK configs, and feature flags.
    */
-  getBootstrapData(): Promise<BootstrapData> {
-    return this.http.sendRequest<null, BootstrapData>("GET", `/bootstrap`);
+  getBootstrapData(): Promise<RawBootstrapData> {
+    return this.http.sendRequest<null, RawBootstrapData>("GET", `/bootstrap`);
   }
 
   /**
-   * Returns a Fusion page by its page ID. The response shape is shared across all page routes.
+   * Returns a page by its page id, in the format Picnic serves it: a Fusion page, or for pages on
+   * Picnic's newer page platform an RSC page parsed into its components (see `RscPageContent`).
+   * The format depends on the page and the `x-picnic-agent` version, and Picnic is moving more
+   * pages to RSC, so check `format`. One request either way.
    *
-   * Some pages are served as a React Server Components payload instead, depending on the
-   * page and the `agent` version; for those this throws an `UnexpectedPageFormatError` and
-   * `getRscPageContent` should be used. Known RSC pages: `category-tree-root`,
-   * `subcategory-page?category_id=<id>`, `category-product-overview?category_id=<id>`,
-   * `promotion-category-page?category_id=<id>`, `profile-root`,
-   * `promo-group-deep-dive?promo_group_id=<id>`, `search-page-results?search_term=<term>`,
-   * `search-page-index`, `meals-category-page`, `meals-category-group-page` and
-   * `unavailability-replacements-page-root`.
+   * Pages known to be RSC: `category-tree-root`, `subcategory-page?category_id=<id>`,
+   * `category-product-overview?category_id=<id>`, `promotion-category-page?category_id=<id>`,
+   * `profile-root`, `promo-group-deep-dive?promo_group_id=<id>`,
+   * `search-page-results?search_term=<term>`, `search-page-index`, `meals-category-page`,
+   * `meals-category-group-page` and `unavailability-replacements-page-root`.
    *
-   * Known page IDs (no params required):
-   * - `home_page_root`
-   * - `purchases-page-root`
-   * - `meals-page-root`
-   * - `slot-selector-root`
-   * - `parcels-overview-page-root`
-   * - `empty-search-page-root`
-   *
-   * Pages that require query parameters (append after `?`):
-   * - `product-details-page-root?id=<selling_unit_id>`
-   * - `L1-category-page-root?category_id=<id>`
-   * - `L2-category-page-root?category_id=<id>`
-   * - `delivery-receipt-page?delivery_id=<id>`
-   * - `parcel-tracking-page-root?parcel_id=<id>`
+   * Pages known to be Fusion: `home_page_root`, `purchases-page-root`, `meals-page-root`,
+   * `slot-selector-root`, `parcels-overview-page-root`, `promo-page-root`,
+   * `product-details-page-root?id=<selling_unit_id>`,
+   * `selling-group-details-page?selling_group_id=<id>` and
+   * `parcel-tracking-page-root?parcel_id=<id>`.
+   * @param {string} pageId The page id, optionally with query params, e.g. `home_page_root`.
    */
-  async getPage(pageId: string): Promise<FusionPage> {
-    const page = await this.http.sendRequest<null, FusionPage | string>("GET", `/pages/${pageId}`, null, true);
-    if (typeof page === "string") throw new UnexpectedPageFormatError(pageId, "rsc");
-    return page;
-  }
-
-  /**
-   * Returns the content of a page served as RSC as a tree of its components (see
-   * `RscPageContent`): props with references resolved, nested components as children, the
-   * theme colors as tokens and product tiles parsed. Throws an `UnexpectedPageFormatError` when
-   * the page is served as a Fusion page; use `getPage` for those. Known RSC pages are listed at
-   * {@link getPage}.
-   * @param {string} pageId The page ID, optionally with query params, e.g. `profile-root`.
-   */
-  async getRscPageContent(pageId: string): Promise<RscPageContent> {
-    return parseRscPageContent(pageId, await this.rsc.getPage(pageId));
+  getPage(pageId: string): Promise<Page> {
+    return this.pages.getPage(pageId);
   }
 
   /**
@@ -69,7 +45,17 @@ export class AppService {
    * (e.g. URLs like `https://picnic.app/nl/deeplink/...`).
    * @param {string} url The deeplink URL to resolve.
    */
-  resolveDeeplink(url: string): Promise<DeeplinkResolution> {
-    return this.http.sendRequest<DeeplinkResolution, DeeplinkResolution>("POST", `/deeplink/resolve`, { url }, true);
+  resolveDeeplink(url: string): Promise<RawDeeplinkResolution> {
+    return this.http.sendRequest<RawDeeplinkResolution, RawDeeplinkResolution>("POST", `/deeplink/resolve`, { url }, { includePicnicHeaders: true });
+  }
+
+  /**
+   * Returns popup messages in the app (e.g. post-delivery satisfaction prompts,
+   * message bar notifications, order-confirmation cards).
+   * @param {MessageDisplayPosition[]} [displayPositions] Optional filter by display position(s).
+   */
+  getMessages(displayPositions?: MessageDisplayPosition[]): Promise<RawMessages> {
+    const query = displayPositions?.length ? `?${displayPositions.map((p) => `display_position=${encodeURIComponent(p)}`).join("&")}` : "";
+    return this.http.sendRequest<null, RawMessages>("GET", `/messages${query}`, null, { includePicnicHeaders: true });
   }
 }

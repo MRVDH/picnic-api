@@ -1,4 +1,4 @@
-import { CartDeposit, CartFee, CartLineItem, DeliverySlot, DeliveryStatus, Order } from "../cart/types";
+import { CartDeposit, CartFee, CartLineItem, RawDeliverySlot, DeliveryStatus, Order } from "../cart/types";
 
 // ─── Delivery Time & Status ───────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ export type DeliveryTime = {
  * Slim order summary returned as part of GET /deliveries/summary.
  * The full Order type (with items, totals, etc.) is returned by getDelivery().
  */
-export type DeliveryOrder = {
+export type RawDeliveryOrder = {
   type: "ORDER";
   id: string;
   creation_time: string;
@@ -24,17 +24,17 @@ export type DeliveryOrder = {
 
 // ─── Delivery ─────────────────────────────────────────────────────────────────
 
-export type Delivery = {
+export type RawDeliverySummary = {
   delivery_id: string;
   creation_time: string;
-  slot: DeliverySlot;
+  slot: RawDeliverySlot;
   eta2: DeliveryTime;
   status: DeliveryStatus;
   delivery_time: DeliveryTime;
-  orders: DeliveryOrder[];
+  orders: RawDeliveryOrder[];
 };
 
-export type ReturnedContainer = {
+export type RawReturnedContainer = {
   type: string;
   localized_name: string;
   quantity: number;
@@ -45,13 +45,13 @@ export type ReturnedContainer = {
  * Full delivery detail returned by GET /deliveries/{deliveryId}.
  * Includes type discriminator, full order objects with items, returned containers, and parcels.
  */
-export type DeliveryDetail = Omit<Delivery, "orders"> & {
+export type RawDelivery = Omit<RawDeliverySummary, "orders"> & {
   type: "DELIVERY";
   /** Same value as delivery_id; provided by the API for convenience. */
   id: string;
   orders: Order[];
-  returned_containers: ReturnedContainer[];
-  parcels: any[];
+  returned_containers: RawReturnedContainer[];
+  parcels: unknown[];
 };
 
 // ─── Delivery Summary ─────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export type ScenarioEntry = {
   lng: number;
 };
 
-export type DeliveryScenario = {
+export type RawDeliveryScenario = {
   version: number;
   scenario: ScenarioEntry[];
   vehicle: Vehicle;
@@ -110,7 +110,7 @@ export type DeliveryScenario = {
   destination?: DeliveryAddress;
 };
 
-export type DeliveryPosition = {
+export type RawDeliveryPosition = {
   version: number;
   /** Unix timestamp in milliseconds pointing to the current scenario entry. */
   scenario_ts: number;
@@ -125,7 +125,7 @@ export type DeliveryPosition = {
 // ─── Delivery details (parsed) ────────────────────────────────────────────────
 
 /** Containers returned at a delivery, e.g. crates or bottles. */
-export type ReturnedContainerSummary = {
+export type ReturnedContainer = {
   type: string;
   /** The name the app shows, e.g. "Kratten". */
   name: string;
@@ -143,7 +143,7 @@ export type DeliveryPayment = {
 };
 
 /** One order of a delivery. Amounts are in cents. */
-export type DeliveryOrderDetails = {
+export type DeliveryOrder = {
   id: string;
   status: DeliveryStatus;
   creationTime: string;
@@ -162,14 +162,14 @@ export type DeliveryOrderDetails = {
 };
 
 /** A delivery with its orders, as the app's order history shows it. Amounts are in cents. */
-export type DeliveryDetails = {
+export type Delivery = {
   id: string;
   status: DeliveryStatus;
   creationTime: string;
   windowStart: string | null;
   windowEnd: string | null;
-  orders: DeliveryOrderDetails[];
-  returnedContainers: ReturnedContainerSummary[];
+  orders: DeliveryOrder[];
+  returnedContainers: ReturnedContainer[];
   /** The amount paid over all orders. */
   totalPrice: number;
   /** The number of products over all orders. */
@@ -194,10 +194,10 @@ export type DeliveryRoutePoint = {
   ts: number;
 };
 
-/** Where a delivery is, combining its position (polled) and its route (the scenario). */
-export type DeliveryTracking = {
-  /** The version of the route; when the position reports another, fetch the route again. */
-  scenarioVersion: number;
+/** A delivery's position, which the app polls while the driver is on the way. */
+export type DeliveryPosition = {
+  /** The version of the route; when it differs from the route you have, fetch the route again. */
+  routeVersion: number;
   /** True while the driver is on the way; poll again after `queryInterval`. */
   inProgress: boolean;
   /** How long to wait before polling the position again, in milliseconds. */
@@ -206,13 +206,58 @@ export type DeliveryTracking = {
   eta: number | null;
   etaWindowStart: string | null;
   etaWindowEnd: string | null;
-  /** The route point closest to the position's time, or null without a route. */
-  currentPosition: DeliveryRoutePoint | null;
-  route: DeliveryRoutePoint[];
+  /** The time on the route where the driver is, in epoch milliseconds (compare with `DeliveryRoutePoint.ts`). */
+  routeTime: number;
+};
+
+/** Where a delivery goes. */
+export type DeliveryDestination = {
+  lat: number;
+  lng: number;
+  street: string | null;
+  city: string | null;
+  postcode: string | null;
+};
+
+/** A delivery's route and who drives it. It only changes when its `version` changes. */
+export type DeliveryRoute = {
+  version: number;
+  /** The points of the route in time order. */
+  points: DeliveryRoutePoint[];
   driverName: string | null;
   driverPhotoUrl: string | null;
   vehicleName: string | null;
   /** The vehicle image as a data URL, or null. */
   vehicleImageDataUrl: string | null;
-  destination: { lat: number; lng: number; street: string | null; city: string | null; postcode: string | null } | null;
+  /** The destination, or the end of the route when the route has no destination; null without either. */
+  destination: DeliveryDestination | null;
+};
+
+/** Where a delivery is: its position, its route and the point on the route the driver is at. */
+export type DeliveryTracking = DeliveryPosition & {
+  /** The route point closest to `routeTime`, or null without a route. */
+  currentPosition: DeliveryRoutePoint | null;
+  route: DeliveryRoute;
+};
+
+// ---
+// Parcels
+// ---
+
+/**
+ * The current tracking status of a parcel.
+ */
+export type ParcelCurrentStatus = {
+  status: string; // e.g. "HANDED_OVER"
+  timestamp: string; // ISO 8601 datetime string
+};
+
+/**
+ * A tracked parcel (external delivery via a carrier such as DHL).
+ */
+export type RawParcel = {
+  id: string; // carrier tracking code
+  handler_name: string; // e.g. "DHL"
+  active: boolean;
+  current_status: ParcelCurrentStatus;
 };

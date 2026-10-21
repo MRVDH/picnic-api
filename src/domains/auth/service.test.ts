@@ -17,6 +17,7 @@ describe("AuthService - verify2FACode", () => {
   it("should capture the new auth key from response headers", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      body: null,
       headers: new Headers({ "x-picnic-auth": "new-2fa-auth-key" }),
       text: () => Promise.resolve(""),
     });
@@ -30,6 +31,7 @@ describe("AuthService - verify2FACode", () => {
   it("should send the correct request with picnic headers", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      body: null,
       headers: new Headers({ "x-picnic-auth": "new-key" }),
       text: () => Promise.resolve(""),
     });
@@ -53,6 +55,7 @@ describe("AuthService - verify2FACode", () => {
   it("should throw when no auth key is returned", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      body: null,
       headers: new Headers(),
       text: () => Promise.resolve(""),
     });

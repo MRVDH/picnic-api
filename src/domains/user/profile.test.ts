@@ -1,4 +1,4 @@
-import { extractProfile } from "./helpers";
+import { extractProfile } from "./profile";
 
 describe("extractProfile", () => {
   it("reads the user, address and menu from the profile page content", () => {

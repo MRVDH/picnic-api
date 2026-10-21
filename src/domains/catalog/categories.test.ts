@@ -1,5 +1,5 @@
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
-import type { RscPageContent } from "../app/types";
+import type { RscPageContent } from "../../pages/types";
 
 const node = (component: string, props: Record<string, unknown>, children: unknown[] = []) => ({ id: `${component}-0`, component, modulePath: `./${component}.tsx`, props, children });
 const page = (pageId: string, nodes: unknown[]) => ({ pageId, tokens: {}, nodes }) as unknown as RscPageContent;

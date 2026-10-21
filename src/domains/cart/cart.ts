@@ -1,7 +1,7 @@
 import type { Decorator } from "../../types/common";
-import type { PriceRange } from "../../types/fusion";
-import { extractDeliverySlots } from "./helpers";
-import type { Cart, CartContents, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
+import type { PriceRange } from "../../pages/fusion";
+import { extractDeliverySlots } from "./delivery-slots";
+import type { RawCart, Cart, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
 
 type RawRecord = Record<string, unknown>;
 
@@ -117,8 +117,8 @@ export function readFees(raw: unknown): CartFee[] {
     .filter((fee) => fee.amount !== 0);
 }
 
-/** Turns a cart response (from {@link CartService.getCart} or a cart mutation) into {@link CartContents}. */
-export function extractCartContents(cart: Cart): CartContents {
+/** Turns a cart response (from {@link CartService.getCart} or a cart mutation) into {@link Cart}. */
+export function extractCart(cart: RawCart): Cart {
   const overrides = cart.decorator_overrides ?? {};
   const items = (cart.items ?? []).flatMap((line) => readCartLine(line, overrides) ?? []);
   const deposits = readDeposits(cart.deposit_breakdown);
@@ -127,6 +127,8 @@ export function extractCartContents(cart: Cart): CartContents {
   const selectedSlot = slots.selectedSlot;
 
   return {
+    id: cart.id ?? "",
+    mts: asNumber(cart.mts),
     items,
     totalCount: asNumber(cart.total_count),
     totalPrice: asNumber(cart.checkout_total_price),

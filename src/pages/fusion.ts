@@ -43,10 +43,10 @@ export type ImageComponent = {
   resizeMode?: string;
   derivativeType?: string;
   extension?: string;
-  placeholder?: string | Record<string, any>;
+  placeholder?: string | Record<string, unknown>;
   fallbackSource?: ImageSource;
   maxUpscalePercentage?: number;
-  analytics?: Record<string, any>;
+  analytics?: Record<string, unknown>;
   aspectRatio?: number;
 };
 
@@ -65,7 +65,7 @@ export type StackComponent = {
   accessible?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-  accessibilityActions?: any[];
+  accessibilityActions?: unknown[];
   isHidden?: boolean;
   children?: Component[];
 };
@@ -87,13 +87,13 @@ export type ContainerComponent = {
   hideFromAccessibility?: boolean;
   pointerEvents?: string;
   absolutePosition?: Padding;
-  accessibilityActions?: any[];
+  accessibilityActions?: unknown[];
   /** Drop-shadow configuration (color, offset, opacity, radius). */
-  shadow?: Record<string, any>;
+  shadow?: Record<string, unknown>;
   /** Component rendered as a blur underlay (product-details sticky header). */
-  blurComponent?: any;
+  blurComponent?: unknown;
   /** Props passed to the blur underlay renderer. */
-  blurProps?: Record<string, any>;
+  blurProps?: Record<string, unknown>;
   child?: Component;
   children?: Component[];
 };
@@ -111,12 +111,12 @@ export type RichTextComponent = {
 
 export type IconComponent = {
   type: "ICON";
-  iconKey: string | Record<string, any>;
+  iconKey: string | Record<string, unknown>;
   width: number;
   height: number;
-  color?: string | Record<string, any>;
+  color?: string | Record<string, unknown>;
   aspectRatio?: number;
-  fallback?: Record<string, any>;
+  fallback?: Record<string, unknown>;
   /** Clockwise rotation in degrees applied to the icon (e.g. 270 for a chevron pointing up). */
   rotation?: number;
 };
@@ -135,206 +135,6 @@ export type PML<TComponent> = {
 
 /** A PML document whose root component is a single image — used for icons in the cart. */
 export type Icon = PML<ImageComponent>;
-
-// ─── Enums ───────────────────────────────────────────────────────────────────
-
-export type TabType = "PAGE" | "CART" | "LEGACY_SEARCH" | "SEARCH" | "UNSUPPORTED" | string;
-
-export type TabDecoratorType = "GIFT" | "NOTIFICATION" | "PRICE_BALLOON" | "NOTIFY_TAP" | "UNSUPPORTED" | string;
-
-export type TabTargetType = "PICNIC_PAGE_REFERENCE" | "DEEPLINK" | "UNSUPPORTED" | string;
-
-export type TabIconType = "PRESET" | "BASE_64" | "UNSUPPORTED" | string;
-
-export type DynamicIconConfigType = "CART_VALUE" | "UNSUPPORTED" | string;
-
-/**
- * Preset tab bar icons. App 1.251.0 knows only the `_2` variants, `CHECKMARK`, `TRANSFER_PLANNER`,
- * `HEART`, `POT`, `SEARCH` and `UNSUPPORTED`; the others are kept because older app versions use them.
- */
-export type PresetIcon =
-  | "BASKET"
-  | "BASKET_2"
-  | "ACTIVE_PROMO"
-  | "CHECKMARK"
-  | "EPV"
-  | "EPV_2"
-  | "HEART"
-  | "POT"
-  | "PROFILE"
-  | "PROMO"
-  | "ROCKET"
-  | "ROCKET_2"
-  | "SEARCH"
-  | "SEARCH_2"
-  | "STOREFRONT"
-  | "STOREFRONT_2"
-  | "TROLLEY"
-  | "TROLLEY_2"
-  | "TRANSFER_PLANNER"
-  | "UNSUPPORTED"
-  | string;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
-
-/** Dynamic cart-value-based icon config (e.g. show different icon based on cart value). */
-export type CartValueDynamicIconConfig = {
-  type: "CART_VALUE";
-  lower_bound?: number | null;
-  upper_bound?: number | null;
-};
-
-export type UnsupportedDynamicIconConfig = {
-  type: "UNSUPPORTED" | string;
-};
-
-export type DynamicIconConfig = CartValueDynamicIconConfig | UnsupportedDynamicIconConfig;
-
-/** Preset (vector/SVG) icon tab bar item. */
-export type PresetTabIcon = {
-  type: "PRESET";
-  preset?: PresetIcon | null;
-  dynamic_config?: DynamicIconConfig | null;
-  allow_tint_color?: boolean | null;
-};
-
-/** Base64-encoded image tab bar icon. */
-export type Base64TabIcon = {
-  type: "BASE_64";
-  value?: string | null;
-  dynamic_config?: DynamicIconConfig | null;
-  allow_tint_color?: boolean | null;
-};
-
-export type UnsupportedTabIcon = {
-  type: "UNSUPPORTED" | string;
-  allow_tint_color?: boolean | null;
-};
-
-export type TabIcon = PresetTabIcon | Base64TabIcon | UnsupportedTabIcon;
-
-/** Icon configuration for a tab bar item, including default and highlighted states. */
-export type IconConfig = {
-  icons: TabIcon[];
-  highlight_icons?: TabIcon[] | null;
-  color: string;
-  highlight_color: string;
-};
-
-// ─── Tab Target ───────────────────────────────────────────────────────────────
-
-/** Navigates to an internal Picnic page by reference. */
-export type PageTabTarget = {
-  type: "PICNIC_PAGE_REFERENCE";
-  reference: string;
-  request_params?: Record<string, string> | null;
-};
-
-/** Opens an external deep-link URL. */
-export type DeeplinkTabTarget = {
-  type: "DEEPLINK";
-  deeplink?: string | null;
-};
-
-export type UnsupportedTabTarget = {
-  type: "UNSUPPORTED" | string;
-};
-
-export type TabTarget = PageTabTarget | DeeplinkTabTarget | UnsupportedTabTarget;
-
-// ─── Tab Decorator ────────────────────────────────────────────────────────────
-
-/** Controls a visual badge/decorator rendered on top of a tab icon. */
-export type TabDecorator = {
-  type: TabDecoratorType;
-  /** Display positions that trigger this decorator's notification dot. */
-  display_positions_to_notify?: string[] | null;
-};
-
-// ─── Tab Accessibility ────────────────────────────────────────────────────────
-
-export type TabAccessibility = {
-  label: string;
-  hint: string;
-};
-
-// ─── Message Behaviour ────────────────────────────────────────────────────────
-
-/** Defines which display positions this tab renders messages for. */
-export type MessageBehaviour = {
-  display_positions_to_render: string[];
-};
-
-/** Global message polling configuration; defines which positions are polled. */
-export type GeneralMessageBehaviour = {
-  display_positions_to_poll: string[];
-};
-
-// ─── Tab ─────────────────────────────────────────────────────────────────────
-
-export type BootstrapTab = {
-  id: string;
-  tab_type: TabType;
-  analytics_id?: string | null;
-  icon_config: IconConfig;
-  message_behaviour: MessageBehaviour;
-  tab_decorators?: TabDecorator[] | null;
-  accessibility: TabAccessibility;
-  /** Navigation target; omitted for tabs that handle navigation internally (e.g. CART). */
-  target?: TabTarget | null;
-  header?: string | null;
-  title?: string | null;
-  title_config?: TitleConfig | null;
-};
-
-export type TitleConfig = {
-  title: string;
-  color: string;
-  highlight_color: string;
-};
-
-// ─── Third-party Configs ──────────────────────────────────────────────────────
-
-/** Braze SDK initialisation token. */
-export type BrazeConfig = {
-  authentication_token: string;
-};
-
-/** Datadog RUM / APM configuration. */
-export type DatadogConfig = {
-  rum_session_sample_rate: number;
-  apm_trace_sample_rate: number;
-};
-
-// ─── In-app Feature Config ────────────────────────────────────────────────────
-
-/** Timeout for the pre-checkout upsell check before the cart proceeds. */
-export type CartPreCheckoutUpsellConfig = {
-  timeout_ms: number | null;
-};
-
-export type InAppFeatureConfig = {
-  cart_pre_checkout_upsell_check?: CartPreCheckoutUpsellConfig | null;
-  /**
-   * Base URL of the JavaScript chunks for the client components of RSC pages, e.g.
-   * `https://pages-prod.nl.picnicinternational.com/store`. A chunk id from an RSC module
-   * reference is fetched from `<base>/<chunk id>.script.bundle`.
-   */
-  client_component_cdn_base_url?: string | null;
-};
-
-// ─── Bootstrap Response ───────────────────────────────────────────────────────
-
-/** The root response returned by `GET /bootstrap`. */
-export type BootstrapData = {
-  landing_tab_id: string;
-  tabs: BootstrapTab[];
-  general_message_behaviour: GeneralMessageBehaviour;
-  datadog_config: DatadogConfig | null;
-  braze_config: BrazeConfig | null;
-  in_app_feature_config: InAppFeatureConfig | null;
-  first_time_user: boolean;
-};
 
 // ─── Home Page ────────────────────────────────────────────────────────────────
 
@@ -356,7 +156,7 @@ export type FusionHitSlop = {
 };
 
 export type FusionAnalyticsContext = {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   schema: string;
 };
 
@@ -395,7 +195,7 @@ export type FusionRefreshEventPayload = {
 };
 
 /** Union of all typed event payloads that can appear as `FusionEventAction.action`. */
-export type FusionEventPayload = FusionToastEventPayload | FusionSnackbarEventPayload | FusionRefreshEventPayload | { type: string; [key: string]: any };
+export type FusionEventPayload = FusionToastEventPayload | FusionSnackbarEventPayload | FusionRefreshEventPayload | { type: string; [key: string]: unknown };
 
 export type FusionEventAction = {
   actionType: "EVENT";
@@ -407,7 +207,7 @@ export type FusionEndpointAction = {
   actionType: "ENDPOINT";
   method: string;
   url: string;
-  body?: Record<string, any>;
+  body?: Record<string, unknown>;
   onSuccess?: FusionPressAction;
 };
 
@@ -443,7 +243,7 @@ export type FusionPressAction =
   | FusionCallbackAction
   | FusionReloadAction
   | FusionAnalyticsAction
-  | { actionType: string; [key: string]: any };
+  | { actionType: string; [key: string]: unknown };
 
 // ── PML inner components (inside `pml.component`, camelCase naming) ───────────
 
@@ -512,7 +312,7 @@ export type SellingUnit = {
   display_price: number;
   unit_quantity: string;
   max_count: number;
-  decorators: any[];
+  decorators: unknown[];
   /** Bundle discount price tiers. Each entry defines a per-unit price that applies when the cart quantity reaches `from_quantity`. */
   price_ranges: PriceRange[] | null;
 };
@@ -729,7 +529,7 @@ export type FlowLayout = {
   hideFromAccessibility?: boolean;
   accessibilityElementsHidden?: boolean;
   /** Pagination configuration. */
-  pagination?: Record<string, any> | null;
+  pagination?: Record<string, unknown> | null;
   /**
    * ID of the item to scroll into focus on render. Can be a plain string or an
    * EXPRESSION component that resolves to the ID at runtime.
@@ -738,7 +538,7 @@ export type FlowLayout = {
   focusedItemOffset?: number | null;
   itemVisibilityPercentage?: number | null;
   smoothScrollToFocusedItem?: boolean;
-  viewabilityListeners?: any[] | null;
+  viewabilityListeners?: unknown[] | null;
   /**
    * Override for the underlying list renderer.
    * Known values: `"FlashList"` (high-performance list on category pages).
@@ -753,7 +553,7 @@ export type PMLItem = {
   analytics: FusionItemAnalytics;
   size: FusionSize;
   pml: FusionPMLRoot;
-  content?: Record<string, any>;
+  content?: Record<string, unknown>;
   viewComponentType?: string;
   /** When true the item is invisible but still present in the tree. */
   isHidden?: boolean;
@@ -772,7 +572,7 @@ export type BlockComponent = {
    * Expressions evaluated when the block mounts. Can be an array of named
    * expressions or a single EXPRESSION object (search pages use the latter).
    */
-  initializeExpressions?: any[] | Record<string, any> | null;
+  initializeExpressions?: unknown[] | Record<string, unknown> | null;
   /** Action fired when the block mounts. */
   onMount?: FusionPressAction | null;
   /** Action fired when the block unmounts (navigation away). */
@@ -799,7 +599,7 @@ export type SuspenseComponent = {
   suspenseId?: string;
   child?: BlockComponent | StateBoundaryComponent;
   /** References the page-content endpoint to fetch lazily. */
-  pageConfig?: { id: string; parameters?: Record<string, any> } | null;
+  pageConfig?: { id: string; parameters?: Record<string, unknown> } | null;
   /** Shown while the lazy content is loading; `null` means no loading UI. */
   loadingConfig?: SuspenseFallbackConfig | null;
   /** Shown when the lazy content fetch fails; `null` means no error UI. */
@@ -809,7 +609,7 @@ export type SuspenseComponent = {
 export type StateBoundaryComponent = {
   type: "STATE_BOUNDARY";
   id: string;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   child: BlockComponent | SuspenseComponent;
 };
 
@@ -825,7 +625,7 @@ export type FullScreenPresentation = {
 export type PageAnalytics = {
   /** Present on home pages; absent on some pages (e.g. meals, slot-selector) that only carry `contexts`. */
   type?: "Page" | string;
-  additionalProperties?: Record<string, any>;
+  additionalProperties?: Record<string, unknown>;
   contexts?: FusionAnalyticsContext[];
   domain?: string;
   name?: string;
@@ -836,7 +636,7 @@ export type PageHeader = {
   type: string;
   title?: string | null;
   padding?: Padding;
-  buttons?: any[] | null;
+  buttons?: unknown[] | null;
 };
 
 /** Minimal static header — just a title, no buttons or padding (e.g. category pages). */
@@ -850,7 +650,7 @@ export type DefaultPageHeader = {
   type: "DEFAULT";
   title?: string | null;
   padding?: Padding;
-  buttons?: any[] | null;
+  buttons?: unknown[] | null;
 };
 
 /**

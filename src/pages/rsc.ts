@@ -1,6 +1,6 @@
-import type { RscPage } from "../../types/rsc";
+import type { RscPage } from "./rsc-payload";
 import type { RscNode, RscPageContent } from "./types";
-import { extractProductTile } from "../catalog/helpers";
+import { extractProductTile } from "../domains/catalog/search";
 
 const ROW_PATTERN = /^([0-9a-f]+):(I?)(.*)$/;
 /**
@@ -177,7 +177,7 @@ const WRAPPER_COMPONENTS = new Set(["pages-provider-hydrator", "page-hydrator", 
  * The page theme (`tokenRegistry` and `legacyColors`) ends up in `tokens`, and product tiles
  * (`type: "sellable"`) are parsed into `ProductTile` objects.
  * @param {string} pageId The page id, returned as `pageId`.
- * @param {RscPage} page The page, e.g. from `RscPageClient.getPage`.
+ * @param {RscPage} page The page, e.g. from `PageClient.getRscPayload`.
  */
 export function parseRscPageContent(pageId: string, page: RscPage): RscPageContent {
   let tokens: Record<string, string> = {};

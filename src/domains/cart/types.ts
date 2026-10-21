@@ -1,9 +1,9 @@
-import { Component, Icon, PriceRange } from "../../types/fusion";
+import { Component, Icon, PriceRange } from "../../pages/fusion";
 import { Decorator } from "../../types/common";
 
 // ─── Delivery Slots ───────────────────────────────────────────────────────────
 
-export type DeliverySlot = {
+export type RawDeliverySlot = {
   slot_id: string;
   hub_id: string;
   fc_id: string;
@@ -23,7 +23,7 @@ export type DeliverySlot = {
   slot_characteristics: string[];
 };
 
-export type SelectedSlot = {
+export type RawSelectedSlot = {
   slot_id: string;
   /** E.g. "IMPLICIT" | "ACTIVE" | "EXPLICIT" */
   state: string;
@@ -53,9 +53,9 @@ export type OrderArticle = {
   image_ids: string[];
   perishable: boolean;
   /** Analytics context entries for mutation tracking; usually an empty array. */
-  analytics_contexts: any[];
+  analytics_contexts: unknown[];
   /** Selling unit context metadata; usually an empty array. */
-  selling_unit_contexts_for_mutations: any[];
+  selling_unit_contexts_for_mutations: unknown[];
 };
 
 export type OrderLine = {
@@ -100,12 +100,12 @@ export type CartAnalyticsItem = {
  * The active shopping cart returned by GET /cart.
  * This is distinct from a placed Order that lives inside a Delivery.
  */
-export type Cart = {
+export type RawCart = {
   type: "ORDER";
   id: string;
   items: OrderLine[];
-  delivery_slots: DeliverySlot[];
-  selected_slot: SelectedSlot;
+  delivery_slots: RawDeliverySlot[];
+  selected_slot: RawSelectedSlot;
   /** Null when no slot-selector message is configured. */
   slot_selector_message: SlotSelectorMessage | null;
   total_count: number;
@@ -120,9 +120,9 @@ export type Cart = {
   /** Signed JWT that represents the current cart state; used for checkout. */
   state_token: string;
   /** Applied fees (e.g. service fees); usually an empty array. */
-  fees: any[];
+  fees: unknown[];
   /** Basket sections for grouped display; usually an empty array. */
-  basket_sections: any[];
+  basket_sections: unknown[];
   analytics_context_data: { items_list: CartAnalyticsItem[] };
   show_create_sellable_banner: boolean;
   /** Savings from a membership/subscription (in cents). */
@@ -150,25 +150,34 @@ export type Order = {
   /** Always null for placed orders; may be absent or null. */
   slot_selector_message?: SlotSelectorMessage | null;
   deposit_breakdown?: DepositBreakdown[];
-  fees?: any[];
-  basket_sections?: any[];
-  analytics_context_data?: Record<string, any>;
+  fees?: unknown[];
+  basket_sections?: unknown[];
+  analytics_context_data?: Record<string, unknown>;
   membership_savings?: number;
 };
 
 // ─── Selling Unit Contexts ────────────────────────────────────────────────────
 
+/** Says a product is added for a recipe planned on a delivery day. */
 export type MealPlanContext = {
   type: "MEAL_PLAN";
-  day_offset: number;
-  servings: number;
+  /** The delivery day, relative to the selected slot (0 is the selected slot's day). */
+  day_relative_to_slot: number;
+  number_of_servings: number;
 };
 
+/** Says a product is added as an ingredient of a recipe. */
 export type SellingGroupContext = {
   type: "SELLING_GROUP";
-  recipe_id: string;
-  ingredient_id: string;
-  component_type: string;
+  /** The recipe id. */
+  selling_group_id: string;
+  /** Who made the recipe: `PIM` for catalog recipes, `USER` for the user's own. */
+  selling_group_creator_type?: "PIM" | "USER" | string;
+  /** The ingredient id, or null. */
+  selling_group_component_id: string | null;
+  /** The ingredient type, e.g. `CORE`. */
+  selling_group_component_type: string;
+  selling_group_component_swap_type: string | null;
 };
 
 export type RecipeContext = {
@@ -189,19 +198,14 @@ export type AddProductInput = {
   selling_unit_contexts?: SellingUnitContext[];
 };
 
-export type AddProductsItem = {
-  productId: string;
-  quantity: number;
-};
-
-export type GetDeliverySlotsResult = {
-  delivery_slots: DeliverySlot[];
+export type RawDeliverySlots = {
+  delivery_slots: RawDeliverySlot[];
   slot_selector_message: SlotSelectorMessage;
-  selected_slot: SelectedSlot;
+  selected_slot: RawSelectedSlot;
 };
 
-/** A delivery slot as returned by `cart.getDeliverySlotOverview`. */
-export type DeliverySlotSummary = {
+/** A delivery slot as returned by `cart.getDeliverySlots`. */
+export type DeliverySlot = {
   slotId: string;
   windowStart: string;
   windowEnd: string;
@@ -217,7 +221,7 @@ export type DeliverySlotSummary = {
   minimumOrderValue: number | null;
 };
 
-export type SelectedSlotSummary = {
+export type SelectedDeliverySlot = {
   slotId: string;
   /** E.g. "IMPLICIT" | "ACTIVE" | "EXPLICIT" */
   state: string;
@@ -228,10 +232,10 @@ export type SelectedSlotSummary = {
   isExplicitSelection: boolean;
 };
 
-export type DeliverySlotOverview = {
+export type DeliverySlots = {
   /** In the order of the API response. */
-  slots: DeliverySlotSummary[];
-  selectedSlot: SelectedSlotSummary | null;
+  slots: DeliverySlot[];
+  selectedSlot: SelectedDeliverySlot | null;
 };
 
 // ─── Cart contents (parsed) ───────────────────────────────────────────────────
@@ -324,7 +328,11 @@ export type CartFee = {
 };
 
 /** The cart as the app's basket shows it. Amounts are in cents. */
-export type CartContents = {
+export type Cart = {
+  /** The cart id. */
+  id: string;
+  /** The cart's modification timestamp; pass it to `checkout.startCheckout`. */
+  mts: number;
   /** The lines in the order of the response. */
   items: CartLineItem[];
   /** The number of products. */
@@ -343,11 +351,11 @@ export type CartContents = {
   fees: CartFee[];
   /** The minimum order value of the selected slot, or null. */
   minimumOrderValue: number | null;
-  selectedSlot: SelectedSlotSummary | null;
+  selectedSlot: SelectedDeliverySlot | null;
   recipes: CartRecipe[];
 };
 
-// ─── Basket footer ────────────────────────────────────────────────────────────
+// ─── Cart footer ────────────────────────────────────────────────────────────
 
 /** A text from the basket footer, with its color when Picnic sets one. */
 export type CartFooterText = {
@@ -385,67 +393,7 @@ export type RemoveGroupInput = {
   group_id: string;
 };
 
-export type OrderStatus = {
-  checkout_status: "FINISHED" | string;
-};
-
-export type UserSlotMinimumOrderValue = {
+export type RawMinimumOrderValue = {
   slot_id: string;
   minimum_order_value: number;
-};
-
-export type CheckoutConfirmation = {
-  order_id: string;
-  delivery_slot: DeliverySlot;
-  analytics: Record<string, any> | null;
-};
-
-// ─── Checkout ───────────────────────────────────────────────────────────────
-
-export type CheckoutStartInput = {
-  mts: number;
-  oos_article_ids?: string[] | null;
-  resolve_key?: string;
-};
-
-export type CheckoutStartResult = {
-  order_id: string;
-  total_price: number;
-  total_count: number;
-  total_deposit: number;
-  total_savings: number;
-  transaction_expiry: string;
-  delivery_slots: DeliverySlot[];
-  deposit_breakdown: DepositBreakdown[];
-  address?: {
-    street?: string;
-    city?: string;
-    postcode?: string;
-    house_number?: number;
-  };
-};
-
-export type InitiatePaymentInput = {
-  order_id: string;
-  app_return_url: string;
-};
-
-export type PaymentAction = {
-  type: string;
-  redirect_url: string;
-};
-
-export type InitiatePaymentResult = {
-  payment_id: string;
-  transaction_id: string;
-  issuer_authentication_url?: string;
-  action: PaymentAction;
-};
-
-export type CheckoutStatusResult = {
-  checkout_status: "FINISHED" | string;
-};
-
-export type CancelCheckoutInput = {
-  transaction_id: string;
 };

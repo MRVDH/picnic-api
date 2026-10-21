@@ -1,8 +1,8 @@
-import { DeliverySlot, DeliverySlotOverview, DeliverySlotSummary, GetDeliverySlotsResult, SelectedSlot, SelectedSlotSummary } from "./types";
+import { RawDeliverySlot, DeliverySlots, DeliverySlot, RawDeliverySlots, RawSelectedSlot, SelectedDeliverySlot } from "./types";
 
-const windowDuration = (slot: DeliverySlotSummary): number => new Date(slot.windowEnd).getTime() - new Date(slot.windowStart).getTime();
+const windowDuration = (slot: DeliverySlot): number => new Date(slot.windowEnd).getTime() - new Date(slot.windowStart).getTime();
 
-function toSlotSummary(slot: DeliverySlot): DeliverySlotSummary {
+function toSlotSummary(slot: RawDeliverySlot): DeliverySlot {
   return {
     slotId: slot.slot_id,
     windowStart: slot.window_start,
@@ -19,8 +19,8 @@ function toSlotSummary(slot: DeliverySlot): DeliverySlotSummary {
  * Returns the ids of the green-choice slots. Picnic offers some start times twice, as a regular and a longer window;
  * the longer one is the green choice. Start times with one slot, or two slots of equal length, have no green choice.
  */
-function findGreenChoiceSlotIds(slots: DeliverySlotSummary[]): Set<string> {
-  const byWindowStart = new Map<string, DeliverySlotSummary[]>();
+function findGreenChoiceSlotIds(slots: DeliverySlot[]): Set<string> {
+  const byWindowStart = new Map<string, DeliverySlot[]>();
   for (const slot of slots) {
     byWindowStart.set(slot.windowStart, [...(byWindowStart.get(slot.windowStart) ?? []), slot]);
   }
@@ -35,7 +35,7 @@ function findGreenChoiceSlotIds(slots: DeliverySlotSummary[]): Set<string> {
   return greenSlotIds;
 }
 
-function toSelectedSlotSummary(selected: SelectedSlot | null, slots: DeliverySlotSummary[]): SelectedSlotSummary | null {
+function toSelectedSlotSummary(selected: RawSelectedSlot | null, slots: DeliverySlot[]): SelectedDeliverySlot | null {
   if (!selected) return null;
 
   const slot = slots.find((s) => s.slotId === selected.slot_id);
@@ -49,10 +49,10 @@ function toSelectedSlotSummary(selected: SelectedSlot | null, slots: DeliverySlo
 }
 
 /**
- * Turns a delivery slots response into a {@link DeliverySlotOverview}: camelCase slots with the green-choice flag, and
+ * Turns a delivery slots response into a {@link DeliverySlots}: camelCase slots with the green-choice flag, and
  * the selected slot with its window.
  */
-export function extractDeliverySlots(result: Pick<GetDeliverySlotsResult, "delivery_slots" | "selected_slot">): DeliverySlotOverview {
+export function extractDeliverySlots(result: Pick<RawDeliverySlots, "delivery_slots" | "selected_slot">): DeliverySlots {
   const slots = result.delivery_slots.map(toSlotSummary);
 
   const greenSlotIds = findGreenChoiceSlotIds(slots);

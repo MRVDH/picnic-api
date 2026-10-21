@@ -1,12 +1,11 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { CategoryProducts, CategorySection, ProductDetails, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
-import { FusionPage } from "../../types/fusion";
-import { extractSearchResults } from "./helpers";
-import { extractProductDetails } from "./product-details";
-import type { RscPageClient } from "../app/rsc-client";
-import { decodeRscValue, findRscElementProps, parseRscPageContent } from "../app/rsc";
-import type { RscPageContent } from "../app/types";
+import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, RawSearchSuggestion, Subcategories } from "./types";
+import { FusionPage } from "../../pages/fusion";
+import { extractSearchResults } from "./search";
+import { extractProductDetails, productDetailsPageId } from "./product";
+import type { PageClient } from "../../pages/page-client";
+import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
 
 /** The search page component that holds the search parameters (search id, session id). */
@@ -17,13 +16,8 @@ const SEARCH_RESULTS_MODULE = "search-page-content/results/index.tsx";
 export class CatalogService {
   constructor(
     private http: HttpClient,
-    private rsc: RscPageClient,
+    private pages: PageClient,
   ) {}
-
-  /** Fetches an RSC page and parses it into its component tree. */
-  private async getRscContent(pageId: string): Promise<RscPageContent> {
-    return parseRscPageContent(pageId, await this.rsc.getPage(pageId));
-  }
 
   /**
    * Returns the category tree as the app shows it (`category-tree-root`): links to promotions and
@@ -31,7 +25,7 @@ export class CatalogService {
    * opens it.
    */
   async getCategories(): Promise<CategorySection[]> {
-    return extractCategoryTree(await this.getRscContent("category-tree-root"));
+    return extractCategoryTree(await this.pages.getRscContent("category-tree-root"));
   }
 
   /**
@@ -39,7 +33,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `subcategories`, e.g. "21724".
    */
   async getSubcategories(categoryId: string): Promise<Subcategories> {
-    const content = await this.getRscContent(`subcategory-page?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`subcategory-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractSubcategories(categoryId, content);
   }
 
@@ -48,7 +42,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `products`, e.g. "21746".
    */
   async getCategoryProducts(categoryId: string): Promise<CategoryProducts> {
-    const content = await this.getRscContent(`category-product-overview?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`category-product-overview?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
   }
 
@@ -57,7 +51,7 @@ export class CatalogService {
    * @param {string} categoryId The category id of a link with target `promotions`, e.g. "21724".
    */
   async getCategoryPromotions(categoryId: string): Promise<CategoryProducts> {
-    const content = await this.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    const content = await this.pages.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
   }
 
@@ -70,15 +64,15 @@ export class CatalogService {
    */
   async getSearchResults(query: string, options: SearchOptions = {}): Promise<SearchResults> {
     const contextParams = options.context === "MEALS" ? "&page_context=MEALS&is_recipe=true" : "";
-    const page = await this.rsc.getPage(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
+    const page = await this.pages.getRscPayload(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
     const params = findRscElementProps(page, SEARCH_PARAMS_MODULE)[0]?.params as Record<string, unknown> | undefined;
     if (!params) throw new Error("The search page has no search parameters");
 
-    const actionId = await this.rsc.findServerActionId(page, SEARCH_RESULTS_MODULE, "fetchSearchResults");
+    const actionId = await this.pages.findServerActionId(page, SEARCH_RESULTS_MODULE, "fetchSearchResults");
     if (!actionId) throw new Error("The search page has no fetchSearchResults action");
 
     // The same argument the app's results component passes (search-page-content/results/index.tsx).
-    const results = await this.rsc.runServerAction(
+    const results = await this.pages.runServerAction(
       actionId,
       [
         {
@@ -102,57 +96,46 @@ export class CatalogService {
    * Returns suggestions for Picnic products matching the query.
    * @param {string} query The keywords for suggestions.
    */
-  getSuggestions(query: string): Promise<SearchSuggestion[]> {
-    return this.http.sendRequest<any, SearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
+  getSuggestions(query: string): Promise<RawSearchSuggestion[]> {
+    return this.http.sendRequest<null, RawSearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
+  }
+
+  /** Fetches the product details page (Fusion). */
+  private getProductDetailsPage(productId: string): Promise<FusionPage> {
+    return this.pages.getFusionPage(productDetailsPageId(productId));
   }
 
   /**
-   * Returns the full product details page. The response is not typed as the content is dynamic.
-   * @param {string} productId The product ID to fetch the page for.
-   */
-  getProductDetailsPage(productId: string): Promise<FusionPage> {
-    return this.http.sendRequest<any, FusionPage>(
-      "GET",
-      `/pages/product-details-page-root?id=${productId}&show_category_action=true&show_remove_from_purchases_page_action=true`,
-      null,
-      true,
-    );
-  }
-
-  /**
-   * Returns structured product details extracted from the product details page.
-   * This is a convenience wrapper around {@link getProductDetailsPage} that parses
-   * the Fusion page response into a clean {@link ProductDetails} data model.
-   *
-   * **⚠️ Experimental:** This method parses dynamic Fusion/PML page structures and
-   * may break if Picnic changes their page layout. Use {@link getProductDetailsPage}
-   * for a stable alternative.
+   * Returns a product as the app's product page shows it (`product-details-page-root`): name,
+   * prices, promotions, images, the information sections, nutrition, allergens and the bundles.
    *
    * @param {string} productId The product ID to fetch details for.
    * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.
    */
-  async getProductDetails(productId: string): Promise<ProductDetails> {
+  async getProduct(productId: string): Promise<Product> {
     const page = await this.getProductDetailsPage(productId);
     return extractProductDetails(productId, page);
   }
 
   /**
-   * Retrieves a product image from the server as an ArrayBuffer.
+   * Returns a product image as PNG bytes.
    * @param {string} imageId The image id to retrieve.
    * @param {ImageSize} size The size of the image to return.
    */
-  getImage(imageId: string, size: ImageSize): Promise<string> {
-    const alternateRoute = this.http.url.split("/api/")[0];
-    return this.http.sendRequest<any, string>("GET", `${alternateRoute}/static/images/${imageId}/${size}.png`, null, false, true);
+  getImage(imageId: string, size: ImageSize): Promise<ArrayBuffer> {
+    const staticUrl = this.http.url.split("/api/")[0];
+    return this.http.sendRequest<null, ArrayBuffer>("GET", `${staticUrl}/static/images/${imageId}/${size}.png`, null, { binary: true });
   }
 
   /**
-   * Retrieves a product image from the server as a Data URI.
+   * Returns a product image as a data URI.
    * @param {string} imageId The image id to retrieve.
    * @param {ImageSize} size The size of the image to return.
    */
   async getImageAsDataUri(imageId: string, size: ImageSize): Promise<string> {
-    const arrayBuffer = await this.getImage(imageId, size);
-    return "data:image/png;base64," + Buffer.from(arrayBuffer, "binary").toString("base64");
+    const bytes = new Uint8Array(await this.getImage(imageId, size));
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return `data:image/png;base64,${btoa(binary)}`;
   }
 }

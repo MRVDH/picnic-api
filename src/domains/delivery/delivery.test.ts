@@ -1,7 +1,5 @@
-import { extractDeliveryDetails, extractDeliveryTracking } from "./details";
-import { extractWalletPayment } from "../payment/transaction";
-import type { DeliveryDetail, DeliveryPosition, DeliveryScenario } from "./types";
-import type { WalletTransactionDetails } from "../payment/types";
+import { combineDeliveryTracking, extractDelivery, extractDeliveryPosition, extractDeliveryRoute } from "./delivery";
+import type { RawDelivery, RawDeliveryPosition, RawDeliveryScenario } from "./types";
 
 const line = (id: string, articleId: string, extra: Record<string, unknown> = {}) => ({
   type: "ORDER_LINE",
@@ -12,7 +10,7 @@ const line = (id: string, articleId: string, extra: Record<string, unknown> = {}
   ...extra,
 });
 
-describe("extractDeliveryDetails", () => {
+describe("extractDelivery", () => {
   it("reads the orders with their lines and sums the totals", () => {
     const delivery = {
       delivery_id: "d1",
@@ -39,9 +37,9 @@ describe("extractDeliveryDetails", () => {
         },
         { id: "o2", status: "COMPLETED", items: [line("l2", "s2")], total_price: 398, checkout_total_price: 398, cancellable: true },
       ],
-    } as unknown as DeliveryDetail;
+    } as unknown as RawDelivery;
 
-    const details = extractDeliveryDetails(delivery);
+    const details = extractDelivery(delivery);
 
     expect(details).toMatchObject({
       id: "d1",
@@ -62,63 +60,34 @@ describe("extractDeliveryDetails", () => {
   });
 });
 
-describe("extractDeliveryTracking", () => {
+describe("delivery tracking", () => {
   it("finds the current position on the route by time and reads the driver and destination", () => {
-    const position = { version: 3, scenario_ts: 1050, eta: 5000, eta_window: { start: "18:00", end: "18:20" }, query_interval: 10000, scenario_in_progress: true } as unknown as DeliveryPosition;
-    const scenario = {
+    const position = extractDeliveryPosition({ version: 3, scenario_ts: 1050, eta: 5000, eta_window: { start: "18:00", end: "18:20" }, query_interval: 10000, scenario_in_progress: true } as unknown as RawDeliveryPosition);
+    const route = extractDeliveryRoute({
       version: 3,
       scenario: [{ lat: 52.1, lng: 4.1, ts: 1000 }, { lat: 52.2, lng: 4.2, ts: 1100 }, { lat: 0, lng: 0, ts: 1200 }],
       vehicle: { name: "EV", image: "iVBOR" },
       driver: { name: "Jan", photo_url: "https://example.com/photo.jpg" },
-    } as unknown as DeliveryScenario;
+    } as unknown as RawDeliveryScenario);
 
-    expect(extractDeliveryTracking(position, scenario)).toEqual({
-      scenarioVersion: 3,
+    expect(combineDeliveryTracking(position, route)).toEqual({
+      routeVersion: 3,
       inProgress: true,
       queryInterval: 10000,
       eta: 5000,
       etaWindowStart: "18:00",
       etaWindowEnd: "18:20",
+      routeTime: 1050,
       currentPosition: { lat: 52.1, lng: 4.1, ts: 1000 },
-      route: [{ lat: 52.1, lng: 4.1, ts: 1000 }, { lat: 52.2, lng: 4.2, ts: 1100 }],
-      driverName: "Jan",
-      driverPhotoUrl: "https://example.com/photo.jpg",
-      vehicleName: "EV",
-      vehicleImageDataUrl: "data:image/png;base64,iVBOR",
-      destination: { lat: 52.2, lng: 4.2, street: null, city: null, postcode: null },
-    });
-  });
-});
-
-describe("extractWalletPayment", () => {
-  it("shows substituted products as substitutions instead of lines", () => {
-    const transaction = {
-      amount_in_cents: 1000,
-      delivery_id: "d1",
-      payment_execution_timestamp: 1700000000000,
-      transaction_type: "PAYMENT",
-      transaction_status: "SUCCEEDED",
-      payment_option_display_name: "iDEAL",
-      payment_option_account: "NL** 0000",
-      payment_method_icon_url: "https://example.com/ideal.png",
-      shop_items: [line("l1", "s1"), line("l2", "s2")],
-      article_issue_refunds: [{ article_id: "s2", quantity: 1, amount: 199, substitutions: [{ name: "Other", image_ids: ["image-s3"], quantity: 1 }] }],
-      deposits: [{ value: 25, count: 2 }],
-      returned_containers: [{ type: "CRATE", localized_name: "Kratten", quantity: 1, price: 150 }],
-    } as unknown as WalletTransactionDetails;
-
-    const payment = extractWalletPayment("t1", transaction);
-
-    expect(payment.items.map((item) => item.productId)).toEqual(["s1"]);
-    expect(payment).toMatchObject({
-      id: "t1",
-      deliveryId: "d1",
-      paidAt: 1700000000000,
-      amount: 1000,
-      substitutions: [{ original: { name: "Product s2", imageId: "image-s2", quantity: 1 }, refundAmount: 199, replacements: [{ name: "Other", imageId: "image-s3", quantity: 1 }] }],
-      depositTotal: 50,
-      returnedDepositTotal: 150,
-      paymentMethod: { displayName: "iDEAL", account: "NL** 0000", iconUrl: "https://example.com/ideal.png" },
+      route: {
+        version: 3,
+        points: [{ lat: 52.1, lng: 4.1, ts: 1000 }, { lat: 52.2, lng: 4.2, ts: 1100 }],
+        driverName: "Jan",
+        driverPhotoUrl: "https://example.com/photo.jpg",
+        vehicleName: "EV",
+        vehicleImageDataUrl: "data:image/png;base64,iVBOR",
+        destination: { lat: 52.2, lng: 4.2, street: null, city: null, postcode: null },
+      },
     });
   });
 });

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type HttpClient from "../../http-client";
-import { LoginResult, Verify2FAResult, Generate2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
+import { LoginInput, LoginResult, RawLoginResponse, Verify2FAResult, Verify2FACodeInput, Generate2FACodeInput, GeneratePhoneVerificationInput, VerifyPhoneNumberInput } from "./types";
 
 export class AuthService {
   constructor(private http: HttpClient) {}
@@ -12,20 +12,13 @@ export class AuthService {
    */
   async login(username: string, password: string): Promise<LoginResult> {
     const secret = crypto.createHash("md5").update(password, "utf8").digest("hex");
-
-    const response = await fetch(`${this.http.url}/user/login`, {
-      method: "POST",
-      headers: this.http.baseHeaders,
-      body: JSON.stringify({ key: username, secret, client_id: 30100 }),
-    });
-
-    if (!response.ok) {
-      const errorData: any = await response.json();
-      throw new Error(`Login failed: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data: any = await response.json();
-    const authKey = response.headers.get("x-picnic-auth");
+    const { data, headers } = await this.http.sendRequestWithHeaders<LoginInput, RawLoginResponse>(
+      "POST",
+      `/user/login`,
+      { key: username, secret, client_id: 30100 },
+      { authenticated: false },
+    );
+    const authKey = headers.get("x-picnic-auth");
 
     if (!authKey) {
       throw new Error("Login failed: No auth key received.");
@@ -35,9 +28,9 @@ export class AuthService {
 
     return {
       authKey,
-      second_factor_authentication_required: data.second_factor_authentication_required,
-      show_second_factor_authentication_intro: data.show_second_factor_authentication_intro,
-      user_id: data.user_id,
+      userId: data.user_id,
+      secondFactorAuthenticationRequired: data.second_factor_authentication_required,
+      showSecondFactorAuthenticationIntro: data.show_second_factor_authentication_intro,
     };
   }
 
@@ -46,7 +39,7 @@ export class AuthService {
    * @param {string} channel The channel to send the code to. 'SMS' is the only known format at the moment.
    */
   generate2FACode(channel: string) {
-    return this.http.sendRequest<Generate2FACodeInput, null>("POST", `/user/2fa/generate`, { channel }, true);
+    return this.http.sendRequest<Generate2FACodeInput, null>("POST", `/user/2fa/generate`, { channel }, { includePicnicHeaders: true });
   }
 
   /**
@@ -56,29 +49,8 @@ export class AuthService {
    * @param {string} code The 2FA code to verify.
    */
   async verify2FACode(code: string): Promise<Verify2FAResult> {
-    const headers = new Headers({
-      ...this.http.baseHeaders,
-      ...this.http.picnicHeaders,
-    });
-
-    const response = await fetch(`${this.http.url}/user/2fa/verify`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ otp: code }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      try {
-        const errorData: any = JSON.parse(body);
-        throw new Error(`2FA verification failed: ${errorData.error?.message || response.statusText}`);
-      } catch (e) {
-        if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
-        throw new Error(`2FA verification failed: ${response.status} ${response.statusText}`);
-      }
-    }
-
-    const authKey = response.headers.get("x-picnic-auth");
+    const { headers } = await this.http.sendRequestWithHeaders<Verify2FACodeInput, null>("POST", `/user/2fa/verify`, { otp: code }, { includePicnicHeaders: true });
+    const authKey = headers.get("x-picnic-auth");
     if (!authKey) {
       throw new Error("2FA verification failed: No auth key received.");
     }
