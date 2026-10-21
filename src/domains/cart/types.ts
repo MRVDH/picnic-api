@@ -158,17 +158,26 @@ export type Order = {
 
 // ─── Selling Unit Contexts ────────────────────────────────────────────────────
 
+/** Says a product is added for a recipe planned on a delivery day. */
 export type MealPlanContext = {
   type: "MEAL_PLAN";
-  day_offset: number;
-  servings: number;
+  /** The delivery day, relative to the selected slot (0 is the selected slot's day). */
+  day_relative_to_slot: number;
+  number_of_servings: number;
 };
 
+/** Says a product is added as an ingredient of a recipe. */
 export type SellingGroupContext = {
   type: "SELLING_GROUP";
-  recipe_id: string;
-  ingredient_id: string;
-  component_type: string;
+  /** The recipe id. */
+  selling_group_id: string;
+  /** Who made the recipe: `PIM` for catalog recipes, `USER` for the user's own. */
+  selling_group_creator_type?: "PIM" | "USER" | string;
+  /** The ingredient id, or null. */
+  selling_group_component_id: string | null;
+  /** The ingredient type, e.g. `CORE`. */
+  selling_group_component_type: string;
+  selling_group_component_swap_type: string | null;
 };
 
 export type RecipeContext = {
