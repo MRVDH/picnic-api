@@ -148,7 +148,19 @@ export type Characteristics = {
   baby_month: string | null;
   rating: string | null;
   score: string | null;
-  type: "FROZEN";
+  type: "FROZEN" | "ORGANIC" | string;
+};
+
+/** Links an order line to the recipe (selling group) it was added for. */
+export type BasketGroupDecorator = {
+  type: "BASKET_GROUP";
+  id: string;
+};
+
+/** The color of a line's price, as a theme token, e.g. "RED2" for a discount. */
+export type PriceStyleDecorator = {
+  type: "PRICE_STYLE";
+  price_color: string;
 };
 
 export type ProductCharacteristicsDecorator = {
@@ -205,4 +217,6 @@ export type Decorator =
   | PromoDecorator
   | OrderedQuantityDecorator
   | ProductSizeDecorator
-  | ProductCharacteristicsDecorator;
+  | ProductCharacteristicsDecorator
+  | BasketGroupDecorator
+  | PriceStyleDecorator;
