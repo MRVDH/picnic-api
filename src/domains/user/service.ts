@@ -1,6 +1,6 @@
 import type HttpClient from "../../http-client";
 import type { PageClient } from "../../pages/page-client";
-import { extractProfile } from "./helpers";
+import { extractProfile } from "./profile";
 import { User, UserInfo, Profile, ProfileMenu, UpdateCheckInput, UpdateCheckResult } from "./types";
 
 export class UserService {
@@ -28,7 +28,7 @@ export class UserService {
    * This also includes MGM (member-get-member) referral details via `user.mgm`.
    */
   getProfileMenu(): Promise<ProfileMenu> {
-    return this.http.sendRequest<any, ProfileMenu>("GET", `/profile-menu?fetch_mgm=true`, null, true);
+    return this.http.sendRequest<any, ProfileMenu>("GET", `/profile-menu?fetch_mgm=true`, null, { includePicnicHeaders: true });
   }
 
   /**
@@ -74,6 +74,6 @@ export class UserService {
       device_os: this.http.agent,
       build_number: buildNumber,
     };
-    return this.http.sendRequest<UpdateCheckInput, UpdateCheckResult>("POST", `/update_check`, body, true);
+    return this.http.sendRequest<UpdateCheckInput, UpdateCheckResult>("POST", `/update_check`, body, { includePicnicHeaders: true });
   }
 }

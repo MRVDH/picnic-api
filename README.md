@@ -81,10 +81,12 @@ For endpoints not yet covered by a domain service, use `sendRequest` directly:
 
 ```ts
 await picnicClient.sendRequest("GET", "/unknown/route");
-await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@example.com" });
+await picnicClient.sendRequest("POST", "/invite/friend", { email: "friend@example.com" }, { includePicnicHeaders: true });
 ```
 
-Responses served as an RSC payload (`text/x-component`) are returned as raw text instead of parsed JSON.
+The fourth argument takes options: `includePicnicHeaders` (the `x-picnic-agent` and `x-picnic-did` headers many routes
+need), `headers`, `authenticated`, `binary` (return an `ArrayBuffer`) and `contentType` (for a raw body). Responses
+served as an RSC payload (`text/x-component`) are returned as raw text instead of parsed JSON.
 
 ## API reference
 
@@ -92,14 +94,15 @@ The client exposes the following domain services, each grouping a set of related
 
 | Service | Accessor | Description |
 | --- | --- | --- |
-| **App** | `client.app` | Bootstrap data, pages, and deeplink resolution. |
+| **App** | `client.app` | Bootstrap data, pages in either format, in-app messages, and deeplink resolution. |
 | **Auth** | `client.auth` | Login, logout, 2FA, and phone verification. |
-| **Cart** | `client.cart` | Cart management, delivery slots and selling units (recipes, meal plans, selling groups). |
-| **Catalog** | `client.catalog` | Product search, suggestions, details, and images. |
+| **Cart** | `client.cart` | The cart, adding and removing products, delivery slots, and the cart footer. |
+| **Catalog** | `client.catalog` | Product search, suggestions, categories, product details, and images. |
+| **Checkout** | `client.checkout` | Starting the checkout, paying, and confirming the order. |
 | **Consent** | `client.consent` | Consent settings and GDPR declarations. |
 | **Content** | `client.content` | Static content pages (FAQ, search empty state). |
-| **Customer Service** | `client.customerService` | Contact info, messages, reminders, and parcels. |
-| **Delivery** | `client.delivery` | Delivery history, live position, ratings, and invoices. |
+| **Customer Service** | `client.customerService` | Contact info and opening times. |
+| **Delivery** | `client.delivery` | Delivery history, tracking, ratings, invoices, parcels, and reminders. |
 | **Payment** | `client.payment` | Payment profile and wallet transactions. |
 | **Recipe** | `client.recipe` | Recipe browsing and saving, plus creating and editing your own (user defined) recipes: name, portions, ingredients, note and image. |
 | **User** | `client.user` | User details, profile, suggestions, and push tokens. |

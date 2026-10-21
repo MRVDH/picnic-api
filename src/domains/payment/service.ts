@@ -1,6 +1,6 @@
 import type HttpClient from "../../http-client";
 import { PaymentProfile, WalletTransaction, WalletTransactionSummary, RawWalletTransaction, WalletTransactionsInput } from "./types";
-import { extractWalletTransaction } from "./transaction";
+import { extractWalletTransaction } from "./wallet-transaction";
 
 export class PaymentService {
   constructor(private http: HttpClient) {}
@@ -9,7 +9,7 @@ export class PaymentService {
    * Returns payment profile information.
    */
   getPaymentProfile(): Promise<PaymentProfile> {
-    return this.http.sendRequest<any, PaymentProfile>("GET", `/payment-profile`, null, true);
+    return this.http.sendRequest<any, PaymentProfile>("GET", `/payment-profile`, null, { includePicnicHeaders: true });
   }
 
   /**

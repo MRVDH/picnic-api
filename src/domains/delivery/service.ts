@@ -1,8 +1,8 @@
 import type HttpClient from "../../http-client";
-import { RawDelivery, Delivery, DeliveryPosition, DeliveryRoute, RawDeliveryPosition, RawDeliveryScenario, DeliverySummary, DeliveryTracking } from "./types";
+import { Parcel, Reminder, RemindersWrapper, RawDelivery, Delivery, DeliveryPosition, DeliveryRoute, RawDeliveryPosition, RawDeliveryScenario, DeliverySummary, DeliveryTracking } from "./types";
 import { DeliveryStatus } from "../cart/types";
-import { extractDeliverySummaries } from "./helpers";
-import { combineDeliveryTracking, extractDelivery, extractDeliveryPosition, extractDeliveryRoute } from "./details";
+import { extractDeliverySummaries } from "./summaries";
+import { combineDeliveryTracking, extractDelivery, extractDeliveryPosition, extractDeliveryRoute } from "./delivery";
 
 export class DeliveryService {
   constructor(private http: HttpClient) {}
@@ -32,7 +32,7 @@ export class DeliveryService {
    * @param {string} deliveryId The id of the delivery to look up.
    */
   async getDeliveryPosition(deliveryId: string): Promise<DeliveryPosition> {
-    return extractDeliveryPosition(await this.http.sendRequest<null, RawDeliveryPosition>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/position`, null, true));
+    return extractDeliveryPosition(await this.http.sendRequest<null, RawDeliveryPosition>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/position`, null, { includePicnicHeaders: true }));
   }
 
   /**
@@ -40,7 +40,7 @@ export class DeliveryService {
    * @param {string} deliveryId The id of the delivery to look up.
    */
   async getDeliveryRoute(deliveryId: string): Promise<DeliveryRoute> {
-    return extractDeliveryRoute(await this.http.sendRequest<null, RawDeliveryScenario>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/scenario`, null, true));
+    return extractDeliveryRoute(await this.http.sendRequest<null, RawDeliveryScenario>("GET", `/deliveries/${encodeURIComponent(deliveryId)}/scenario`, null, { includePicnicHeaders: true }));
   }
 
   /**
@@ -83,5 +83,29 @@ export class DeliveryService {
    */
   sendDeliveryInvoiceEmail(deliveryId: string): Promise<string> {
     return this.http.sendRequest<any, string>("POST", `/deliveries/${deliveryId}/resend_invoice_email`);
+  }
+
+  /**
+   * Returns parcels (externally shipped packages tracked via a carrier).
+   */
+  getParcels(): Promise<Parcel[]> {
+    return this.http.sendRequest<any, Parcel[]>("GET", `/parcels`, null, { includePicnicHeaders: true });
+  }
+
+  /**
+   * Returns the user's configured delivery reminders.
+   * Note: Reminders don't seem to be working yet.
+   */
+  getReminders(): Promise<RemindersWrapper> {
+    return this.http.sendRequest<any, RemindersWrapper>("GET", `/reminders`, null, { includePicnicHeaders: true });
+  }
+
+  /**
+   * Sets (replaces) the user's delivery reminders.
+   * Note: Reminders don't seem to be working yet.
+   * @param {Reminder[]} reminders The new list of reminders to save.
+   */
+  setReminders(reminders: Reminder[]): Promise<void> {
+    return this.http.sendRequest<Reminder[], void>("PUT", `/reminders`, reminders, { includePicnicHeaders: true });
   }
 }

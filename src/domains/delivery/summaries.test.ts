@@ -1,4 +1,4 @@
-import { extractDeliverySummaries } from "./helpers";
+import { extractDeliverySummaries } from "./summaries";
 
 describe("extractDeliverySummaries", () => {
   it("sums totals over the orders and reads the window from the slot", () => {

@@ -2,7 +2,7 @@ import type HttpClient from "../../http-client";
 import type { BootstrapData } from "../../pages/fusion";
 import type { PageClient } from "../../pages/page-client";
 import type { Page } from "../../pages/types";
-import { DeeplinkResolution } from "./types";
+import { DeeplinkResolution, MessageDisplayPosition, MessagesWrapper } from "./types";
 
 export class AppService {
   constructor(
@@ -47,6 +47,16 @@ export class AppService {
    * @param {string} url The deeplink URL to resolve.
    */
   resolveDeeplink(url: string): Promise<DeeplinkResolution> {
-    return this.http.sendRequest<DeeplinkResolution, DeeplinkResolution>("POST", `/deeplink/resolve`, { url }, true);
+    return this.http.sendRequest<DeeplinkResolution, DeeplinkResolution>("POST", `/deeplink/resolve`, { url }, { includePicnicHeaders: true });
+  }
+
+  /**
+   * Returns popup messages in the app (e.g. post-delivery satisfaction prompts,
+   * message bar notifications, order-confirmation cards).
+   * @param {MessageDisplayPosition[]} [displayPositions] Optional filter by display position(s).
+   */
+  getMessages(displayPositions?: MessageDisplayPosition[]): Promise<MessagesWrapper> {
+    const query = displayPositions?.length ? `?${displayPositions.map((p) => `display_position=${encodeURIComponent(p)}`).join("&")}` : "";
+    return this.http.sendRequest<any, MessagesWrapper>("GET", `/messages${query}`, null, { includePicnicHeaders: true });
   }
 }

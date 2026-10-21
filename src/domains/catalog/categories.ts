@@ -1,5 +1,5 @@
 import type { RscNode, RscPageContent } from "../../pages/types";
-import { extractFilters } from "./helpers";
+import { extractFilters } from "./search";
 import type { CategoryLink, CategoryLinkTarget, CategoryProducts, CategorySection, ProductTile, SearchSection, Subcategories } from "./types";
 
 type RscRecord = Record<string, unknown>;

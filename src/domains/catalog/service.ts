@@ -2,8 +2,8 @@ import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
 import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, SearchSuggestion, Subcategories } from "./types";
 import { FusionPage } from "../../pages/fusion";
-import { extractSearchResults } from "./helpers";
-import { extractProductDetails, productDetailsPageId } from "./product-details";
+import { extractSearchResults } from "./search";
+import { extractProductDetails, productDetailsPageId } from "./product";
 import type { PageClient } from "../../pages/page-client";
 import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
@@ -124,7 +124,7 @@ export class CatalogService {
    */
   getImage(imageId: string, size: ImageSize): Promise<ArrayBuffer> {
     const staticUrl = this.http.url.split("/api/")[0];
-    return this.http.sendRequest<null, ArrayBuffer>("GET", `${staticUrl}/static/images/${imageId}/${size}.png`, null, false, true);
+    return this.http.sendRequest<null, ArrayBuffer>("GET", `${staticUrl}/static/images/${imageId}/${size}.png`, null, { binary: true });
   }
 
   /**

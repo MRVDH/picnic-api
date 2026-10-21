@@ -9,7 +9,7 @@ export class ContentService {
    * Used to populate the in-app FAQ / help section.
    */
   getFaqContent(): Promise<PML<Component>> {
-    return this.http.sendRequest<null, PML<Component>>("GET", `/content/faq`, null, true);
+    return this.http.sendRequest<null, PML<Component>>("GET", `/content/faq`, null, { includePicnicHeaders: true });
   }
 
   /**
@@ -17,6 +17,6 @@ export class ContentService {
    * Returned in PML (Picnic Markup Language) format.
    */
   getSearchEmptyState(): Promise<PML<Component>> {
-    return this.http.sendRequest<null, PML<Component>>("GET", `/content/search_empty_state`, null, true);
+    return this.http.sendRequest<null, PML<Component>>("GET", `/content/search_empty_state`, null, { includePicnicHeaders: true });
   }
 }

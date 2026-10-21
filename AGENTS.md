@@ -20,14 +20,15 @@ src/
     rsc-payload.ts      # Types of a raw RSC payload (internal)
   errors/               # Error classes exposed on PicnicClient
   domains/
-    app/                # Bootstrap data, pages, announcements
+    app/                # Bootstrap data, pages, in-app messages, deeplinks
     auth/               # Login/authentication
-    cart/               # Cart management, delivery slots, checkout
-    catalog/            # Search, suggestions, product lists
+    cart/               # The cart, delivery slots, the cart footer
+    catalog/            # Search, suggestions, categories, products, images
+    checkout/           # Starting the checkout, payment, confirming the order
     consent/            # User consent management
     content/            # Content pages
-    customer-service/   # Support tickets, contact options
-    delivery/           # Delivery status, scenarios
+    customer-service/   # Contact info and opening times
+    delivery/           # Deliveries, tracking, parcels, reminders
     payment/            # Payment methods, billing
     recipe/             # Recipes, cookbook
     user/               # User details, profile, settings
@@ -37,7 +38,7 @@ src/
 Each domain folder contains:
 - `service.ts` — Service class with methods that call API endpoints via `this.http.sendRequest(...)`. Should only contain route definitions and minimal glue logic.
 - `types.ts` — TypeScript interfaces/types for the domain's request and response data.
-- `helpers.ts` *(optional)* — Pure helper/extraction functions used by the service (e.g. parsing Fusion page responses into typed models). Created when a service needs non-trivial data transformation logic that would clutter the service file. Read pages by their structure (component ids, layout, `textType`, state boundaries) with `src/pages/pml.ts`, not by matching the text in them: texts differ per country and a text pattern also matches other products on the page.
+- One file per model *(optional)*, named after the model it produces (`cart/cart.ts`, `delivery/delivery.ts`, `catalog/product.ts`) — pure extraction functions that turn raw responses and pages into the domain's models, with tests next to them (`cart/cart.test.ts`). The service's own tests are `service.test.ts`; tests against the live API are `<domain>.live.test.ts`. Read pages by their structure (component ids, layout, `textType`, state boundaries) with `src/pages/pml.ts`, not by matching the text in them: texts differ per country and a text pattern also matches other products on the page.
 
 ## Initial Setup
 
@@ -76,17 +77,23 @@ The `HttpClient.sendRequest` method has the following parameters:
 ```typescript
 sendRequest<TRequestData, TResponseData>(
   method: "GET" | "POST" | "PUT" | "DELETE",    // HTTP method
-  path: string,                                 // API path, e.g. `/cart`
+  path: string,                                 // API path, e.g. `/cart`, or an absolute URL
   data: TRequestData | null = null,             // Request body (for POST/PUT)
-  includePicnicHeaders: boolean = false,        // When true, adds x-picnic-agent and x-picnic-did headers
-  isImageRequest: boolean = false,              // When true, returns ArrayBuffer instead of JSON
-  contentType?: string,                         // MIME type for a raw (non-JSON) body, e.g. image/jpeg
+  options: RequestOptions = {},                 // See below
 ): Promise<TResponseData>
+
+type RequestOptions = {
+  includePicnicHeaders?: boolean;               // Adds the x-picnic-agent and x-picnic-did headers
+  headers?: Record<string, string>;             // Extra headers
+  authenticated?: boolean;                      // false: don't send the auth key (public routes, static files)
+  binary?: boolean;                             // Return the body as an ArrayBuffer
+  contentType?: string;                         // MIME type of a raw (non-JSON) body, e.g. image/jpeg
+};
 ```
 
-Some routes require Picnic headers to be sent. You can enable these by setting `includePicnicHeaders` to `true` (the fourth parameter).
+Most routes the app calls need the Picnic headers: pass `{ includePicnicHeaders: true }`. `sendRequestWithHeaders` takes the same arguments and also returns the response headers, for routes where the app reads one (the auth key after a login, `X-Page-Version` for RSC pages).
 
-Objects passed as `data` are sent as JSON. To send raw bytes (for example the recipe image upload), pass a `Blob`, `ArrayBuffer` or `Uint8Array` as `data` and the MIME type as `contentType`. Always go through `sendRequest`; do not call `fetch` directly from a service.
+Objects passed as `data` are sent as JSON. To send raw bytes (for example the recipe image upload), pass a `Blob`, `ArrayBuffer` or `Uint8Array` as `data` and the MIME type as `contentType`. Always go through `sendRequest` or `sendRequestWithHeaders`; do not call `fetch` directly from a service. Pages go through the `PageClient` (see Route Types).
 
 ## Searching the Decompiled App
 

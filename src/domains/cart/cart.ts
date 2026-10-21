@@ -1,6 +1,6 @@
 import type { Decorator } from "../../types/common";
 import type { PriceRange } from "../../pages/fusion";
-import { extractDeliverySlots } from "./helpers";
+import { extractDeliverySlots } from "./delivery-slots";
 import type { RawCart, Cart, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
 
 type RawRecord = Record<string, unknown>;

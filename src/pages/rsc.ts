@@ -1,6 +1,6 @@
 import type { RscPage } from "./rsc-payload";
 import type { RscNode, RscPageContent } from "./types";
-import { extractProductTile } from "../domains/catalog/helpers";
+import { extractProductTile } from "../domains/catalog/search";
 
 const ROW_PATTERN = /^([0-9a-f]+):(I?)(.*)$/;
 /**

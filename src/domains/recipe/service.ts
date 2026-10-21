@@ -38,8 +38,8 @@ import type {
 } from "./types";
 import { FusionPage, FusionPageLayout } from "../../pages/fusion";
 import type { PageClient } from "../../pages/page-client";
-import { productDetailsPageId } from "../catalog/product-details";
-import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./helpers";
+import { productDetailsPageId } from "../catalog/product";
+import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./recipe";
 import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles } from "./lists";
 
 export class RecipeService {
@@ -174,7 +174,7 @@ export class RecipeService {
           saved_at: new Date().toISOString(),
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -193,7 +193,7 @@ export class RecipeService {
           saved_at: null,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -214,7 +214,7 @@ export class RecipeService {
           ...(portions !== undefined && { portions }),
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -235,7 +235,7 @@ export class RecipeService {
           portions,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -252,7 +252,7 @@ export class RecipeService {
           selling_group_id: recipeId,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -285,7 +285,7 @@ export class RecipeService {
           swapType: swapType ?? undefined,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -313,7 +313,7 @@ export class RecipeService {
           selling_group_id: recipeId,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -327,7 +327,7 @@ export class RecipeService {
       "POST",
       `/pages/task/delete-selling-group-component`,
       { payload: { selling_group_component_id: ingredientId, selling_group_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -395,7 +395,7 @@ export class RecipeService {
           selling_units: sellingUnits,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -409,7 +409,7 @@ export class RecipeService {
       "POST",
       `/pages/task/update-name-user-defined-recipe`,
       { payload: { name, selling_group_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -423,7 +423,7 @@ export class RecipeService {
       "POST",
       `/pages/task/update-portions-user-defined-recipe`,
       { payload: { portions, sellable_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -439,7 +439,7 @@ export class RecipeService {
       "POST",
       `/pages/task/delete-user-defined-sellable`,
       { payload: { sellable_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -465,7 +465,7 @@ export class RecipeService {
           selling_unit_id: sellingUnitId,
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -481,7 +481,7 @@ export class RecipeService {
       "POST",
       `/pages/task/update-selling-group-note`,
       { payload: { note, selling_group_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -494,7 +494,7 @@ export class RecipeService {
       "POST",
       `/pages/task/delete-selling-group-note-task`,
       { payload: { selling_group_id: recipeId } },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 
@@ -515,9 +515,7 @@ export class RecipeService {
       "POST",
       `/user-defined-sellable/${encodeURIComponent(recipeId)}`,
       body,
-      true,
-      false,
-      type,
+      { includePicnicHeaders: true, contentType: type },
     );
   }
 
@@ -540,7 +538,7 @@ export class RecipeService {
           ...(referenceImage !== undefined && { reference_image: referenceImage }),
         },
       },
-      true,
+      { includePicnicHeaders: true },
     );
   }
 }

@@ -239,3 +239,52 @@ export type DeliveryTracking = DeliveryPosition & {
   currentPosition: DeliveryRoutePoint | null;
   route: DeliveryRoute;
 };
+
+// ---
+// Reminders
+// ---
+
+/**
+ * Day of week for a reminder.
+ * Maps to `DayOfWeek` in the Android app.
+ */
+export type ReminderDayOfWeek = "EMPTY" | "SUNDAY" | "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
+
+/**
+ * A single delivery reminder configuration.
+ * Maps to `Reminder` in the Android app.
+ */
+export type Reminder = {
+  day_of_week: ReminderDayOfWeek | null;
+  time_of_day: number[] | null; // e.g. [8, 0] for 08:00
+};
+
+/**
+ * Response wrapper for the GET /reminders endpoint.
+ * Maps to `Reminders` in the Android app.
+ */
+export type RemindersWrapper = {
+  reminders: Reminder[];
+};
+
+// ---
+// Parcels
+// ---
+
+/**
+ * The current tracking status of a parcel.
+ */
+export type ParcelCurrentStatus = {
+  status: string; // e.g. "HANDED_OVER"
+  timestamp: string; // ISO 8601 datetime string
+};
+
+/**
+ * A tracked parcel (external delivery via a carrier such as DHL).
+ */
+export type Parcel = {
+  id: string; // carrier tracking code
+  handler_name: string; // e.g. "DHL"
+  active: boolean;
+  current_status: ParcelCurrentStatus;
+};

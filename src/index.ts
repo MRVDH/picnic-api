@@ -7,6 +7,7 @@ import { AuthService } from "./domains/auth/service";
 import { UserService } from "./domains/user/service";
 import { CatalogService } from "./domains/catalog/service";
 import { CartService } from "./domains/cart/service";
+import { CheckoutService } from "./domains/checkout/service";
 import { DeliveryService } from "./domains/delivery/service";
 import { PaymentService } from "./domains/payment/service";
 import { ConsentService } from "./domains/consent/service";
@@ -38,6 +39,7 @@ class PicnicClient extends HttpClient {
   public readonly user: UserService;
   public readonly catalog: CatalogService;
   public readonly cart: CartService;
+  public readonly checkout: CheckoutService;
   public readonly delivery: DeliveryService;
   public readonly payment: PaymentService;
   public readonly consent: ConsentService;
@@ -64,6 +66,7 @@ class PicnicClient extends HttpClient {
     this.user = new UserService(this, pages);
     this.catalog = new CatalogService(this, pages);
     this.cart = new CartService(this, pages);
+    this.checkout = new CheckoutService(this);
     this.delivery = new DeliveryService(this);
     this.payment = new PaymentService(this);
     this.consent = new ConsentService(this);

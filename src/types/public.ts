@@ -7,6 +7,7 @@ export * as app from "../domains/app/types";
 export * as auth from "../domains/auth/types";
 export * as cart from "../domains/cart/types";
 export * as catalog from "../domains/catalog/types";
+export * as checkout from "../domains/checkout/types";
 export * as consent from "../domains/consent/types";
 export * as customerService from "../domains/customer-service/types";
 export * as delivery from "../domains/delivery/types";

@@ -1,4 +1,4 @@
-import { extractProductDetails } from "./product-details";
+import { extractProductDetails } from "./product";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import type { FusionPage } from "../../pages/fusion";
 

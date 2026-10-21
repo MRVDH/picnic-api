@@ -1,4 +1,4 @@
-import { extractDeliverySlots } from "./helpers";
+import { extractDeliverySlots } from "./delivery-slots";
 import { RawDeliverySlot } from "./types";
 
 const slot = (id: string, start: string, end: string, extra: Partial<RawDeliverySlot> = {}): RawDeliverySlot => ({

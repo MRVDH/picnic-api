@@ -1,6 +1,6 @@
-import { readCartLine } from "../cart/contents";
+import { readCartLine } from "../cart/cart";
 import type { OrderLine } from "../cart/types";
-import { readReturnedContainers } from "../delivery/details";
+import { readReturnedContainers } from "../delivery/delivery";
 import type { WalletTransaction, WalletSubstitution, RawWalletTransaction } from "./types";
 
 type RawRecord = Record<string, unknown>;

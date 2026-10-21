@@ -1,22 +1,24 @@
 import { ApiConfig, CountryCode } from "./types/common";
 import { parseCheckoutIssueError } from "./errors/checkout-error";
 
-/**
- * Base HTTP client that handles request construction, authentication headers,
- * and error handling for the Picnic API.
- */
-/** Options for {@link HttpClient.sendRequestWithHeaders}. */
+/** Options for {@link HttpClient.sendRequest} and {@link HttpClient.sendRequestWithHeaders}. */
 export type RequestOptions = {
   /** Whether to include the x-picnic-agent and x-picnic-did headers. Default: false. */
   includePicnicHeaders?: boolean;
   /** Headers to add to the request. */
   headers?: Record<string, string>;
-  /** Whether to send the auth key. Default: true; set false for static files such as RSC client chunks. */
+  /** Whether to send the auth key. Default: true; set false for public routes and static files such as RSC client chunks. */
   authenticated?: boolean;
   /** Whether to return the body as an ArrayBuffer instead of parsing it. Default: false. */
   binary?: boolean;
+  /** The MIME type of a raw (non-JSON) body, e.g. `image/jpeg`. Default: `application/octet-stream`. */
+  contentType?: string;
 };
 
+/**
+ * Base HTTP client that handles request construction, authentication headers,
+ * and error handling for the Picnic API.
+ */
 export default class HttpClient {
   countryCode: CountryCode;
   apiVersion: string;
@@ -51,40 +53,34 @@ export default class HttpClient {
   }
 
   /**
-   * Can be used to send custom requests that are not covered by the domain services.
+   * Sends a request to the Picnic API; the domain services use it, and it can be used for
+   * requests they don't cover.
    *
    * Objects passed as `data` are sent as JSON. A `Blob`, `ArrayBuffer` or typed array
-   * (e.g. `Uint8Array`) is sent as-is, with `Content-Type` set to `contentType`.
+   * (e.g. `Uint8Array`) is sent as-is, with `Content-Type` set to `options.contentType`.
+   * Responses served as a React Server Components payload (`text/x-component`) are returned as
+   * the raw text instead of being parsed as JSON.
    * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.
-   * @param {string} path The path, optionally including query params. Example: `/cart/set_delivery_slot` or `/my_store?depth=0`.
+   * @param {string} path The path, optionally including query params, e.g. `/cart/set_delivery_slot`, or an absolute URL.
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
-   * @param {boolean} [includePicnicHeaders=false] Whether to include x-picnic-agent and x-picnic-did headers.
-   * @param {boolean} [isImageRequest=false] When true, returns an ArrayBuffer instead of JSON.
-   *
-   * Responses served as a React Server Components payload (`text/x-component`) are
-   * returned as the raw text instead of being parsed as JSON.
-   * @param {string} [contentType="application/octet-stream"] The MIME type of a raw (non-JSON) `data` body, e.g. `image/jpeg`.
+   * @param {RequestOptions} [options] Picnic headers, extra headers, authentication, the body's content type and the response type.
    */
   async sendRequest<TRequestData, TResponseData>(
     method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     data: TRequestData | null = null,
-    includePicnicHeaders: boolean = false,
-    isImageRequest: boolean = false,
-    contentType?: string,
+    options: RequestOptions = {},
   ): Promise<TResponseData> {
-    const response = await this.fetchResponse(method, path, data, includePicnicHeaders, contentType);
-    return this.readResponseBody<TResponseData>(response, isImageRequest);
+    return (await this.sendRequestWithHeaders<TRequestData, TResponseData>(method, path, data, options)).data;
   }
 
   /**
-   * Like {@link sendRequest}, but takes its options as an object and also returns the response
-   * headers. Used for routes where the app reads or sends extra headers, such as `X-Page-Version`
-   * for RSC pages, and for requests that must not carry the auth header.
+   * Like {@link sendRequest}, but also returns the response headers. Used for routes where the
+   * app reads headers, such as `x-picnic-auth` after a login and `X-Page-Version` for RSC pages.
    * @param {string} method The HTTP method to use: GET, POST, PUT or DELETE.
    * @param {string} path The path, optionally including query params, or an absolute URL.
-   * @param {TRequestData|null} [data=null] The request body, sent as JSON.
-   * @param {RequestOptions} [options] Extra headers, Picnic headers, authentication and response type.
+   * @param {TRequestData|null} [data=null] The request body.
+   * @param {RequestOptions} [options] Picnic headers, extra headers, authentication, the body's content type and the response type.
    */
   async sendRequestWithHeaders<TRequestData, TResponseData>(
     method: "GET" | "POST" | "PUT" | "DELETE",
@@ -92,7 +88,7 @@ export default class HttpClient {
     data: TRequestData | null = null,
     options: RequestOptions = {},
   ): Promise<{ data: TResponseData; headers: Headers }> {
-    const response = await this.fetchResponse(method, path, data, options.includePicnicHeaders ?? false, undefined, options.headers, options.authenticated ?? true);
+    const response = await this.fetchResponse(method, path, data, options);
     return { data: await this.readResponseBody<TResponseData>(response, options.binary ?? false), headers: response.headers };
   }
 
@@ -101,20 +97,17 @@ export default class HttpClient {
     method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     data: TRequestData | null,
-    includePicnicHeaders: boolean,
-    contentType?: string,
-    extraHeaders: Record<string, string> = {},
-    authenticated = true,
+    options: RequestOptions,
   ): Promise<Response> {
     const isRawBody = data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
 
     const headers = new Headers({
       ...this.baseHeaders,
-      ...(includePicnicHeaders && this.picnicHeaders),
-      ...(isRawBody && { "Content-Type": contentType ?? "application/octet-stream" }),
-      ...extraHeaders,
+      ...(options.includePicnicHeaders && this.picnicHeaders),
+      ...(isRawBody && { "Content-Type": options.contentType ?? "application/octet-stream" }),
+      ...options.headers,
     });
-    if (!authenticated) headers.delete("x-picnic-auth");
+    if (options.authenticated === false) headers.delete("x-picnic-auth");
 
     const body: RequestInit["body"] = data === null ? null : isRawBody ? (data as unknown as NonNullable<RequestInit["body"]>) : JSON.stringify(data);
 
@@ -148,8 +141,8 @@ export default class HttpClient {
   }
 
   /** Reads the body as an ArrayBuffer (image and other binary requests), RSC text or JSON. */
-  private async readResponseBody<TResponseData>(response: Response, isImageRequest: boolean): Promise<TResponseData> {
-    if (isImageRequest) {
+  private async readResponseBody<TResponseData>(response: Response, binary: boolean): Promise<TResponseData> {
+    if (binary) {
       return response.arrayBuffer() as Promise<TResponseData>;
     }
 

@@ -1,4 +1,4 @@
-import { readCartLine, readDeposits, readFees } from "../cart/contents";
+import { readCartLine, readDeposits, readFees } from "../cart/cart";
 import type { DeliveryStatus, Order } from "../cart/types";
 import type {
   RawDelivery,
