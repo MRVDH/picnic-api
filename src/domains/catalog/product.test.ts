@@ -100,6 +100,37 @@ describe("extractProductDetails", () => {
     expect(details.displayPrice).toBe(189);
   });
 
+  it("reads price tiers shown as one tile per tier", () => {
+    // Each tile's expressions hold only their own tier, not the list.
+    const tile = (label: string, tier: { price: number; from_quantity: number }) => ({
+      type: "TOUCHABLE",
+      onPress: { type: "EXPRESSION", props: { v0: "s1", v1: tier.from_quantity, v4: tier.price } },
+      child: {
+        type: "CONTAINER",
+        backgroundColor: { type: "EXPRESSION", props: { v0: "#ffffff", v1: "s1", v2: tier } },
+        child: { type: "STACK", children: [text(label), text((tier.price / 100).toFixed(2))] },
+      },
+    });
+    const details = extractProductDetails(
+      "s1",
+      page({
+        quantityRow: [text("9 rollen")],
+        prices: [
+          tile("1 stuk", { price: 275, from_quantity: 1 }),
+          tile("Vanaf 2", { price: 269, from_quantity: 2 }),
+          tile("Vanaf 3", { price: 265, from_quantity: 3 }),
+        ],
+      })
+    );
+
+    expect(details.displayPrice).toBe(275);
+    expect(details.priceRanges).toEqual([
+      { price: 275, from_quantity: 1 },
+      { price: 269, from_quantity: 2 },
+      { price: 265, from_quantity: 3 },
+    ]);
+  });
+
   it("ignores price tiers and promotions of other products on the page", () => {
     const otherTile = { sellingUnit: { id: "s2", display_price: 349, price_ranges: [{ price: 349, from_quantity: 1 }] } };
     const details = extractProductDetails(
