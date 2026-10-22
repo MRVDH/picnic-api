@@ -151,13 +151,14 @@ type Prices = Pick<Product, "displayPrice" | "originalPrice" | "displayPriceColo
 /**
  * Reads the prices from the main container. A plain price is a `PRICE` component, crossed out for
  * the original price. A product with price tiers shows the tiers instead, computed by expressions
- * whose parameters hold the tier list (`{ price, from_quantity }`).
+ * whose parameters hold the tier list (`{ price, from_quantity }`), or as one tile per tier
+ * ("1 stuk 2.75", "Vanaf 2 2.69") whose expressions each hold their own tier.
  */
 function extractPrices(mainContainer: PmlNode | null, mainUnit: PmlNode | null): Prices {
   const priceNodes = collectPriceNodes(mainContainer);
   const active = priceNodes.find((p) => !p.isCrossed);
   const crossed = priceNodes.find((p) => p.isCrossed);
-  const priceRanges = findPriceTiers(mainContainer) ?? (Array.isArray(mainUnit?.price_ranges) && mainUnit!.price_ranges.length > 0 ? (mainUnit!.price_ranges as PriceRange[]) : null);
+  const priceRanges = findPriceTiers(mainContainer) ?? collectTierTiles(mainContainer) ?? (Array.isArray(mainUnit?.price_ranges) && mainUnit!.price_ranges.length > 0 ? (mainUnit!.price_ranges as PriceRange[]) : null);
   const lowestTier = priceRanges ? [...priceRanges].sort((a, b) => a.from_quantity - b.from_quantity)[0] : undefined;
   const unitPrice = typeof mainUnit?.display_price === "number" ? mainUnit.display_price : undefined;
 
@@ -186,6 +187,20 @@ function findPriceTiers(node: unknown): PriceRange[] | null {
     }
   });
   return tiers;
+}
+
+/**
+ * The tiers of tier tiles in a subtree: every `{ price, from_quantity }` object, once per quantity,
+ * sorted by quantity. `null` when there are none.
+ */
+function collectTierTiles(node: unknown): PriceRange[] | null {
+  const byQuantity = new Map<number, PriceRange>();
+  walkNodes(node, (n) => {
+    if (typeof n.price === "number" && typeof n.from_quantity === "number" && !byQuantity.has(n.from_quantity)) {
+      byQuantity.set(n.from_quantity, { price: n.price, from_quantity: n.from_quantity });
+    }
+  });
+  return byQuantity.size > 0 ? [...byQuantity.values()].sort((a, b) => a.from_quantity - b.from_quantity) : null;
 }
 
 function extractImageIds(page: unknown, mainUnit: PmlNode | null): string[] {
