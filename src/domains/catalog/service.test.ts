@@ -44,3 +44,12 @@ describe("CatalogService.getSearchResults", () => {
     expect(rsc.runServerAction.mock.calls[0][1][0].requestedSorting).toBe("PRICE");
   });
 });
+
+describe("CatalogService.getImageUrl", () => {
+  it("builds the static image URL of the country, medium by default", () => {
+    const catalog = new CatalogService(new HttpClient({ countryCode: "DE" }), {} as PageClient);
+
+    expect(catalog.getImageUrl("abc123")).toBe("https://storefront-prod.de.picnicinternational.com/static/images/abc123/medium.png");
+    expect(catalog.getImageUrl("abc123", "small")).toBe("https://storefront-prod.de.picnicinternational.com/static/images/abc123/small.png");
+  });
+});
