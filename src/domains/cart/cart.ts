@@ -30,7 +30,7 @@ function readReplacement(raw: RawRecord): CartReplacement | null {
   return {
     id,
     name: asString(raw.name) ?? "",
-    imageId: asString(imageIds[0]),
+    imageId: asString(raw.image_id) ?? asString(imageIds[0]),
     displayPrice: asNumber(raw.display_price),
     unitQuantity: asString(raw.unit_quantity) ?? "",
     maxCount: asNumber(raw.max_count, 99),

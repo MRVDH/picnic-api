@@ -73,10 +73,19 @@ function extractProductResults(store: RscRecord): SearchProductResults {
  * @param {RscRecord} tile The decoded tile.
  */
 export function extractProductTile(tile: RscRecord): ProductTile | null {
+  return tile.type === "sellable" ? readSellableTile(tile) : null;
+}
+
+/**
+ * Extracts a product from a sellable tile without checking its `type`, for pages whose tiles have
+ * none (the unavailability replacements page). Returns `null` without an id or name.
+ * @param {RscRecord} tile The decoded tile.
+ */
+export function readSellableTile(tile: RscRecord): ProductTile | null {
   const id = asString(tile.id);
   const title = asRecord(tile.title);
   const name = asString(title.title);
-  if (tile.type !== "sellable" || !id || !name) return null;
+  if (!id || !name) return null;
 
   const images = asRecord(tile.images);
   const price = asRecord(tile.price);

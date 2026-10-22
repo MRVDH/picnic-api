@@ -1,3 +1,4 @@
+import type { ProductTile } from "../catalog/types";
 import { Component, Icon, PriceRange } from "../../pages/fusion";
 import { Decorator } from "../../types/common";
 
@@ -247,15 +248,33 @@ export type CartLineLabel = {
   backgroundColor: string | null;
 };
 
-/** A product offered instead of an unavailable one. */
+/**
+ * A product offered instead of an unavailable one, as the cart response lists it. Picnic only sends
+ * the id and image of the product here; {@link CartService.getReplacements} returns the products
+ * with their names and prices.
+ */
 export type CartReplacement = {
   id: string;
+  /** @deprecated Picnic sends a placeholder ("irrelevant"). Use `cart.getReplacements` for the name. */
   name: string;
   imageId: string | null;
-  /** Price in cents. */
+  /** @deprecated Picnic sends 0. Use `cart.getReplacements` for the price. */
   displayPrice: number;
   unitQuantity: string;
   maxCount: number;
+};
+
+/**
+ * The products Picnic offers instead of a cart product that can't be delivered, as the app's
+ * replacements page (`unavailability-replacements-page-root`) shows them.
+ */
+export type CartReplacements = {
+  /** The product that can't be delivered. */
+  productId: string;
+  /** Why, as a code, e.g. "TEMPORARILY_UNAVAILABLE", or `null`. */
+  reason: string | null;
+  /** The replacements, in the order the app shows them. */
+  replacements: ProductTile[];
 };
 
 /** A line of the cart: one product and how many of it. Decorator overrides are applied. */

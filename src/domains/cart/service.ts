@@ -9,10 +9,12 @@ import {
   SellingUnitContext,
   SetDeliverySlotInput,
   RawMinimumOrderValue,
+  CartReplacements,
 } from "./types";
 import { extractDeliverySlots } from "./delivery-slots";
 import { extractCartFooter } from "./footer";
 import { extractCart } from "./cart";
+import { extractCartReplacements } from "./replacements";
 import type { PageClient } from "../../pages/page-client";
 
 /** The app's basket footer page. */
@@ -40,6 +42,18 @@ export class CartService {
    */
   async getCart(): Promise<Cart> {
     return extractCart(await this.http.sendRequest<null, RawCart>("GET", `/cart`, null, { includePicnicHeaders: true }));
+  }
+
+  /**
+   * Returns the products Picnic offers instead of a cart product that can't be delivered, with their
+   * names and prices, as the app's replacements page shows them. The cart lists the same products
+   * in `CartLineItem.replacements`, but without their names and prices.
+   * @param {string} productId The id of the cart product that can't be delivered.
+   * @throws {UnexpectedPageFormatError} When Picnic serves the page as Fusion.
+   */
+  async getReplacements(productId: string): Promise<CartReplacements> {
+    const content = await this.pages.getRscContent(`unavailability-replacements-page-root?selling_unit_id=${encodeURIComponent(productId)}`);
+    return extractCartReplacements(content, productId);
   }
 
   /** Sends a cart mutation and returns the cart it responds with. */
