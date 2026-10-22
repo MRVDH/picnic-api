@@ -118,13 +118,23 @@ export class CatalogService {
   }
 
   /**
+   * Returns the URL of a product image, e.g. for an `<img>` or a chat message. The images don't
+   * need the auth key, so the URL works outside this client.
+   * @param {string} imageId The image id, e.g. `ProductTile.imageId`.
+   * @param {ImageSize} [size="medium"] The size of the image.
+   */
+  getImageUrl(imageId: string, size: ImageSize = "medium"): string {
+    const staticUrl = this.http.url.split("/api/")[0];
+    return `${staticUrl}/static/images/${encodeURIComponent(imageId)}/${size}.png`;
+  }
+
+  /**
    * Returns a product image as PNG bytes.
    * @param {string} imageId The image id to retrieve.
    * @param {ImageSize} size The size of the image to return.
    */
   getImage(imageId: string, size: ImageSize): Promise<ArrayBuffer> {
-    const staticUrl = this.http.url.split("/api/")[0];
-    return this.http.sendRequest<null, ArrayBuffer>("GET", `${staticUrl}/static/images/${imageId}/${size}.png`, null, { binary: true });
+    return this.http.sendRequest<null, ArrayBuffer>("GET", this.getImageUrl(imageId, size), null, { binary: true });
   }
 
   /**
