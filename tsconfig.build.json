@@ -1,6 +1,6 @@
 {
   "include": ["./src/**/*"],
-  "exclude": ["./src/**/*.test.ts"],
+  "exclude": ["./src/**/*.test.ts", "./src/**/*.fixtures.ts"],
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",

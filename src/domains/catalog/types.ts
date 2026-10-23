@@ -326,3 +326,69 @@ export type SimilarProduct = {
   /** Progressive discount price tiers. `null` or absent when no bundle pricing is available. */
   priceRanges?: PriceRange[] | null;
 };
+
+// ─── Promotions ───────────────────────────────────────────────────────────────
+
+/** The promotions page ({@link CatalogService.getPromotions}). */
+export type Promotions = {
+  /** The sections in page order, e.g. the personal promotions, "Uitgelicht", one per category and the bargain bin. */
+  sections: PromotionSection[];
+};
+
+/** A section of the promotions page. */
+export type PromotionSection = {
+  /** The section's component id, e.g. "3-campaign-promo-section_<uuid>". It changes with each campaign. */
+  id: string;
+  /** The section title, e.g. "Zuivel". */
+  title: string;
+  /** The products shown in the section. */
+  products: ProductTile[];
+  /** Promotions on several products, e.g. "Korting op Alpro"; {@link CatalogService.getPromotionGroup} lists their products. */
+  groups: PromotionGroup[];
+};
+
+/** A promotion on several products, shown as a card on the promotions page. */
+export type PromotionGroup = {
+  /** The promotion group id, for {@link CatalogService.getPromotionGroup}. */
+  id: string;
+  /** The name, e.g. "Alpro vers". */
+  name: string;
+  /** The line below the name, usually an example product ("Bv. sojayoghurt"), or `null`. */
+  example: string | null;
+  /** The promotion, e.g. "2 voor €3.99", or `null`. */
+  label: string | null;
+};
+
+/** The products of a promotion group ({@link CatalogService.getPromotionGroup}). */
+export type PromotionGroupProducts = {
+  /** The promotion group id. */
+  id: string;
+  /** The name, e.g. "Alpro vers". */
+  name: string;
+  /** The products in the promotion. */
+  products: ProductTile[];
+};
+
+// ─── Favorites ────────────────────────────────────────────────────────────────
+
+/** The products the customer buys, per aisle, from the app's "Favorieten" tab ({@link CatalogService.getFavorites}). */
+export type Favorites = {
+  /** The aisles in the app's order, also the ones without products in this response. */
+  aisles: FavoritesAisle[];
+};
+
+/** An aisle of the favorites. */
+export type FavoritesAisle = {
+  /** The aisle id, e.g. "DAIRY", for {@link CatalogService.getFavoritesInAisle}. */
+  id: string;
+  /** The aisle name, e.g. "Zuivel & eieren". */
+  title: string;
+  /** The products the page shows for this aisle, in the app's order. */
+  products: ProductTile[];
+  /**
+   * Whether `products` is the full list. The page shows part of a long aisle, and loads the last
+   * aisles only when the user scrolls to them; {@link CatalogService.getFavoritesInAisle} returns
+   * the full list.
+   */
+  complete: boolean;
+};

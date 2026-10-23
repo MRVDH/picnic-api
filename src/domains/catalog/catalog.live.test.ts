@@ -82,3 +82,30 @@ describe("Catalog - categories", () => {
     expect(products.results.sections.some((section) => section.products.length > 0)).toBe(true);
   });
 });
+
+describe("Catalog - promotions", () => {
+  it("reads the promotions page and the products of a promotion group", async () => {
+    const promotions = await client.catalog.getPromotions();
+    expect(promotions.sections.length).toBeGreaterThan(0);
+    expect(promotions.sections.every((section) => section.title !== "")).toBe(true);
+    expect(promotions.sections.flatMap((section) => section.products).some((product) => product.labels.length > 0)).toBe(true);
+
+    const group = promotions.sections.flatMap((section) => section.groups)[0];
+    if (!group) throw new Error("No promotion groups");
+    const products = await client.catalog.getPromotionGroup(group.id);
+    expect(products.name).not.toBe("");
+    expect(products.products.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Catalog - favorites", () => {
+  it("reads the favorites per aisle and the full list of an aisle", async () => {
+    const favorites = await client.catalog.getFavorites();
+    expect(favorites.aisles.length).toBeGreaterThan(0);
+
+    const aisle = favorites.aisles.find((candidate) => candidate.products.length > 0);
+    if (!aisle) throw new Error("No aisle with products");
+    const products = await client.catalog.getFavoritesInAisle(aisle.id);
+    expect(products.length).toBeGreaterThanOrEqual(aisle.products.length);
+  });
+});
