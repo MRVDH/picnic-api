@@ -1,6 +1,20 @@
 import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
-import { CategoryProducts, CategorySection, Product, SearchOptions, SearchResults, RawSearchSuggestion, Subcategories } from "./types";
+import {
+  CategoryProducts,
+  CategorySection,
+  Favorites,
+  Product,
+  ProductTile,
+  PromotionGroupProducts,
+  Promotions,
+  SearchOptions,
+  SearchResults,
+  RawSearchSuggestion,
+  Subcategories,
+} from "./types";
+import { extractPromotionGroup, extractPromotions } from "./promotions";
+import { extractFavorites, extractFavoritesInAisle } from "./favorites";
 import { FusionPage } from "../../pages/fusion";
 import { extractSearchResults } from "./search";
 import { extractProductDetails, productDetailsPageId } from "./product";
@@ -53,6 +67,40 @@ export class CatalogService {
   async getCategoryPromotions(categoryId: string): Promise<CategoryProducts> {
     const content = await this.pages.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
+  }
+
+  /**
+   * Returns the promotions page as the app shows it (`promo-page-root`): sections with products
+   * and promotion groups, e.g. the personal promotions, "Uitgelicht" and one section per category.
+   */
+  async getPromotions(): Promise<Promotions> {
+    return extractPromotions(await this.pages.getFusionPage("promo-page-root"));
+  }
+
+  /**
+   * Returns the products of a promotion on several products (`promo-group-deep-dive`).
+   * @param {string} groupId The id of a {@link PromotionGroup}, from {@link getPromotions}.
+   */
+  async getPromotionGroup(groupId: string): Promise<PromotionGroupProducts> {
+    const content = await this.pages.getRscContent(`promo-group-deep-dive?promo_group_id=${encodeURIComponent(groupId)}`);
+    return extractPromotionGroup(groupId, content);
+  }
+
+  /**
+   * Returns the products the customer buys, per aisle, as the app's "Favorieten" tab shows them
+   * (`purchases-page-root`). Long aisles and the last aisles are incomplete (`complete: false`);
+   * {@link getFavoritesInAisle} returns an aisle's full list.
+   */
+  async getFavorites(): Promise<Favorites> {
+    return extractFavorites(await this.pages.getFusionPage("purchases-page-root"));
+  }
+
+  /**
+   * Returns all products the customer buys in one aisle (`aisle-deep-dive`).
+   * @param {string} aisleId The id of a {@link FavoritesAisle}, e.g. "DAIRY".
+   */
+  async getFavoritesInAisle(aisleId: string): Promise<ProductTile[]> {
+    return extractFavoritesInAisle(await this.pages.getFusionPage(`aisle-deep-dive?aisle_id=${encodeURIComponent(aisleId)}`));
   }
 
   /**
