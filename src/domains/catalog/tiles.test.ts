@@ -38,6 +38,18 @@ describe("readFusionProductTile", () => {
     expect(readFusionProductTile(tile)).toMatchObject({ name: "citroenen", namePrefix: "Bio", brand: null, qualityCue: null, originalPrice: null, labels: [] });
   });
 
+  it("reads a first span of the name in a highlight color as its prefix", () => {
+    const tile = fusionTile({ id: "s1000003", name: "Edeka Bio Bio Fettarme H-Milch 1,5%", nameSpans: ["#(#628003)Bio#(#628003) ", "#(#333333)Fettarme H-Milch 1,5%#(#333333) "] });
+
+    expect(readFusionProductTile(tile)).toMatchObject({ name: "Fettarme H-Milch 1,5%", namePrefix: "Bio" });
+  });
+
+  it("keeps a first span in the regular text color as part of the name", () => {
+    const tile = fusionTile({ id: "s1000004", name: "Picnic halfvolle melk", nameSpans: ["#(#333333)Halfvolle#(#333333) ", "#(#333333)melk#(#333333) "] });
+
+    expect(readFusionProductTile(tile)).toMatchObject({ name: "Halfvolle melk", namePrefix: null });
+  });
+
   it("keeps price tiers only when the price depends on the quantity", () => {
     const tiers = [
       { price: 250, from_quantity: 1 },

@@ -62,6 +62,27 @@ describe("recipe lists", () => {
     ]);
   });
 
+  it("reads a wide recipe tile of the recipe search, whose first text is the name", () => {
+    const wide = {
+      type: "PML",
+      id: "core-wide-recipe-tile__1",
+      analytics: { contexts: [{ schema: schema("recipe"), data: { recipe_id: "w1" } }] },
+      pml: {
+        component: {
+          type: "STACK",
+          children: [
+            { type: "IMAGE", source: { id: "recipes/w1" } },
+            { type: "STACK", children: [text("Pasta mit Lauchpesto"), text("#(#333333)30 Minuten#(#333333)"), text("#(#ffffff)Ohne Fleisch & Fisch#(#ffffff)")] },
+          ],
+        },
+      },
+    };
+
+    expect(extractRecipeTiles({ children: [wide] })).toEqual([
+      { id: "w1", name: "Pasta mit Lauchpesto", imageType: null, imageId: "recipes/w1", subtitle: null, tags: ["30 Minuten", "Ohne Fleisch & Fisch"], cookingTimeMinutes: 30 },
+    ]);
+  });
+
   it("groups the cookbook home into recipe rows and category sections", () => {
     const aisle = (rank: number, name: string, pill: string) => ({ schema: schema("aisle"), data: { aisle_ranking: rank, assortment_aisle: name, pill_display_name: pill } });
     const category = (heading: string, name: string, deeplink: string) => ({

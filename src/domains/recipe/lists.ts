@@ -48,8 +48,10 @@ function visibleTexts(node: unknown, texts: { markdown: string; textType: unknow
 }
 
 /**
- * Reads a recipe tile of a Fusion page (cookbook, cookbook home, saved recipes). The tile shows
- * labels on the image, the name, then the subtitle (`SUBTITLE2`) and the tags ("20 min", "Vegan").
+ * Reads a recipe tile of a Fusion page (cookbook, cookbook home, saved recipes, recipe search).
+ * The tile shows labels on the image, the name (`SUBTITLE1`), then the subtitle (`SUBTITLE2`) and
+ * the tags ("20 min", "Vegan"). The wide tiles of the recipe search have no text types and no
+ * labels on the image: their first text is the name, followed by the tags.
  */
 export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
   const recipe = recipeContext(tile);
@@ -57,7 +59,9 @@ export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
   const texts = visibleTexts(tile.pml).map((t) => ({ text: cleanMarkdown(t.markdown), textType: t.textType })).filter((t) => t.text);
   const analyticsName = typeof recipe.recipe_name === "string" ? recipe.recipe_name.trim() : "";
   const shownName = analyticsName ? texts.findIndex((t) => t.text === analyticsName) : -1;
-  const nameIndex = shownName >= 0 ? shownName : texts.findIndex((t) => t.textType === "SUBTITLE1");
+  const subtitle1 = texts.findIndex((t) => t.textType === "SUBTITLE1");
+  const hasTextTypes = texts.some((t) => t.textType !== undefined);
+  const nameIndex = shownName >= 0 ? shownName : subtitle1 >= 0 || hasTextTypes ? subtitle1 : 0;
   const name = analyticsName || (nameIndex >= 0 ? texts[nameIndex].text : "");
   const after = nameIndex >= 0 ? texts.slice(nameIndex + 1).filter((t) => t.text !== ">") : [];
   const subtitle = after.find((t) => t.textType === "SUBTITLE2")?.text ?? null;

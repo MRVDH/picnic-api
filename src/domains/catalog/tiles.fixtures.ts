@@ -7,6 +7,8 @@ export type TileOptions = {
   id: string;
   name: string;
   shownName?: string;
+  /** The name as separate spans instead of one text, e.g. a prefix in its own color. */
+  nameSpans?: string[];
   qualityCue?: string;
   brand?: string;
   unitQuantity?: string;
@@ -33,7 +35,13 @@ export function fusionTile(options: TileOptions) {
   }
   const column = [
     ...(options.qualityCue ? [row(text(`#(#5b534e)${options.qualityCue}#(#5b534e)`))] : []),
-    { type: "RICH_TEXT", children: [text(`#(#333333)${options.shownName ?? options.name}#(#333333) `), text(">")] },
+    {
+      type: "RICH_TEXT",
+      children: [
+        ...(options.nameSpans ?? [`#(#333333)${options.shownName ?? options.name}#(#333333) `]).map((span) => text(span)),
+        { ...text(">"), textAttributes: { family: "PicnicSymbols" } },
+      ],
+    },
     { type: "CONTAINER", child: row(text((price / 100).toFixed(2))) },
     ...(options.brand ? [row(text(`#(#787570)${options.brand}#(#787570)`))] : []),
     row(text("Klein"), text(unitQuantity)),
