@@ -44,6 +44,11 @@ describe("readFusionProductTile", () => {
     expect(readFusionProductTile(tile)).toMatchObject({ name: "Fettarme H-Milch 1,5%", namePrefix: "Bio" });
   });
 
+  it("reads a product as unavailable from the tile's unavailability context", () => {
+    expect(readFusionProductTile(fusionTile({ id: "s1000005", name: "Bio-Rote", unavailability: "SEASONAL_REGULAR" }))?.isUnavailable).toBe(true);
+    expect(readFusionProductTile(fusionTile({ id: "s1000006", name: "Eier" }))?.isUnavailable).toBe(false);
+  });
+
   it("keeps a first span in the regular text color as part of the name", () => {
     const tile = fusionTile({ id: "s1000004", name: "Picnic halfvolle melk", nameSpans: ["#(#333333)Halfvolle#(#333333) ", "#(#333333)melk#(#333333) "] });
 

@@ -15,6 +15,8 @@ export type TileOptions = {
   price?: number;
   promotion?: { label: string; originalPrice?: number };
   priceRanges?: { price: number; from_quantity: number }[];
+  /** The reason of the tile's unavailability context, e.g. "SEASONAL_REGULAR". */
+  unavailability?: string;
 };
 
 /** A product tile: the selling unit, the image with labels, and the info column. */
@@ -22,6 +24,9 @@ export function fusionTile(options: TileOptions) {
   const unitQuantity = options.unitQuantity ?? "1 stuk";
   const price = options.price ?? 199;
   const contexts: unknown[] = [{ schema: "iglu:tech.picnic.snowplow.analytics/product/jsonschema/1-0-0", data: { product_id: options.id } }];
+  if (options.unavailability) {
+    contexts.push({ schema: "iglu:nl.picnic.snowplow/unavailability/jsonschema/1-1-0", data: { product_id: options.id, product_ids: [], reason: options.unavailability } });
+  }
   if (options.promotion) {
     contexts.push({
       schema: "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/1-1-0",

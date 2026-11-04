@@ -11,6 +11,11 @@ const asNumber = (value: unknown): number | null => (typeof value === "number" ?
 
 /** The analytics context of a tile's promotion: its label and the original price. */
 const PROMOTION_SCHEMA = "iglu:tech.picnic.snowplow.analytics/promotion/";
+/**
+ * The analytics context of a tile that shows its product as unavailable (`iglu:nl.picnic.snowplow/unavailability/...`),
+ * with the reason, e.g. "SEASONAL_REGULAR", and the alternatives it offers.
+ */
+const UNAVAILABILITY_SCHEMA = /\/unavailability\/jsonschema\//;
 /** The layer over the tile image that holds its labels. */
 const LABEL_CONTAINER_ID = "selling-unit-label-container";
 /** The font of symbols in texts, e.g. the ">" after a tile's name. */
@@ -20,7 +25,7 @@ const SYMBOL_FONT = "PicnicSymbols";
 export const isFusionProductTile = (node: PmlNode): boolean => node.type === "PML" && asRecord(node.content).type === "SELLING_UNIT_TILE";
 
 /**
- * Reads a product tile of a Fusion page (promotions, favorites) into the same {@link ProductTile}
+ * Reads a product tile of a Fusion page (promotions, favorites, search) into the same {@link ProductTile}
  * the RSC pages give. The selling unit has the id, price, image and package size; the tile's info
  * column (the stack that opens the product page) has the name as shown, the quality cue above it
  * and the brand below the price. Fusion tiles have no unit price or order count.
@@ -57,7 +62,10 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     priceRanges: priceRanges.length > 1 ? priceRanges : null,
     unitQuantity,
     labels: promotionLabel ? [{ position: labelPosition(tile.pml, promotionLabel), type: "PROMO", text: promotionLabel }] : [],
-    isUnavailable: asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE"),
+    // Search tiles have no decorator; they carry an unavailability context instead.
+    isUnavailable:
+      asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") ||
+      analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
     numberOfOrders: null,
   };
 }
