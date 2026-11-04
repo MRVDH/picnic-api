@@ -7,12 +7,16 @@ export type TileOptions = {
   id: string;
   name: string;
   shownName?: string;
+  /** The name as separate spans instead of one text, e.g. a prefix in its own color. */
+  nameSpans?: string[];
   qualityCue?: string;
   brand?: string;
   unitQuantity?: string;
   price?: number;
   promotion?: { label: string; originalPrice?: number };
   priceRanges?: { price: number; from_quantity: number }[];
+  /** The reason of the tile's unavailability context, e.g. "SEASONAL_REGULAR". */
+  unavailability?: string;
 };
 
 /** A product tile: the selling unit, the image with labels, and the info column. */
@@ -20,6 +24,9 @@ export function fusionTile(options: TileOptions) {
   const unitQuantity = options.unitQuantity ?? "1 stuk";
   const price = options.price ?? 199;
   const contexts: unknown[] = [{ schema: "iglu:tech.picnic.snowplow.analytics/product/jsonschema/1-0-0", data: { product_id: options.id } }];
+  if (options.unavailability) {
+    contexts.push({ schema: "iglu:nl.picnic.snowplow/unavailability/jsonschema/1-1-0", data: { product_id: options.id, product_ids: [], reason: options.unavailability } });
+  }
   if (options.promotion) {
     contexts.push({
       schema: "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/1-1-0",
@@ -33,7 +40,13 @@ export function fusionTile(options: TileOptions) {
   }
   const column = [
     ...(options.qualityCue ? [row(text(`#(#5b534e)${options.qualityCue}#(#5b534e)`))] : []),
-    { type: "RICH_TEXT", children: [text(`#(#333333)${options.shownName ?? options.name}#(#333333) `), text(">")] },
+    {
+      type: "RICH_TEXT",
+      children: [
+        ...(options.nameSpans ?? [`#(#333333)${options.shownName ?? options.name}#(#333333) `]).map((span) => text(span)),
+        { ...text(">"), textAttributes: { family: "PicnicSymbols" } },
+      ],
+    },
     { type: "CONTAINER", child: row(text((price / 100).toFixed(2))) },
     ...(options.brand ? [row(text(`#(#787570)${options.brand}#(#787570)`))] : []),
     row(text("Klein"), text(unitQuantity)),

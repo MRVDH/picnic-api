@@ -7,13 +7,19 @@ beforeAll(() => {
 });
 
 describe("Catalog - search", () => {
-  it("should return sections, sorting options and recipes from getSearchResults", async () => {
+  it("should return sections and sorting options from getSearchResults", async () => {
     const results = await client.catalog.getSearchResults("melk");
 
     expect(results.query).toBe("melk");
     expect(results.products?.sections.some((section) => section.products.length > 0)).toBe(true);
     expect(results.products?.sortingOptions.map((option) => option.name)).toContain("RELEVANCE");
+  });
+
+  it("should return recipes from getSearchResults in the MEALS context", async () => {
+    const results = await client.catalog.getSearchResults("pasta", { context: "MEALS" });
+
     expect(results.recipes.length).toBeGreaterThan(0);
+    expect(results.recipes.every((recipe) => recipe.name !== "")).toBe(true);
   });
 });
 

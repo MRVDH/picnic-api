@@ -1,4 +1,5 @@
-import { extractSearchResults } from "./search";
+import { extractFusionSearchResults, extractSearchResults } from "./search";
+import { fusionTile } from "./tiles.fixtures";
 
 describe("extractSearchResults", () => {
   const props = {
@@ -109,5 +110,135 @@ describe("extractSearchResults", () => {
     });
 
     expect(results.products?.sections[0].products.map((product) => product.displayPrice)).toEqual([150, 160]);
+  });
+});
+
+describe("extractFusionSearchResults", () => {
+  const text = (markdown: string, extra: Record<string, unknown> = {}) => ({ type: "RICH_TEXT", markdown, ...extra });
+  const header = (name: string, isHidden: unknown = false) => ({
+    type: "BLOCK",
+    id: `client-side-filtering-section-header-wrapper-${name}`,
+    isHidden,
+    children: [{ type: "PML", id: `header-${name}`, pml: { component: text(`#(#333333)${name}#(#333333)`, { textType: "HEADER3" }) } }],
+  });
+  const wrapper = (id: string, ...tiles: unknown[]) => ({ type: "BLOCK", id: `client-side-filtering-section-wrapper-${id}`, children: tiles });
+  const filter = (facetId: string, name: string, type: string, imageId: string) => ({
+    type: "PML",
+    id: `search-header-visual-item-${facetId}`,
+    pml: {
+      component: {
+        type: "TOUCHABLE",
+        onPress: { actionType: "CALLBACK", callback: { type: "EXPRESSION", expression: "toggleFilterExpression1", props: { v0: facetId, v1: name, v2: type } } },
+        child: { type: "STACK", children: [{ type: "IMAGE", source: { id: imageId } }, text(name)] },
+      },
+    },
+  });
+  const page = {
+    layout: {
+      type: "STATE_BOUNDARY",
+      id: "searchState",
+      state: {
+        analyticsTemplate: { data: { query: "mlich", query_corrected: "milch", initial_sorting_strategies: ["RELEVANCE", "PRICE"] } },
+        sections: [{ index: 1, name: "Nochmal bestellen" }, { index: 1, name: "H-Milch" }],
+        selectedEntityType: "SELLING_UNIT",
+        selectedSorting: "RELEVANCE",
+        sellingUnitIdsByFacetIds: { "category_level_3.1": ["s2", "s3"], "characteristic.Bio": ["s3"] },
+      },
+      child: {
+        type: "BLOCK",
+        id: "root",
+        children: [
+          filter("category_level_3.1", "H-Milch", "VISUAL_FILTER", "img-h"),
+          filter("characteristic.Bio", "Bio", "POWER_FILTER", "img-bio"),
+          {
+            type: "PML",
+            id: "search-header-visual-item-sorting",
+            pml: {
+              component: {
+                type: "TOUCHABLE",
+                onPress: {
+                  actionType: "OPEN",
+                  target: {
+                    type: "EXPRESSION",
+                    props: {
+                      v0: "app.picnic://store/page;id=search-sort-options-root,presentation-mode=MODAL_OVER_CONTEXT,search_id=x&selected_sorting=RELEVANCE&sorting_options_ids=RELEVANCE&sorting_options_ids=PRICE&sorting_options_names=F%C3%BCr%20dich%20relevant&sorting_options_names=G%C3%BCnstigster%20Preis&term=milch",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            type: "BLOCK",
+            id: "structured-selling-unit-search-result",
+            children: [
+              header("Nochmal bestellen"),
+              wrapper("Nochmal bestellen", { type: "BLOCK", id: "horizontal-selling-unit-tiles", children: [fusionTile({ id: "s1", name: "Kaffee" })] }),
+              {
+                type: "BLOCK",
+                id: "structured-selling-unit-search-result-visual-sections",
+                children: [
+                  // Only shown while the filter is selected.
+                  header("Bio", { type: "EXPRESSION", props: { v0: "selectedFilter", v1: "characteristic.Bio" } }),
+                  header("H-Milch"),
+                  wrapper("H-Milch", fusionTile({ id: "s2", name: "H-Milch 1,5%" })),
+                  wrapper("H-Milch__2", fusionTile({ id: "s3", name: "Bio H-Milch 3,8%" })),
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+
+  it("reads the sections, filters, facets and sort orders of a product search", () => {
+    const results = extractFusionSearchResults(page, "mlich");
+
+    expect(results).toMatchObject({ query: "mlich", correctedQuery: "milch", recipes: [] });
+    expect(results.products?.sections.map(({ id, type, title, products }) => ({ id, type, title, products: products.map((product) => product.id) }))).toEqual([
+      { id: "Nochmal bestellen", type: "RFY", title: "Nochmal bestellen", products: ["s1"] },
+      { id: "H-Milch", type: "VISUAL", title: "H-Milch", products: ["s2", "s3"] },
+    ]);
+    expect(results.products).toMatchObject({
+      visualFilters: [{ facetId: "category_level_3.1", name: "H-Milch", imageId: "img-h" }],
+      powerFilters: [{ facetId: "characteristic.Bio", name: "Bio", imageId: "img-bio" }],
+      textualFilters: [],
+      productIdsByFacetId: { "category_level_3.1": ["s2", "s3"], "characteristic.Bio": ["s3"] },
+      sortingOptions: [
+        { name: "RELEVANCE", title: "Für dich relevant" },
+        { name: "PRICE", title: "Günstigster Preis" },
+      ],
+      selectedSorting: "RELEVANCE",
+    });
+  });
+
+  it("reads the recipes of a recipe search", () => {
+    const recipePage = {
+      layout: {
+        type: "STATE_BOUNDARY",
+        id: "searchState",
+        state: { selectedEntityType: "RECIPE", selectedSorting: "RELEVANCE", sellingUnitIdsByFacetIds: {} },
+        child: {
+          type: "PML",
+          id: "core-wide-recipe-tile__1",
+          analytics: { contexts: [{ schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: "r1" } }] },
+          pml: { component: { type: "STACK", children: [{ type: "IMAGE", source: { id: "recipes/r1" } }, text("Nudeln mit Tomatensoße"), text("15 Minuten")] } },
+        },
+      },
+    };
+
+    expect(extractFusionSearchResults(recipePage, "nudeln")).toEqual({
+      query: "nudeln",
+      correctedQuery: null,
+      products: null,
+      recipes: [{ id: "r1", name: "Nudeln mit Tomatensoße", subtitle: null, imageId: "recipes/r1", tags: ["15 Minuten"] }],
+    });
+  });
+
+  it("gives no product results for a page without results", () => {
+    const noResults = { layout: { type: "BLOCK", id: "root", children: [{ type: "BLOCK", id: "search-page-no-results-body", children: [] }] } };
+
+    expect(extractFusionSearchResults(noResults, "xqzvwkj")).toEqual({ query: "xqzvwkj", correctedQuery: null, products: null, recipes: [] });
   });
 });

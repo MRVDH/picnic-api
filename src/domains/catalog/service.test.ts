@@ -12,7 +12,7 @@ function fakeRsc() {
     ].join("\n"),
   );
   return {
-    getRscPayload: jest.fn().mockResolvedValue({ ...searchPage, version: "v1" }),
+    load: jest.fn().mockResolvedValue({ format: "rsc", pageId: "search-page-results", payload: { ...searchPage, version: "v1" } }),
     findServerActionId: jest.fn().mockResolvedValue("act_fetchSearchResults_1"),
     runServerAction: jest.fn().mockResolvedValue(parseRscPayload('0:["$","$L2",null,{"searchQuery":"pasta","storeResults":{}}]')),
   };
@@ -25,7 +25,7 @@ describe("CatalogService.getSearchResults", () => {
 
     const results = await catalog.getSearchResults("pasta");
 
-    expect(rsc.getRscPayload).toHaveBeenCalledWith("search-page-results?search_term=pasta");
+    expect(rsc.load).toHaveBeenCalledWith("search-page-results?search_term=pasta");
     expect(rsc.runServerAction).toHaveBeenCalledWith(
       "act_fetchSearchResults_1",
       [expect.objectContaining({ searchId: "id-1", searchSessionId: "session-1", searchQuery: "pasta", requestedSorting: "RELEVANCE" })],
@@ -40,8 +40,41 @@ describe("CatalogService.getSearchResults", () => {
 
     await catalog.getSearchResults("pasta", { context: "MEALS", sorting: "PRICE" });
 
-    expect(rsc.getRscPayload).toHaveBeenCalledWith("search-page-results?search_term=pasta&page_context=MEALS&is_recipe=true");
+    expect(rsc.load).toHaveBeenCalledWith("search-page-results?search_term=pasta&page_context=MEALS&is_recipe=true");
     expect(rsc.runServerAction.mock.calls[0][1][0].requestedSorting).toBe("PRICE");
+  });
+});
+
+describe("CatalogService.getSearchResults on a Fusion search page", () => {
+  /** A Fusion search page with products, sorted by `sorting`. */
+  const fusionSearchPage = (sorting: string) => ({
+    layout: { type: "STATE_BOUNDARY", id: "searchState", state: { selectedEntityType: "SELLING_UNIT", selectedSorting: sorting, sections: [], sellingUnitIdsByFacetIds: {} } },
+  });
+  const fakeFusion = () => ({
+    load: jest.fn().mockResolvedValue({ format: "fusion", pageId: "search-page-results", page: fusionSearchPage("RELEVANCE") }),
+    getFusionPage: jest.fn().mockResolvedValue(fusionSearchPage("PRICE")),
+    runServerAction: jest.fn(),
+  });
+
+  it("reads the results from the page, without a server action", async () => {
+    const pages = fakeFusion();
+    const catalog = new CatalogService(new HttpClient(), pages as unknown as PageClient);
+
+    const results = await catalog.getSearchResults("milch");
+
+    expect(results.products?.selectedSorting).toBe("RELEVANCE");
+    expect(pages.getFusionPage).not.toHaveBeenCalled();
+    expect(pages.runServerAction).not.toHaveBeenCalled();
+  });
+
+  it("reloads the page with selected_sorting for another sort order, like the app's sort options", async () => {
+    const pages = fakeFusion();
+    const catalog = new CatalogService(new HttpClient(), pages as unknown as PageClient);
+
+    const results = await catalog.getSearchResults("milch", { sorting: "PRICE" });
+
+    expect(pages.getFusionPage).toHaveBeenCalledWith("search-page-results?search_term=milch&selected_sorting=PRICE");
+    expect(results.products?.selectedSorting).toBe("PRICE");
   });
 });
 

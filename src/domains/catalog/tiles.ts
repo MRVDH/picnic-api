@@ -1,5 +1,5 @@
 import type { PriceRange } from "../../pages/fusion";
-import { PmlNode, analyticsContexts, childrenOf, cleanMarkdown, collectMarkdowns, findNode, findNodeById, stripColorTags } from "../../pages/pml";
+import { PmlNode, analyticsContexts, childrenOf, cleanMarkdown, collectMarkdowns, findNode, findNodeById, isDefaultTextColor, stripColorTags } from "../../pages/pml";
 import type { ProductTile } from "./types";
 
 type RawRecord = Record<string, unknown>;
@@ -11,14 +11,21 @@ const asNumber = (value: unknown): number | null => (typeof value === "number" ?
 
 /** The analytics context of a tile's promotion: its label and the original price. */
 const PROMOTION_SCHEMA = "iglu:tech.picnic.snowplow.analytics/promotion/";
+/**
+ * The analytics context of a tile that shows its product as unavailable (`iglu:nl.picnic.snowplow/unavailability/...`),
+ * with the reason, e.g. "SEASONAL_REGULAR", and the alternatives it offers.
+ */
+const UNAVAILABILITY_SCHEMA = /\/unavailability\/jsonschema\//;
 /** The layer over the tile image that holds its labels. */
 const LABEL_CONTAINER_ID = "selling-unit-label-container";
+/** The font of symbols in texts, e.g. the ">" after a tile's name. */
+const SYMBOL_FONT = "PicnicSymbols";
 
 /** Whether a node of a Fusion page is a product tile: a PML component with `SELLING_UNIT_TILE` content. */
 export const isFusionProductTile = (node: PmlNode): boolean => node.type === "PML" && asRecord(node.content).type === "SELLING_UNIT_TILE";
 
 /**
- * Reads a product tile of a Fusion page (promotions, favorites) into the same {@link ProductTile}
+ * Reads a product tile of a Fusion page (promotions, favorites, search) into the same {@link ProductTile}
  * the RSC pages give. The selling unit has the id, price, image and package size; the tile's info
  * column (the stack that opens the product page) has the name as shown, the quality cue above it
  * and the brand below the price. Fusion tiles have no unit price or order count.
@@ -55,7 +62,10 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     priceRanges: priceRanges.length > 1 ? priceRanges : null,
     unitQuantity,
     labels: promotionLabel ? [{ position: labelPosition(tile.pml, promotionLabel), type: "PROMO", text: promotionLabel }] : [],
-    isUnavailable: asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE"),
+    // Search tiles have no decorator; they carry an unavailability context instead.
+    isUnavailable:
+      asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") ||
+      analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
     numberOfOrders: null,
   };
 }
@@ -95,9 +105,14 @@ function readInfoColumn(pml: unknown, unitQuantity: string): InfoColumn {
   const nameIndex = rows.findIndex((row) => row.type === "RICH_TEXT");
   if (nameIndex < 0) return { name: null, namePrefix: null, brand: null, qualityCue: null };
 
-  // A bold start of the name is its prefix, e.g. "**Bio** citroenen".
-  const shownName = stripColorTags(collectMarkdowns(rows[nameIndex])[0] ?? "");
-  const prefix = /^\*\*(.+?)\*\*\s*/.exec(shownName);
+  // The name is a text, or spans, followed by the ">" symbol. A start of the name in bold, or a first
+  // span all in a highlight color, is its prefix: "**Bio** citroenen", or "Bio" + "Fettarme H-Milch".
+  const spans = childrenOf(rows[nameIndex]).filter((span) => typeof span.markdown === "string" && asRecord(span.textAttributes).family !== SYMBOL_FONT);
+  const spanPrefix = spans.length > 1 ? highlightedText(spans[0].markdown as string) : null;
+  const nameSpans = spanPrefix ? spans.slice(1) : spans;
+  const shownName =
+    nameSpans.length > 0 ? nameSpans.map((span) => stripColorTags(span.markdown as string)).join(" ") : stripColorTags(collectMarkdowns(rows[nameIndex])[0] ?? "");
+  const prefix = spanPrefix ? null : /^\*\*(.+?)\*\*\s*/.exec(shownName);
   const name = cleanMarkdown(prefix ? shownName.slice(prefix[0].length) : shownName) || null;
 
   const firstText = (row: PmlNode | undefined): string | null => (row ? cleanMarkdown(collectMarkdowns(row)[0] ?? "") || null : null);
@@ -107,10 +122,16 @@ function readInfoColumn(pml: unknown, unitQuantity: string): InfoColumn {
 
   return {
     name,
-    namePrefix: prefix ? cleanMarkdown(prefix[1]) || null : null,
+    namePrefix: spanPrefix || (prefix ? cleanMarkdown(prefix[1]) || null : null),
     brand: isQuantityRow ? null : firstText(rowAfterPrices),
     qualityCue: nameIndex > 0 ? firstText(rows[0]) : null,
   };
+}
+
+/** The text of a markdown that is all in one highlight color, e.g. `#(#628003)Bio#(#628003) `, or `null`. */
+function highlightedText(markdown: string): string | null {
+  const match = /^#\(([^)]+)\)([^#]*)#\(\1\)\s*$/.exec(markdown);
+  return match && !isDefaultTextColor(match[1]) ? cleanMarkdown(match[2]) || null : null;
 }
 
 /** Where the promotion label sits on the image, e.g. "bottomLeft". */

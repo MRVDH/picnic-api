@@ -16,7 +16,8 @@ import {
 import { extractPromotionGroup, extractPromotions } from "./promotions";
 import { extractFavorites, extractFavoritesInAisle } from "./favorites";
 import { FusionPage } from "../../pages/fusion";
-import { extractSearchResults } from "./search";
+import { extractFusionSearchResults, extractSearchResults } from "./search";
+import type { RscPage } from "../../pages/rsc-payload";
 import { extractProductDetails, productDetailsPageId } from "./product";
 import type { PageClient } from "../../pages/page-client";
 import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
@@ -104,15 +105,29 @@ export class CatalogService {
   }
 
   /**
-   * Searches for products and recipes the way the app does: it fetches the search page (an RSC
-   * page with the search parameters), then runs the page's `fetchSearchResults` server action,
-   * which returns the results.
+   * Searches the way the app does: it fetches the search page (`search-page-results`), which
+   * Picnic serves in either format.
+   *
+   * - A Fusion page has the results in it: products, or recipes in the `"MEALS"` context. For
+   *   another sort order the app reloads the page with `selected_sorting`, and so does this method.
+   * - An RSC page has the search parameters; its `fetchSearchResults` server action returns the
+   *   results, products and recipes together.
    * @param {string} query The keywords to search for.
    * @param {SearchOptions} [options] The sort order and the context the search is opened from.
    */
   async getSearchResults(query: string, options: SearchOptions = {}): Promise<SearchResults> {
     const contextParams = options.context === "MEALS" ? "&page_context=MEALS&is_recipe=true" : "";
-    const page = await this.pages.getRscPayload(`search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`);
+    const pageId = `search-page-results?search_term=${encodeURIComponent(query)}${contextParams}`;
+    const loaded = await this.pages.load(pageId);
+    if (loaded.format === "rsc") return this.getRscSearchResults(loaded.payload, query, options);
+
+    const results = extractFusionSearchResults(loaded.page, query);
+    if (!options.sorting || !results.products || results.products.selectedSorting === options.sorting) return results;
+    return extractFusionSearchResults(await this.pages.getFusionPage(`${pageId}&selected_sorting=${encodeURIComponent(options.sorting)}`), query);
+  }
+
+  /** Runs the `fetchSearchResults` action of an RSC search page with the page's search parameters. */
+  private async getRscSearchResults(page: RscPage, query: string, options: SearchOptions): Promise<SearchResults> {
     const params = findRscElementProps(page, SEARCH_PARAMS_MODULE)[0]?.params as Record<string, unknown> | undefined;
     if (!params) throw new Error("The search page has no search parameters");
 
