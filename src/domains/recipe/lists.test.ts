@@ -1,4 +1,12 @@
-import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles, parseMinutes } from "./lists";
+import {
+  extractFusionRecipeCategory,
+  extractFusionRecipeCategoryGroup,
+  extractRecipeCategory,
+  extractRecipeCategoryGroup,
+  extractRecipeOverview,
+  extractRecipeTiles,
+  parseMinutes,
+} from "./lists";
 import type { FusionPage } from "../../pages/fusion";
 import type { RscPageContent } from "../../pages/types";
 
@@ -149,6 +157,35 @@ describe("recipe lists", () => {
       name: "Kids",
       title: "Kids",
       categories: [{ type: "category", id: "c2", name: "Lunchbox", imageId: "image-2" }],
+    });
+  });
+
+  it("reads a category page and a category group page served as Fusion", () => {
+    const shell = { script: {}, layout: { header: { type: "STATIC", title: "Blitzrezepte" }, body: { type: "BLOCK", children: [] } } } as unknown as FusionPage;
+    const content = { layout: { body: { children: [tile("r1", "Gemüsecurry"), tile("r2", "Pasta mit Pesto")] } } };
+    const category = extractFusionRecipeCategory("c1", shell, content);
+    expect(category.title).toBe("Blitzrezepte");
+    expect(category.recipes.map((r) => [r.id, r.cookingTimeMinutes])).toEqual([
+      ["r1", 40],
+      ["r2", 40],
+    ]);
+
+    const listItem = (id: string, name: string) => ({
+      type: "PML",
+      id: `list-item-${id}`,
+      analytics: {
+        contexts: [{ schema: schema("pml_component"), data: { type: "list_item", deeplink: `app.picnic://store/page;id=meals-category-page,category_id=${id}` } }],
+      },
+      pml: { component: { type: "TOUCHABLE", accessibilityLabel: name, child: { type: "STACK", children: [{ type: "IMAGE", source: { id: `image-${id}` } }, text(name)] } } },
+    });
+    const group = { script: {}, layout: { header: null, body: { type: "BLOCK", children: [listItem("c2", "Lunchbox"), listItem("c3", "Snacks"), listItem("c2", "Lunchbox")] } } } as unknown as FusionPage;
+    expect(extractFusionRecipeCategoryGroup("Kids", group)).toEqual({
+      name: "Kids",
+      title: "Kids",
+      categories: [
+        { type: "category", id: "c2", name: "Lunchbox", imageId: "image-c2" },
+        { type: "category", id: "c3", name: "Snacks", imageId: "image-c3" },
+      ],
     });
   });
 });

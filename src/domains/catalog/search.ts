@@ -1,5 +1,5 @@
 import { cleanMarkdown, findNode, findNodeById, PmlNode, walkNodes } from "../../pages/pml";
-import { extractRecipeTiles } from "../recipe/lists";
+import { extractRecipeTiles, firstMinutes } from "../recipe/lists";
 import { collectFusionProductTiles } from "./tiles";
 import { SearchFilter, ProductTile, SearchProductResults, SearchRecipe, SearchResults, SearchSection, SearchSortingOption } from "./types";
 
@@ -134,12 +134,14 @@ function extractSearchRecipe(tile: RscRecord): SearchRecipe | null {
   const name = asString(asRecord(text.title).text);
   if (!id || !name) return null;
 
+  const tags = asArray(text.tags).flatMap((tag) => asString(asRecord(tag).text) ?? []);
   return {
     id,
     name,
     subtitle: asString(asRecord(text.subtitle).text),
     imageId: asString(asRecord(tile.image).imageId),
-    tags: asArray(text.tags).flatMap((tag) => asString(asRecord(tag).text) ?? []),
+    tags,
+    cookingTimeMinutes: firstMinutes(tags),
   };
 }
 
@@ -188,7 +190,7 @@ export function extractFusionSearchResults(page: unknown, query: string): Search
     correctedQuery: asString(analytics.query_corrected),
     products: state.selectedEntityType === "SELLING_UNIT" ? extractFusionProductResults(page, state) : null,
     recipes: isRecipeSearch
-      ? extractRecipeTiles(page).map((recipe) => ({ id: recipe.id, name: recipe.name, subtitle: recipe.subtitle, imageId: recipe.imageId, tags: recipe.tags }))
+      ? extractRecipeTiles(page).map(({ id, name, subtitle, imageId, tags, cookingTimeMinutes }) => ({ id, name, subtitle, imageId, tags, cookingTimeMinutes }))
       : [],
   };
 }

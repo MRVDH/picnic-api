@@ -83,7 +83,7 @@ describe("extractSearchResults", () => {
     expect(results.products?.productIdsByFacetId).toEqual({ "characteristic.Bio": ["s1"] });
     expect(results.products?.sortingOptions).toEqual([{ name: "RELEVANCE", title: "Relevant voor jou" }]);
     expect(results.recipes).toEqual([
-      { id: "r1", name: "Warme chocolademelk", subtitle: "met kruidnootjes", imageId: "recipes/abc", tags: ["15 min"] },
+      { id: "r1", name: "Warme chocolademelk", subtitle: "met kruidnootjes", imageId: "recipes/abc", tags: ["15 min"], cookingTimeMinutes: 15 },
     ]);
   });
 
@@ -232,7 +232,7 @@ describe("extractFusionSearchResults", () => {
       query: "nudeln",
       correctedQuery: null,
       products: null,
-      recipes: [{ id: "r1", name: "Nudeln mit Tomatensoße", subtitle: null, imageId: "recipes/r1", tags: ["15 Minuten"] }],
+      recipes: [{ id: "r1", name: "Nudeln mit Tomatensoße", subtitle: null, imageId: "recipes/r1", tags: ["15 Minuten"], cookingTimeMinutes: 15 }],
     });
   });
 

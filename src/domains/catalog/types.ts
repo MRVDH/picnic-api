@@ -127,6 +127,8 @@ export type SearchRecipe = {
   imageId: string | null;
   /** Tags shown on the tile, e.g. ["15 min"]. */
   tags: string[];
+  /** The minutes of the first tag that is a time ("15 + 25 min" → 40), or `null`. */
+  cookingTimeMinutes: number | null;
 };
 
 /** A filter for search results. */

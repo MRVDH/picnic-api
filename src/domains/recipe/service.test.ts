@@ -37,6 +37,26 @@ describe("RecipeService", () => {
     );
   });
 
+  it("getRecipeCategory follows a Fusion category page to its content page", async () => {
+    const json = (data: unknown) => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: async () => data, text: async () => JSON.stringify(data) });
+    const shell = {
+      script: {},
+      layout: {
+        header: { type: "STATIC", title: "Blitzrezepte" },
+        body: { type: "SUSPENSE", pageConfig: { id: "meals-category-page-content", parameters: { category_id: "c 1" } } },
+      },
+    };
+    mockFetch.mockResolvedValueOnce(json(shell)).mockResolvedValueOnce(json({ script: {}, layout: { body: { children: [] } } }));
+
+    const category = await recipe.getRecipeCategory("c 1");
+
+    expect(mockFetch.mock.calls.map(([url]) => String(url).replace(/^.*\/pages\//, ""))).toEqual([
+      "meals-category-page?category_id=c%201",
+      "meals-category-page-content?category_id=c%201",
+    ]);
+    expect(category).toEqual({ id: "c 1", title: "Blitzrezepte", recipes: [] });
+  });
+
   it("getRecipesPage requests the meal-planner root", async () => {
     await recipe["getRecipesPage"]();
 
