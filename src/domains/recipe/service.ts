@@ -44,7 +44,15 @@ import { FusionPage, FusionPageLayout } from "../../pages/fusion";
 import type { PageClient } from "../../pages/page-client";
 import { productDetailsPageId } from "../catalog/product";
 import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./recipe";
-import { extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles } from "./lists";
+import { findSuspensePageId } from "../../pages/pml";
+import {
+  extractFusionRecipeCategory,
+  extractFusionRecipeCategoryGroup,
+  extractRecipeCategory,
+  extractRecipeCategoryGroup,
+  extractRecipeOverview,
+  extractRecipeTiles,
+} from "./lists";
 
 export class RecipeService {
   constructor(
@@ -99,21 +107,27 @@ export class RecipeService {
   }
 
   /**
-   * Returns the recipes of a category, from the `meals-category-page` RSC page.
+   * Returns the recipes of a category, from `meals-category-page`. Picnic serves the page as RSC
+   * or as Fusion depending on the account (Fusion seen in DE). The Fusion page is a shell that
+   * loads its recipes from a content page, and so does this method: one request more.
    * @param {string} categoryId The `category_id` of a category link from {@link getRecipeOverview}.
    */
   async getRecipeCategory(categoryId: string): Promise<RecipeCategory> {
-    const content = await this.pages.getRscContent(`meals-category-page?category_id=${encodeURIComponent(categoryId)}`);
-    return extractRecipeCategory(categoryId, content);
+    const page = await this.pages.getPage(`meals-category-page?category_id=${encodeURIComponent(categoryId)}`);
+    if (page.format === "rsc") return extractRecipeCategory(categoryId, page.content);
+    const contentPageId = findSuspensePageId(page.page);
+    const content = contentPageId ? await this.pages.getFusionPage(contentPageId) : page.page;
+    return extractFusionRecipeCategory(categoryId, page.page, content);
   }
 
   /**
-   * Returns the categories of a group, from the `meals-category-group-page` RSC page.
+   * Returns the categories of a group, from `meals-category-group-page`, which Picnic serves as
+   * RSC or as Fusion depending on the account (Fusion seen in DE).
    * @param {string} groupName The `group_name` of a group link from {@link getRecipeOverview}, e.g. "Kids".
    */
   async getRecipeCategoryGroup(groupName: string): Promise<RecipeCategoryGroup> {
-    const content = await this.pages.getRscContent(`meals-category-group-page?group_name=${encodeURIComponent(groupName)}`);
-    return extractRecipeCategoryGroup(groupName, content);
+    const page = await this.pages.getPage(`meals-category-group-page?group_name=${encodeURIComponent(groupName)}`);
+    return page.format === "rsc" ? extractRecipeCategoryGroup(groupName, page.content) : extractFusionRecipeCategoryGroup(groupName, page.page);
   }
 
   /**

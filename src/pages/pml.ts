@@ -77,6 +77,22 @@ export function ancestorsOf(root: unknown, target: PmlNode): PmlNode[] {
   return visit(root) ? path.reverse() : [];
 }
 
+/**
+ * The page the first `SUSPENSE` boundary of a tree loads, as a page id with its query, e.g.
+ * `meals-category-page-content?category_id=<id>`, or `null` when there is none. A page that is
+ * only a shell around such a boundary has its content on that page.
+ */
+export function findSuspensePageId(node: unknown): string | null {
+  const suspense = findNode(node, (n) => n.type === "SUSPENSE" && isNode(n.pageConfig) && typeof n.pageConfig.id === "string");
+  if (!suspense) return null;
+  const { id, parameters } = suspense.pageConfig as { id: string; parameters?: unknown };
+  const query = Object.entries(isNode(parameters) ? parameters : {})
+    .filter(([, value]) => value !== null && value !== undefined)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+  return query ? `${id}?${query}` : id;
+}
+
 /** Returns the first node with this `id`. */
 export const findNodeById = (node: unknown, id: string): PmlNode | null => findNode(node, (n) => n.id === id);
 

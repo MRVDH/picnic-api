@@ -80,7 +80,8 @@ export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
   };
 }
 
-const firstMinutes = (tags: string[]): number | null =>
+/** The minutes of the first tag that is a time, e.g. ["Vegan", "20 min"] → 20, or null. */
+export const firstMinutes = (tags: string[]): number | null =>
   tags.map(parseMinutes).find((minutes): minutes is number => minutes !== null) ?? null;
 
 /** Every recipe tile of a Fusion page in order, each recipe once. */
@@ -154,6 +155,37 @@ export function extractRecipeOverview(page: FusionPage): RecipeOverview {
     sections: [...sections.values()].sort((a, b) => a.rank - b.rank).map(({ title, pill, recipes }) => ({ title, pill, recipes })),
     categorySections: [...categorySections.values()],
   };
+}
+
+/** The title in a Fusion page's header bar, or null. */
+const headerTitle = (page: FusionPage): string | null => {
+  const title = page.layout?.header?.title;
+  return typeof title === "string" && title !== "" ? title : null;
+};
+
+/**
+ * Reads a category page served as Fusion (`meals-category-page`): the title from the page's
+ * header, the recipe tiles from its content page (`meals-category-page-content`), which the page
+ * loads into a `SUSPENSE` boundary.
+ */
+export function extractFusionRecipeCategory(categoryId: string, page: FusionPage, content: unknown): RecipeCategory {
+  return { id: categoryId, title: headerTitle(page) ?? "", recipes: extractRecipeTiles(content) };
+}
+
+/** Reads a category group page served as Fusion (`meals-category-group-page`): list items that link to categories. */
+export function extractFusionRecipeCategoryGroup(name: string, page: FusionPage): RecipeCategoryGroup {
+  const categories: RecipeCategoryLink[] = [];
+  walkNodes(page, (node) => {
+    if (node.type !== "PML") return;
+    const deeplink = analyticsContexts(node).find((c) => c.schema?.startsWith(PML_COMPONENT_SCHEMA))?.data?.deeplink;
+    if (typeof deeplink !== "string") return;
+    const component = (node.pml as PmlNode | undefined)?.component as PmlNode | undefined;
+    const label = typeof component?.accessibilityLabel === "string" ? component.accessibilityLabel : "";
+    const image = findNode(component, (n) => n.type === "IMAGE" && typeof (n.source as PmlNode | undefined)?.id === "string");
+    const link = categoryLink(deeplink, label, image ? ((image.source as PmlNode).id as string) : null);
+    if (link && !categories.some((c) => c.type === link.type && c.id === link.id)) categories.push(link);
+  });
+  return { name, title: headerTitle(page) ?? name, categories };
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
