@@ -1,4 +1,5 @@
 import { PriceRange } from "../../pages/fusion";
+import type { RscPageContent } from "../../pages/types";
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
@@ -423,3 +424,21 @@ export type FavoritesAisle = {
    */
   complete: boolean;
 };
+
+// ─── Product pages ────────────────────────────────────────────────────────────
+
+/** A row of products on a product page, e.g. "Nieuw". */
+export type ProductPageSection = {
+  /** The row's header, or `null` when the page shows none. */
+  title: string | null;
+  products: ProductTile[];
+};
+
+/**
+ * A page that lists products, such as a theme page or a shop page, that a link opens
+ * ({@link CatalogService.getProductPage}). Picnic serves these pages in either format: a Fusion page is read
+ * into rows of product tiles; an RSC page comes as its components, with the product tiles parsed.
+ */
+export type ProductPage =
+  | { format: "fusion"; pageId: string; title: string | null; sections: ProductPageSection[] }
+  | { format: "rsc"; pageId: string; content: RscPageContent };
