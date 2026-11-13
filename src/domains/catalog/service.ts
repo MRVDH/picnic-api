@@ -2,6 +2,7 @@ import type HttpClient from "../../http-client";
 import { ImageSize } from "../../types/common";
 import {
   CategoryProducts,
+  CheaperAlternatives,
   CategorySection,
   Favorites,
   Product,
@@ -24,6 +25,7 @@ import type { PageClient } from "../../pages/page-client";
 import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
 import { extractProductPage } from "./product-page";
+import { findCheaperAlternatives } from "./comparison-price";
 
 /** The search page component that holds the search parameters (search id, session id). */
 const SEARCH_PARAMS_MODULE = "search-page-params/search-page-params-provider.tsx";
@@ -193,6 +195,18 @@ export class CatalogService {
   async getProduct(productId: string): Promise<Product> {
     const page = await this.getProductDetailsPage(productId);
     return extractProductDetails(productId, page);
+  }
+
+  /**
+   * Returns the similar products of a product that cost less per kilogram, litre or piece, the way a
+   * customer compares shelf labels. The app has no such list; this reads the similar products on the
+   * product page (one request) and compares their {@link ComparisonPrice}s.
+   * @param {string} productId The product ID, e.g. a cart line's `productId`.
+   * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.
+   */
+  async getCheaperAlternatives(productId: string): Promise<CheaperAlternatives> {
+    const product = await this.getProduct(productId);
+    return { productId, comparisonPrice: product.comparisonPrice, alternatives: findCheaperAlternatives(product) };
   }
 
   /**

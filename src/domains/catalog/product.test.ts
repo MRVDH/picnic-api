@@ -211,8 +211,8 @@ describe("extractProductDetails", () => {
     });
     expect(details.infoSections.map((section) => section.title)).toEqual(["Ingrediënten", "Voedingswaarde"]);
     expect(details.nutritionRows).toEqual([
-      { label: "Energie", value: "200 kJ", isCategory: true, backgroundColor: null },
-      { label: "Vet", value: "1.5 g", isCategory: false, backgroundColor: null },
+      { label: "Energie", value: "200 kJ", isCategory: true, backgroundColor: null, amount: 200, preference: "lower" },
+      { label: "Vet", value: "1.5 g", isCategory: false, backgroundColor: null, amount: 1.5, preference: "lower" },
     ]);
   });
 
