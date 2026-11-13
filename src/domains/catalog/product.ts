@@ -1,6 +1,7 @@
 import type { FusionPage, PriceRange } from "../../pages/fusion";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import { getComparisonPrice } from "./comparison-price";
+import { readNutritionRows } from "./nutrition";
 import {
   accordionItems,
   childrenOf,
@@ -275,7 +276,7 @@ function extractInfoSections(page: unknown): ProductInfoSection[] {
  */
 function extractNutritionRows(page: unknown): NutritionRow[] {
   const item = accordionItems(findNodeById(page, ACCORDION_ID)).find((i) => NUTRITION_TITLE.test(collectMarkdowns(i.header).map(cleanMarkdown)[0] ?? ""));
-  return item ? collectNutritionRows(item.body) : [];
+  return item ? readNutritionRows(collectNutritionRows(item.body)) : [];
 }
 
 /**
