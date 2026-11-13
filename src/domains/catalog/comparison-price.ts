@@ -25,20 +25,32 @@ const UNITS: [string, ComparisonUnit, number][] = [
   ["stuk", "piece", 1],
   ["stück", "piece", 1],
   ["stk", "piece", 1],
+  ["st", "piece", 1],
+  ["unités", "piece", 1],
+  ["unité", "piece", 1],
   ["pièces", "piece", 1],
   ["pièce", "piece", 1],
   ["pieces", "piece", 1],
   ["piece", "piece", 1],
   ["pcs", "piece", 1],
 ];
-const NUMBER = String.raw`\d+(?:[.,]\d+)?`;
+const NUMBER = String.raw`\d+(?:[.,]\d+)*`;
 const UNIT = UNITS.map(([word]) => word).join("|");
 /** An optional multipack count, the amount and the unit word: "6 x 330 ml", "1,5 liter", "10ml". */
 const SIZE = new RegExp(String.raw`(?:(\d+)\s*[x×]\s*)?(${NUMBER})\s*(${UNIT})(?![\p{L}])`, "iu");
 /** A range of amounts, "2-3 stuks" or "6 of 7 stuks": no single size to divide by. */
 const RANGE = new RegExp(String.raw`${NUMBER}\s*(?:-|–|of|oder|bis|ou|à)\s*${NUMBER}\s*(?:${UNIT})(?![\p{L}])`, "iu");
 
-const toNumber = (text: string): number => Number(text.replace(",", "."));
+/**
+ * Reads a number as Picnic writes it in NL, DE and FR: a comma or a dot before the decimals ("1,5", "1.5"), and a
+ * dot between thousands ("1.139 kJ", "1.000 g"). A dot followed by exactly three digits after a non-zero whole
+ * part is a thousands separator; "0.330" stays a decimal.
+ * @param {string} text The number, e.g. "1,5" or "1.000".
+ */
+export function parseAmount(text: string): number {
+  if (/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(text)) return Number(text.replace(/\./g, ""));
+  return Number(text.replace(",", "."));
+}
 
 /**
  * Reads a package size as Picnic shows it ("400 gram", "1,5 kilo", "6 x 330 ml • 6.6%", "10 stuks M/L") into
@@ -54,7 +66,7 @@ export function parsePackageSize(unitQuantity: string): PackageSize | null {
     if (!match) continue;
     const [, count, amount, word] = match;
     const [, unit, factor] = UNITS.find(([w]) => w === word.toLowerCase())!;
-    const total = (count ? Number(count) : 1) * toNumber(amount) * factor;
+    const total = (count ? Number(count) : 1) * parseAmount(amount) * factor;
     if (total > 0) return { amount: Math.round(total * 1e6) / 1e6, unit };
   }
   return null;

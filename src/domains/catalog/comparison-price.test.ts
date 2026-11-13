@@ -1,4 +1,4 @@
-import { getComparisonPrice, parsePackageSize } from "./comparison-price";
+import { getComparisonPrice, parseAmount, parsePackageSize } from "./comparison-price";
 
 describe("parsePackageSize", () => {
   it.each([
@@ -32,6 +32,10 @@ describe("parsePackageSize", () => {
     ["6 x 33 cl", { amount: 1.98, unit: "l" }],
     ["4 pièces", { amount: 4, unit: "piece" }],
     ["1 kg", { amount: 1, unit: "kg" }],
+    ["1.000 g", { amount: 1, unit: "kg" }],
+    ["0.330 l", { amount: 0.33, unit: "l" }],
+    ["10 St.", { amount: 10, unit: "piece" }],
+    ["6 unités", { amount: 6, unit: "piece" }],
   ])("reads %j", (text, expected) => {
     expect(parsePackageSize(text)).toEqual(expected);
   });
@@ -59,5 +63,18 @@ describe("getComparisonPrice", () => {
   it("returns null without a usable size or price", () => {
     expect(getComparisonPrice(259, "9 rollen")).toBeNull();
     expect(getComparisonPrice(0, "500 gram")).toBeNull();
+  });
+});
+
+describe("parseAmount", () => {
+  it.each([
+    ["1,5", 1.5],
+    ["1.5", 1.5],
+    ["1.139", 1139],
+    ["1.000", 1000],
+    ["0.330", 0.33],
+    ["12", 12],
+  ])("reads %j", (text, expected) => {
+    expect(parseAmount(text)).toBe(expected);
   });
 });
