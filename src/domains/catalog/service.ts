@@ -13,7 +13,7 @@ import {
   RawSearchSuggestion,
   Subcategories,
 } from "./types";
-import { extractPromotionGroup, extractPromotions } from "./promotions";
+import { extractPromotionGroup, extractPromotions, extractRscPromotions } from "./promotions";
 import { extractFavorites, extractFavoritesInAisle } from "./favorites";
 import { FusionPage } from "../../pages/fusion";
 import { extractFusionSearchResults, extractSearchResults } from "./search";
@@ -73,9 +73,11 @@ export class CatalogService {
   /**
    * Returns the promotions page as the app shows it (`promo-page-root`): sections with products
    * and promotion groups, e.g. the personal promotions, "Uitgelicht" and one section per category.
+   * Picnic serves it as RSC to picnic-api's agent; the Fusion reader stays while Picnic serves both formats.
    */
   async getPromotions(): Promise<Promotions> {
-    return extractPromotions(await this.pages.getFusionPage("promo-page-root"));
+    const page = await this.pages.getPage("promo-page-root");
+    return page.format === "rsc" ? extractRscPromotions(page.content) : extractPromotions(page.page);
   }
 
   /**

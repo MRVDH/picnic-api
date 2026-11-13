@@ -24,12 +24,12 @@ export class AppService {
    *
    * Pages known to be RSC: `category-tree-root`, `subcategory-page?category_id=<id>`,
    * `category-product-overview?category_id=<id>`, `promotion-category-page?category_id=<id>`,
-   * `profile-root`, `promo-group-deep-dive?promo_group_id=<id>`,
+   * `profile-root`, `promo-page-root`, `promo-group-deep-dive?promo_group_id=<id>`,
    * `search-page-results?search_term=<term>`, `search-page-index`, `meals-category-page`,
    * `meals-category-group-page` and `unavailability-replacements-page-root`.
    *
    * Pages known to be Fusion: `home_page_root`, `purchases-page-root`, `meals-page-root`,
-   * `slot-selector-root`, `parcels-overview-page-root`, `promo-page-root`,
+   * `slot-selector-root`, `parcels-overview-page-root`,
    * `product-details-page-root?id=<selling_unit_id>`,
    * `selling-group-details-page?selling_group_id=<id>` and
    * `parcel-tracking-page-root?parcel_id=<id>`.
