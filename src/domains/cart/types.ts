@@ -1,4 +1,4 @@
-import type { ProductTile } from "../catalog/types";
+import type { ComparisonPrice, ProductTile } from "../catalog/types";
 import { Component, Icon, PriceRange } from "../../pages/fusion";
 import { Decorator } from "../../types/common";
 
@@ -301,6 +301,8 @@ export type CartLineItem = {
   labels: CartLineLabel[];
   /** The unit price text (BASE_PRICE), e.g. "€3.98/kg", or null. */
   basePrice: string | null;
+  /** The price of one package per kilogram, litre or piece, computed from the price and `unitQuantity`, or null when the size has none. */
+  comparisonPrice: ComparisonPrice | null;
   /** How long the product stays fresh (FRESH_LABEL), or null. */
   freshness: string | null;
   /** Product characteristics, e.g. "ORGANIC" or "FROZEN". */

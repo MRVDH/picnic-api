@@ -1,5 +1,6 @@
 import type { FusionPage, PriceRange } from "../../pages/fusion";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
+import { getComparisonPrice } from "./comparison-price";
 import {
   accordionItems,
   childrenOf,
@@ -71,6 +72,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
     id: productId,
     ...header,
     ...prices,
+    comparisonPrice: getComparisonPrice(prices.displayPrice, header.unitQuantity, prices.priceRanges),
     maxCount: typeof mainUnit?.max_count === "number" ? mainUnit.max_count : 99,
     imageIds: extractImageIds(page, mainUnit),
     labels,
@@ -300,6 +302,7 @@ function extractSimilarProducts(page: unknown): SimilarProduct[] {
       imageId: String(u.image_id ?? ""),
       displayPrice: Number(u.display_price ?? 0),
       unitQuantity: String(u.unit_quantity ?? ""),
+      comparisonPrice: getComparisonPrice(Number(u.display_price ?? 0), String(u.unit_quantity ?? ""), Array.isArray(u.price_ranges) ? (u.price_ranges as PriceRange[]) : null),
       maxCount: Number(u.max_count ?? 0),
       ...(u.deposit !== undefined ? { deposit: Number(u.deposit) } : {}),
       ...(Array.isArray(u.price_ranges) ? { priceRanges: u.price_ranges as PriceRange[] } : {}),

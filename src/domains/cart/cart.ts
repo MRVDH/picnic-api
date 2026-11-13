@@ -2,6 +2,7 @@ import type { Decorator } from "../../types/common";
 import type { PriceRange } from "../../pages/fusion";
 import { extractDeliverySlots } from "./delivery-slots";
 import type { RawCart, Cart, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
+import { getComparisonPrice } from "../catalog/comparison-price";
 
 type RawRecord = Record<string, unknown>;
 
@@ -66,14 +67,16 @@ export function readCartLine(line: OrderLine, overrides: Record<string, Decorato
   const unavailable = find("UNAVAILABLE");
   const imageIds = Array.isArray(article?.image_ids) ? article!.image_ids : [];
   const priceRanges = Array.isArray(article?.price_ranges) && article!.price_ranges.length > 1 ? (article!.price_ranges as PriceRange[]) : null;
+  const unitQuantity = asString(find("UNIT_QUANTITY")?.unit_quantity_text) ?? asString(article?.unit_quantity) ?? "";
+  const quantity = asNumber(find("QUANTITY")?.quantity, 1);
 
   return {
     id,
     productId: articleId ?? "",
     name: asString(article?.name) ?? asString(raw.name) ?? "",
-    unitQuantity: asString(find("UNIT_QUANTITY")?.unit_quantity_text) ?? asString(article?.unit_quantity) ?? "",
+    unitQuantity,
     imageId: asString(imageIds[0]),
-    quantity: asNumber(find("QUANTITY")?.quantity, 1),
+    quantity,
     maxCount: asNumber(article?.max_count, 99),
     displayPrice,
     originalPrice: price > displayPrice ? price : null,
@@ -81,6 +84,8 @@ export function readCartLine(line: OrderLine, overrides: Record<string, Decorato
     priceRanges,
     labels: readLabels(decorators),
     basePrice: asString(find("BASE_PRICE")?.base_price_text),
+    // The line price is for all packages in the line.
+    comparisonPrice: quantity > 0 ? getComparisonPrice(Math.round(displayPrice / quantity), unitQuantity, priceRanges) : null,
     freshness: asString(find("FRESH_LABEL")?.period),
     characteristics: asRecords(find("PRODUCT_CHARACTERISTICS")?.characteristics).flatMap((c) => asString(c.type) ?? []),
     isUnavailable: unavailable !== undefined,

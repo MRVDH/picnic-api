@@ -66,6 +66,29 @@ export type SearchSection = {
   products: ProductTile[];
 };
 
+// ─── Comparison prices ────────────────────────────────────────────────────────
+
+/** The base unit of a comparison price: per kilogram, per litre or per piece. */
+export type ComparisonUnit = "kg" | "l" | "piece";
+
+/** A package size as an amount of a base unit: "400 gram" is `{ amount: 0.4, unit: "kg" }`. */
+export type PackageSize = {
+  amount: number;
+  unit: ComparisonUnit;
+};
+
+/**
+ * The price per kilogram, litre or piece, computed from the price and the package size, to compare products
+ * of different sizes. Picnic doesn't send one on product tiles.
+ */
+export type ComparisonPrice = {
+  unit: ComparisonUnit;
+  /** The price in cents per unit, e.g. 299 for €2.99/kg. */
+  price: number;
+  /** The price in cents per unit at the cheapest price tier, when buying more costs less per package, otherwise `null`. */
+  lowestPrice: { price: number; fromQuantity: number } | null;
+};
+
 /** A product tile, as shown in search results and on promotion pages. */
 export type ProductTile = {
   /** The selling unit id, e.g. "s1004201". */
@@ -86,6 +109,8 @@ export type ProductTile = {
   originalPrice: number | null;
   /** The unit price text, e.g. "€1,26/l", or `null`. */
   unitPrice: string | null;
+  /** The price per kilogram, litre or piece, computed from the price and `unitQuantity`, or `null` when the size has none. */
+  comparisonPrice: ComparisonPrice | null;
   /** Bundle price tiers, or `null` when the price doesn't depend on the quantity. */
   priceRanges: PriceRange[] | null;
   /**
@@ -275,6 +300,8 @@ export type Product = {
    * product isn't in the cart.
    */
   unitPrice: string | null;
+  /** The price per kilogram, litre or piece, computed from the price and `unitQuantity`, or `null` when the size has none. */
+  comparisonPrice: ComparisonPrice | null;
   /** Badges shown before the unit quantity, e.g. a size badge "XL". */
   quantityBadges: ProductBadge[];
   /** Tags shown after the unit price, e.g. "Diepvries". */
@@ -321,6 +348,8 @@ export type SimilarProduct = {
   displayPrice: number;
   /** The unit quantity description (e.g. "6 x 300 ml • 6.6%"). */
   unitQuantity: string;
+  /** The price per kilogram, litre or piece, computed from the price and `unitQuantity`, or `null` when the size has none. */
+  comparisonPrice: ComparisonPrice | null;
   /** Maximum number of items that can be added to the cart. */
   maxCount: number;
   /** Deposit amount in cents, if applicable. */

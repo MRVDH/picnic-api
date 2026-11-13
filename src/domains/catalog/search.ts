@@ -2,6 +2,7 @@ import { cleanMarkdown, findNode, findNodeById, PmlNode, walkNodes } from "../..
 import { extractRecipeTiles, firstMinutes } from "../recipe/lists";
 import { collectFusionProductTiles } from "./tiles";
 import { SearchFilter, ProductTile, SearchProductResults, SearchRecipe, SearchResults, SearchSection, SearchSortingOption } from "./types";
+import { getComparisonPrice } from "./comparison-price";
 
 // ─── Search results (RSC) ─────────────────────────────────────────────────────
 
@@ -99,6 +100,13 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     return rangePrice !== null && fromQuantity !== null ? [{ price: rangePrice, from_quantity: fromQuantity }] : [];
   });
   const labels = asRecord(tile.labels);
+  // The tile's own price; the lowest-quantity price tier when it has none.
+  const displayPrice = toCents(price.priceValue) ?? [...priceRanges].sort((x, y) => x.from_quantity - y.from_quantity)[0]?.price ?? 0;
+  const unitQuantity = asArray(tile.suffixes)
+    .map(asRecord)
+    .filter((suffix) => suffix.type === "TEXT")
+    .flatMap((suffix) => asString(suffix.text) ?? [])
+    .join(", ");
 
   return {
     id,
@@ -107,16 +115,12 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     brand: asString(asRecord(tile.subtitle).text),
     qualityCue: asString(asRecord(tile.qualityCue).text),
     imageId: asString(asRecord(images.primaryImage).imageId) ?? asString(asRecord(images.sellingUnitImage).imageId),
-    // The tile's own price; the lowest-quantity price tier when it has none.
-    displayPrice: toCents(price.priceValue) ?? [...priceRanges].sort((x, y) => x.from_quantity - y.from_quantity)[0]?.price ?? 0,
+    displayPrice,
     originalPrice: toCents(price.referencePriceValue),
     unitPrice: asString(price.unitPrice),
+    comparisonPrice: getComparisonPrice(displayPrice, unitQuantity, priceRanges),
     priceRanges: priceRanges.length > 0 ? priceRanges : null,
-    unitQuantity: asArray(tile.suffixes)
-      .map(asRecord)
-      .filter((suffix) => suffix.type === "TEXT")
-      .flatMap((suffix) => asString(suffix.text) ?? [])
-      .join(", "),
+    unitQuantity,
     labels: LABEL_POSITIONS.flatMap((position) =>
       asArray(labels[position]).map((value) => {
         const label = asRecord(value);
