@@ -1,4 +1,5 @@
-import { getComparisonPrice, parseAmount, parsePackageSize } from "./comparison-price";
+import { findCheaperAlternatives, getComparisonPrice, parseAmount, parsePackageSize } from "./comparison-price";
+import type { Product, SimilarProduct } from "./types";
 
 describe("parsePackageSize", () => {
   it.each([
@@ -76,5 +77,34 @@ describe("parseAmount", () => {
     ["12", 12],
   ])("reads %j", (text, expected) => {
     expect(parseAmount(text)).toBe(expected);
+  });
+});
+
+describe("findCheaperAlternatives", () => {
+  const similar = (id: string, displayPrice: number, unitQuantity: string): SimilarProduct => ({
+    id,
+    name: `Product ${id}`,
+    imageId: "image",
+    displayPrice,
+    unitQuantity,
+    comparisonPrice: getComparisonPrice(displayPrice, unitQuantity),
+    maxCount: 50,
+  });
+
+  it("lists the similar products that cost less per unit, cheapest first", () => {
+    const product = {
+      id: "s1",
+      comparisonPrice: getComparisonPrice(189, "1.5 liter"),
+      similarProducts: [similar("s2", 129, "1 liter"), similar("s3", 149, "2 liter"), similar("s4", 269, "2.4 liter"), similar("s5", 99, "4 stuks"), similar("s6", 99, "9 rollen")],
+    } as unknown as Product;
+
+    expect(findCheaperAlternatives(product).map((a) => [a.id, a.comparisonPrice.price, a.savingPerUnit])).toEqual([
+      ["s3", 75, 51],
+      ["s4", 112, 14],
+    ]);
+  });
+
+  it("returns nothing for a product without a comparison price", () => {
+    expect(findCheaperAlternatives({ comparisonPrice: null, similarProducts: [similar("s2", 1, "1 liter")] } as unknown as Product)).toEqual([]);
   });
 });

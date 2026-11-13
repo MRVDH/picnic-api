@@ -1,5 +1,5 @@
 import type { PriceRange } from "../../pages/fusion";
-import type { ComparisonPrice, ComparisonUnit, PackageSize } from "./types";
+import type { CheaperAlternative, ComparisonPrice, ComparisonUnit, PackageSize, Product } from "./types";
 
 /**
  * The unit words Picnic uses in package sizes (Dutch, German, French and English), with the base unit and
@@ -90,4 +90,21 @@ export function getComparisonPrice(price: number, unitQuantity: string, priceRan
     price: perUnit(price),
     lowestPrice: cheapestTier ? { price: perUnit(cheapestTier.price), fromQuantity: cheapestTier.from_quantity } : null,
   };
+}
+
+/**
+ * The similar products on a product's page that cost less per kilogram, litre or piece than the product, cheapest
+ * per unit first. Products in another unit (pieces against kilograms) or without a package size are left out.
+ * @param {Product} product The product, with its similar products.
+ */
+export function findCheaperAlternatives(product: Product): CheaperAlternative[] {
+  const own = product.comparisonPrice;
+  if (!own) return [];
+  return product.similarProducts
+    .flatMap((similar): CheaperAlternative[] => {
+      const price = similar.comparisonPrice;
+      if (!price || price.unit !== own.unit || price.price >= own.price || similar.id === product.id) return [];
+      return [{ ...similar, comparisonPrice: price, savingPerUnit: own.price - price.price }];
+    })
+    .sort((a, b) => a.comparisonPrice.price - b.comparisonPrice.price);
 }

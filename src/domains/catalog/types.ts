@@ -359,6 +359,22 @@ export type SimilarProduct = {
   priceRanges?: PriceRange[] | null;
 };
 
+/** A similar product that costs less per kilogram, litre or piece ({@link CatalogService.getCheaperAlternatives}). */
+export type CheaperAlternative = SimilarProduct & {
+  comparisonPrice: ComparisonPrice;
+  /** How much less it costs per unit, in cents. */
+  savingPerUnit: number;
+};
+
+/** The cheaper alternatives of a product ({@link CatalogService.getCheaperAlternatives}). */
+export type CheaperAlternatives = {
+  productId: string;
+  /** The product's own price per kilogram, litre or piece, or `null` when its package size has none. */
+  comparisonPrice: ComparisonPrice | null;
+  /** The similar products that cost less per unit, cheapest per unit first. */
+  alternatives: CheaperAlternative[];
+};
+
 // ─── Promotions ───────────────────────────────────────────────────────────────
 
 /** The promotions page ({@link CatalogService.getPromotions}). */
