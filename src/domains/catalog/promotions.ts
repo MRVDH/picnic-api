@@ -8,6 +8,97 @@ const LAYOUT_CONTENT_ID_PREFIX = "campaign-page-layout-content";
 /** The deep link of a promotion group card: `app.picnic://store/page;id=promo-group-deep-dive,promo_group_id=<id>`. */
 const PROMOTION_GROUP_ID = /[;,]promo_group_id=([^,&;]+)/;
 
+// ─── Promotions page (RSC) ────────────────────────────────────────────────────
+
+/** The component that holds streamed effects of an RSC page in its `data` prop. */
+const STREAMING_DATA_COLLECTOR = "streaming-data-collector";
+/** Effects that hold a section: a layout with a title and lists, or the personal promotions box. */
+const SECTION_EFFECTS = new Set(["PAGE_LAYOUT", "PROMOBOX"]);
+
+type RawRecord = Record<string, unknown>;
+const asRecord = (value: unknown): RawRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : {});
+const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
+
+/**
+ * Reads the promotions page (`promo-page-root`) served as RSC. The page streams its sections as
+ * effects in the `data` props of `streaming-data-collector` components (`{ component, componentIndex,
+ * type: "RESOLVED" | "FAILED" }`). A section is a `PAGE_LAYOUT` effect with a `section-title` item and
+ * lists or carousels of product tiles, promotion group items (`promo-group-list-item`) and campaign
+ * cards; the personal promotions are a `PROMOBOX` effect with a title and tiles. Sections without
+ * products or groups are left out.
+ */
+export function extractRscPromotions(content: RscPageContent): Promotions {
+  const effects: { index: number; component: RawRecord }[] = [];
+  const visit = (nodes: RscNode[]): void => {
+    for (const node of nodes) {
+      if (node.component === STREAMING_DATA_COLLECTOR && Array.isArray(node.props.data)) {
+        for (const entry of node.props.data.map(asRecord)) {
+          if (entry.type !== "RESOLVED") continue;
+          effects.push({
+            index: typeof entry.componentIndex === "number" ? entry.componentIndex : effects.length,
+            component: asRecord(entry.component),
+          });
+        }
+      }
+      visit(node.children);
+    }
+  };
+  visit(content.nodes);
+
+  const sections = effects
+    .sort((a, b) => a.index - b.index)
+    .map(({ component }) => component)
+    .filter((component) => SECTION_EFFECTS.has(String(component.effect_template_name)))
+    .map(readRscSection)
+    .filter((section) => section.products.length > 0 || section.groups.length > 0);
+  return { sections };
+}
+
+function readRscSection(component: RawRecord): PromotionSection {
+  const items = Array.isArray(component.items) ? component.items.map(asRecord) : [];
+  const title = asString(component.title) ?? asString(items.find((item) => item.type === "section-title")?.title) ?? "";
+  const products = new Map<string, ProductTile>();
+  const groups = new Map<string, PromotionGroup>();
+
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) return value.forEach(visit);
+    if (typeof value !== "object" || value === null) return;
+    if (isProductTile(value)) {
+      if (!products.has(value.id)) products.set(value.id, value);
+      return;
+    }
+    const group = readRscGroup(value as RawRecord);
+    if (group) {
+      // A list item has the promotion; a campaign card for the same group has none.
+      const known = groups.get(group.id);
+      if (!known || (group.label && !known.label)) groups.set(group.id, group);
+      return;
+    }
+    Object.values(value).forEach(visit);
+  };
+  visit(items);
+
+  return { id: asString(component.id) ?? "", title, products: [...products.values()], groups: [...groups.values()] };
+}
+
+/**
+ * Reads a promotion group list item (`promo-group-list-item`) or a campaign card (`campaign`) that
+ * opens a promotion group page. The promotion is the item's badge, or else what its accessibility
+ * label says after the name ("Vivera 2 voor €5").
+ */
+function readRscGroup(item: RawRecord): PromotionGroup | null {
+  if (item.type !== "promo-group-list-item" && item.type !== "campaign") return null;
+  const id = PROMOTION_GROUP_ID.exec(asString(item.deeplink) ?? "")?.[1];
+  const name = asString(item.title)?.trim();
+  if (!id || !name) return null;
+
+  const accessibilityLabel = asString(item.accessibilityLabel);
+  const label = asString(asRecord(item.badge).text) ?? (accessibilityLabel?.startsWith(`${name} `) ? accessibilityLabel.slice(name.length + 1).trim() || null : null);
+  return { id, name, example: asString(item.subtitle)?.trim() || null, label };
+}
+
+// ─── Promotions page (Fusion) ─────────────────────────────────────────────────
+
 /**
  * Reads the promotions page (`promo-page-root`, Fusion). Its layout block holds a component per
  * section with marker components around it; a section has a header, product tiles and cards for
