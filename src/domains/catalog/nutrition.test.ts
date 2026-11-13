@@ -6,6 +6,7 @@ describe("nutritionAmount", () => {
     ["4,8g", 4.8],
     ["<0,5 g", 0.5],
     ["1.5 g", 1.5],
+    ["1.139 kJ /", 1139],
     ["sporen", null],
     [null, null],
   ])("reads %j", (value, expected) => {
@@ -16,6 +17,8 @@ describe("nutritionAmount", () => {
 describe("nutritionPreference", () => {
   it.each([
     ["Energie", "lower"],
+    ["Brennwert", "lower"],
+    ["Valeur énergétique", "lower"],
     ["waarvan suikers", "lower"],
     ["waarvan verzadigd", "lower"],
     ["Matières grasses", "lower"],

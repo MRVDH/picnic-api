@@ -1,4 +1,5 @@
 import type { PmlNutritionRow } from "../../pages/pml";
+import { parseAmount } from "./comparison-price";
 import type { NutritionPreference, NutritionRow } from "./types";
 
 /**
@@ -15,6 +16,8 @@ const HIGHER_IS_BETTER = ["eiwit", "eiweiß", "eiweiss", "protéine", "protein",
 const LOWER_IS_BETTER = [
   "energie",
   "énergie",
+  "énergétique",
+  "brennwert",
   "energy",
   "kcal",
   "kj",
@@ -46,10 +49,10 @@ export function nutritionPreference(label: string): NutritionPreference | null {
   return null;
 }
 
-/** The first number in a nutrition value: "206 kJ /" is 206, "4,8g" is 4.8, "<0,5 g" is 0.5. */
+/** The first number in a nutrition value: "206 kJ /" is 206, "4,8g" is 4.8, "<0,5 g" is 0.5, "1.139 kJ" is 1139. */
 export function nutritionAmount(value: string | null): number | null {
-  const match = value ? /\d+(?:[.,]\d+)?/.exec(value) : null;
-  return match ? Number(match[0].replace(",", ".")) : null;
+  const match = value ? /\d+(?:[.,]\d+)*/.exec(value) : null;
+  return match ? parseAmount(match[0]) : null;
 }
 
 /** Adds the amount and the preference to the rows of a nutrition table. Heading rows ("Per 100 g") get neither. */
