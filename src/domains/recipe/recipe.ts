@@ -13,6 +13,7 @@ import {
   stripColorTags,
 } from "../../pages/pml";
 import type { NutritionRow } from "../catalog/types";
+import { readNutritionRows } from "../catalog/nutrition";
 import { parseMinutes, readRecipeTile } from "./lists";
 import {
   RecipeAllergens,
@@ -272,7 +273,7 @@ function extractStepsPortions(page: unknown): number | null {
 
 function extractRecipeNutritionRows(page: unknown): NutritionRow[] {
   const item = accordionItems(findNodeById(page, "accordion-list")).find((i) => /voedingswaarde|nährwert|valeurs nutritionnelles/i.test(collectMarkdowns(i.header)[0] ?? ""));
-  return item ? collectNutritionRows(item.body) : [];
+  return item ? readNutritionRows(collectNutritionRows(item.body)) : [];
 }
 
 /** Product-page fallback for ingredients without a visible tile, such as pantry staples. */

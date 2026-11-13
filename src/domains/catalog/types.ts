@@ -266,6 +266,9 @@ export type ProductAllergens = {
   mayContain: ProductBadge[];
 };
 
+/** Whether less (`"lower"`) or more (`"higher"`) of a nutrient is the healthier choice. */
+export type NutritionPreference = "lower" | "higher";
+
 /** A row of a nutrition table. */
 export type NutritionRow = {
   /** The nutrient or heading, e.g. "Energie", "waarvan suikers", "Per 100 g". */
@@ -276,6 +279,13 @@ export type NutritionRow = {
   isCategory: boolean;
   /** The row's background color (the app stripes rows), or `null`. */
   backgroundColor: string | null;
+  /** The number in `value` ("4,8g" is 4.8, "206 kJ /" is 206), to compare products, or `null`. */
+  amount: number | null;
+  /**
+   * Whether less (energy, fat, sugars, salt) or more (protein, fibre) of the nutrient is the healthier choice,
+   * read from the label in Dutch, German, French or English; `null` for other nutrients (carbohydrates, unsaturated fat) and headings.
+   */
+  preference: NutritionPreference | null;
 };
 
 /** A colored tag next to the unit quantity, e.g. "Diepvries". */
