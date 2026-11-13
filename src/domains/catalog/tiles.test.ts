@@ -24,6 +24,7 @@ describe("readFusionProductTile", () => {
       displayPrice: 369,
       originalPrice: 419,
       unitPrice: null,
+      comparisonPrice: { unit: "piece", price: 62, lowestPrice: null },
       priceRanges: null,
       unitQuantity: "6 stuks",
       labels: [{ position: "bottomLeft", type: "PROMO", text: "nu €3.69" }],

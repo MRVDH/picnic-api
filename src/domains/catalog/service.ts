@@ -5,6 +5,7 @@ import {
   CategorySection,
   Favorites,
   Product,
+  ProductPage,
   ProductTile,
   PromotionGroupProducts,
   Promotions,
@@ -22,6 +23,7 @@ import { extractProductDetails, productDetailsPageId } from "./product";
 import type { PageClient } from "../../pages/page-client";
 import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
+import { extractProductPage } from "./product-page";
 
 /** The search page component that holds the search parameters (search id, session id). */
 const SEARCH_PARAMS_MODULE = "search-page-params/search-page-params-provider.tsx";
@@ -68,6 +70,17 @@ export class CatalogService {
   async getCategoryPromotions(categoryId: string): Promise<CategoryProducts> {
     const content = await this.pages.getRscContent(`promotion-category-page?category_id=${encodeURIComponent(categoryId)}`);
     return extractCategoryProducts(categoryId, content);
+  }
+
+  /**
+   * Returns a page that lists products, such as a theme page or a shop page that a link opens
+   * (`app.picnic://store/page;id=<pageId>`). A Fusion page is read into its title and rows of product tiles;
+   * an RSC page is returned as its components, whose product tiles are parsed too.
+   * @param {string} pageId The page id with its parameters, e.g. `fresh-market-wineshop`.
+   */
+  async getProductPage(pageId: string): Promise<ProductPage> {
+    const page = await this.pages.getPage(pageId);
+    return page.format === "rsc" ? { format: "rsc", pageId, content: page.content } : { format: "fusion", pageId, ...extractProductPage(page.page) };
   }
 
   /**

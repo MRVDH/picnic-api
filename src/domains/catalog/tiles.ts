@@ -1,6 +1,7 @@
 import type { PriceRange } from "../../pages/fusion";
 import { PmlNode, analyticsContexts, childrenOf, cleanMarkdown, collectMarkdowns, findNode, findNodeById, isDefaultTextColor, stripColorTags } from "../../pages/pml";
 import type { ProductTile } from "./types";
+import { getComparisonPrice } from "./comparison-price";
 
 type RawRecord = Record<string, unknown>;
 
@@ -47,6 +48,7 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     return price !== null && fromQuantity !== null ? [{ price, from_quantity: fromQuantity }] : [];
   });
   const promotionLabel = asString(promotion.promotion_label);
+  const displayPrice = asNumber(unit.display_price) ?? 0;
 
   return {
     id,
@@ -55,9 +57,10 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     brand: info.brand,
     qualityCue: info.qualityCue,
     imageId: asString(unit.image_id),
-    displayPrice: asNumber(unit.display_price) ?? 0,
+    displayPrice,
     originalPrice: promotion.show_strikethrough_price === true ? asNumber(promotion.strikethrough_price) : null,
     unitPrice: null,
+    comparisonPrice: getComparisonPrice(displayPrice, unitQuantity, priceRanges),
     // One tier means the price doesn't depend on the quantity.
     priceRanges: priceRanges.length > 1 ? priceRanges : null,
     unitQuantity,

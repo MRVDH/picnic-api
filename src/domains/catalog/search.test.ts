@@ -70,6 +70,7 @@ describe("extractSearchResults", () => {
             displayPrice: 175,
             originalPrice: 195,
             unitPrice: null,
+            comparisonPrice: { unit: "l", price: 117, lowestPrice: null },
             priceRanges: [{ price: 175, from_quantity: 1 }],
             unitQuantity: "1.5 liter",
             labels: [{ position: "bottomLeft", type: "PROMO", text: "10% korting" }],

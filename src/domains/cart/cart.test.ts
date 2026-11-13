@@ -78,6 +78,7 @@ describe("extractCart", () => {
         priceRanges: [{ price: 199, from_quantity: 1 }, { price: 189, from_quantity: 2 }],
         labels: [{ text: "Family", textColor: "#FFFFFF", backgroundColor: "#295813" }],
         basePrice: null,
+        comparisonPrice: { unit: "kg", price: 358, lowestPrice: null },
         freshness: null,
         characteristics: ["ORGANIC"],
         isUnavailable: false,
