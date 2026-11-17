@@ -1,4 +1,5 @@
-import type { RscNode, RscPageContent } from "../../pages/types";
+import type { RscPageContent } from "../../pages/types";
+import { findRscNode } from "../../pages/rsc";
 import type { Profile, ProfileAddress, ProfileMenuEntry } from "./types";
 
 type RscRecord = Record<string, unknown>;
@@ -12,8 +13,8 @@ const asString = (value: unknown): string | null => (typeof value === "string" &
  * @param {RscPageContent} content The content of the `profile-root` page.
  */
 export function extractProfile(content: RscPageContent): Profile {
-  const user = asRecord(findNode(content.nodes, "user-info")?.props.user) ?? {};
-  const items = findNode(content.nodes, "menu-list")?.props.items;
+  const user = asRecord(findRscNode(content.nodes, "user-info")?.props.user) ?? {};
+  const items = findRscNode(content.nodes, "menu-list")?.props.items;
   const address = asRecord(user.preferredAddress);
 
   return {
@@ -38,13 +39,4 @@ function extractAddress(address: RscRecord): ProfileAddress {
     postcode: asString(address.postcode) ?? "",
     city: asString(address.city) ?? "",
   };
-}
-
-function findNode(nodes: RscNode[], component: string): RscNode | null {
-  for (const node of nodes) {
-    if (node.component === component) return node;
-    const found = findNode(node.children, component);
-    if (found) return found;
-  }
-  return null;
 }

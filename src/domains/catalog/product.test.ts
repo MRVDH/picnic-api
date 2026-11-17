@@ -1,6 +1,8 @@
-import { extractProductDetails } from "./product";
+import { extractProductDetails, extractRscProductDetails } from "./product";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import type { FusionPage } from "../../pages/fusion";
+import { parseRscPageContent, parseRscPayload } from "../../pages/rsc";
+import type { RscPageContent } from "../../pages/types";
 
 const text = (markdown: unknown, extra: Record<string, unknown> = {}) => ({ type: "RICH_TEXT", markdown, ...extra });
 const badge = (markdown: string, backgroundColor: string) => ({
@@ -220,5 +222,294 @@ describe("extractProductDetails", () => {
     const fallback = { layout: { id: "product-details-page-fallback", body: { child: text("Product niet gevonden") } } } as unknown as FusionPage;
 
     expect(() => extractProductDetails("s1", fallback)).toThrow(ProductNotFoundError);
+  });
+});
+
+/**
+ * A product page as Picnic serves it as RSC: the page hydrator with the theme, around one
+ * `product-details-content` component with the view model. `texts` are text rows, such as a long
+ * description that the view model refers to as `"$9"`.
+ */
+function rscProductPage(viewModel: Record<string, unknown>, texts: Record<string, string> = {}): RscPageContent {
+  const theme = { tokenRegistry: { "Text/Brand/price": "#B40117", "Colour/Green/green-500": "#3F7326" } };
+  const payload = [
+    '1:I["./presentational-components/page/page-hydrator.tsx",["c"],"PageHydrator"]',
+    '2:I["./pages/product-details/product-details-content.tsx",["c"],"ProductDetailsContent"]',
+    `0:["$","$L1",null,${JSON.stringify({ theme, children: ["$", "$L2", null, { viewModel }] })}]`,
+    ...Object.entries(texts).map(([id, value]) => `${id}:T${Buffer.byteLength(value).toString(16)},${value}`),
+  ].join("\n");
+  return parseRscPageContent("product-details-page-root?id=s1", parseRscPayload(payload));
+}
+
+describe("extractRscProductDetails", () => {
+  it("reads the header, prices, labels and promotion of the view model", () => {
+    const content = rscProductPage({
+      id: "s1",
+      title: "Merk halfvolle melk",
+      headerTitle: "Halfvolle melk",
+      subtitle: "Merk",
+      color: { primary: "#1F5FA8" },
+      suffixes: [
+        { type: "SIZE", text: "XL" },
+        { type: "TEXT", text: "1.5 liter" },
+        { type: "TEXT", text: "In prijs verlaagd" },
+        { type: "UNIT_PRICE", text: "€1.26/l" },
+        { type: "NOTICE_LABEL", text: "Diepvries" },
+      ],
+      price: {
+        basePrice: 189,
+        priceValue: 1.89,
+        referencePriceValue: 2.29,
+        priceColor: "promo",
+        priceRanges: [
+          { fromQuantity: 1, price: 189 },
+          { fromQuantity: 2, price: 185 },
+        ],
+      },
+      labels: {
+        topLeft: [{ type: "REBUY_COUNT", count: 2 }],
+        middleLeft: [],
+        bottomLeft: [
+          { type: "PROMOBOX_PROMO", discountId: "promo-1", labelText: "20% korting" },
+          { type: "PROMO", labelText: "1+1 gratis" },
+        ],
+        topRight: [],
+      },
+      isOrganic: true,
+      isNew: true,
+      images: [{ id: "img-1" }, { id: "img-2" }, { id: "img-1" }],
+      sellableInteraction: {
+        slots: {
+          stepperIncrementPress: {
+            actions: [
+              {
+                type: "modify-cart",
+                payload: {
+                  modificationType: "ADD",
+                  enrichments: [{ type: "PROMOTION", payload: { promotion_id: "promo-1", promotion_label: "20% korting" } }],
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(extractRscProductDetails("s1", content, "NL")).toMatchObject({
+      id: "s1",
+      name: "Halfvolle melk",
+      brand: "Merk",
+      unitQuantity: "1.5 liter",
+      unitPrice: "€1.26/l",
+      quantityBadges: [{ text: "XL", textColor: "#FFFFFF", backgroundColor: "#1F5FA8" }],
+      // A text after the quantity is a note, shown with the other notes.
+      tags: [
+        { text: "In prijs verlaagd", color: null },
+        { text: "Diepvries", color: null },
+      ],
+      displayPrice: 189,
+      originalPrice: 229,
+      displayPriceColor: "#B40117",
+      priceRanges: [
+        { price: 189, from_quantity: 1 },
+        { price: 185, from_quantity: 2 },
+      ],
+      maxCount: 99,
+      imageIds: ["img-1", "img-2"],
+      // The app's order: organic, the promotion labels by type, new. It doesn't show REBUY_COUNT.
+      labels: [
+        { text: "Biologisch", textColor: "#4B8505", backgroundColor: "#FFFFFF" },
+        { text: "1+1 gratis", textColor: "#333333", backgroundColor: "#FBD92B" },
+        { text: "20% korting", textColor: "#FFFFFF", backgroundColor: "#295813" },
+        { text: "Nieuw", textColor: "#4B8505", backgroundColor: "#F3F6E9" },
+      ],
+      promotion: { id: "promo-1", label: "20% korting" },
+    });
+  });
+
+  it("reads a Family price, a price without tiers and the label texts of the country", () => {
+    const content = rscProductPage({
+      headerTitle: "Aardbeien",
+      suffixes: [{ type: "TEXT", text: "400 gram" }],
+      price: { priceValue: 4.04, referencePriceValue: 4.49, priceColor: "family", label: "FAMILY", priceRanges: [{ fromQuantity: 1, price: 404 }] },
+      labels: { topLeft: [], middleLeft: [], bottomLeft: [], topRight: [] },
+      isOrganic: true,
+    });
+
+    expect(extractRscProductDetails("s1", content, "DE")).toMatchObject({
+      brand: null,
+      displayPrice: 404,
+      originalPrice: 449,
+      displayPriceColor: "#3F7326",
+      priceRanges: null,
+      labels: [
+        { text: "Bio", textColor: "#4B8505", backgroundColor: "#FFFFFF" },
+        { text: "Family", textColor: "#FFFFFF", backgroundColor: "#295813" },
+      ],
+      promotion: null,
+    });
+  });
+
+  it("sorts the price tiers by quantity and takes the lowest tier's price when the page has no price", () => {
+    const content = rscProductPage({
+      headerTitle: "Paprika",
+      price: {
+        priceRanges: [
+          { fromQuantity: 3, price: 179 },
+          { fromQuantity: 1, price: 189 },
+          { fromQuantity: 2, price: 185 },
+        ],
+      },
+    });
+
+    expect(extractRscProductDetails("s1", content, "NL")).toMatchObject({
+      displayPrice: 189,
+      priceRanges: [
+        { price: 189, from_quantity: 1 },
+        { price: 185, from_quantity: 2 },
+        { price: 179, from_quantity: 3 },
+      ],
+    });
+  });
+
+  it("reads the description, highlights, allergens, info sections and nutrition table", () => {
+    const description = "Romige melk van **Nederlandse** koeien.\n\nLekker bij je ontbijt ☀️";
+    const content = rscProductPage(
+      {
+        headerTitle: "Halfvolle melk",
+        description: { main: "$9" },
+        highlights: [
+          { title: "Romig van smaak", titleMarkdown: "**Romig** van smaak", icon: "STARS", deeplink: "" },
+          { title: "Meer melk", titleMarkdown: "Meer __**melk**__ >", icon: "PIN", deeplink: "app.picnic://store/page;id=theme-page-1" },
+        ],
+        allergies: { contains: [{ name: "Melk", color: "#6E8DB6" }], mayContain: ["Noten"] },
+        accordions: [
+          { id: "ingredients", icon: "list", title: "Ingrediënten", content: { type: "text", text: "Ingrediënten: melk." } },
+          {
+            id: "nutrition",
+            icon: "apple",
+            title: "Voedingswaarde",
+            content: {
+              type: "nutrition",
+              unit: "per 100 ml",
+              rows: [
+                { label: "Energie", value: "206  kJ /", isSubValue: false },
+                { label: "Vet", value: "1,5g", isSubValue: false },
+                { label: "waarvan verzadigd", value: "1,0g", isSubValue: true },
+              ],
+            },
+          },
+          { id: "extra-information", icon: "infoMark", title: "Extra informatie", content: { type: "text", text: ["**Bewaren**\nKoel bewaren.", "**Land van herkomst**\nNederland"] } },
+        ],
+      },
+      { "9": description },
+    );
+
+    const product = extractRscProductDetails("s1", content, "NL");
+
+    expect(product.description).toBe(description);
+    expect(product.highlightItems).toEqual([
+      { text: "**Romig** van smaak", iconKey: "STARS", linkTarget: null },
+      { text: "Meer __**melk**__ >", iconKey: "PIN", linkTarget: "app.picnic://store/page;id=theme-page-1" },
+    ]);
+    expect(product.allergenGroups).toEqual({
+      contains: [{ text: "Melk", textColor: "#FFFFFF", backgroundColor: "#6E8DB6" }],
+      mayContain: [{ text: "Noten", textColor: "#333333", backgroundColor: "transparent" }],
+    });
+    // Every other row is striped, starting with the first row under the heading.
+    expect(product.nutritionRows).toEqual([
+      { label: "Per 100 ml", value: null, isCategory: true, backgroundColor: null, amount: null, preference: null },
+      { label: "Energie", value: "206  kJ /", isCategory: true, backgroundColor: "#FCFAF9", amount: 206, preference: "lower" },
+      { label: "Vet", value: "1,5g", isCategory: true, backgroundColor: null, amount: 1.5, preference: "lower" },
+      { label: "waarvan verzadigd", value: "1,0g", isCategory: false, backgroundColor: "#FCFAF9", amount: 1, preference: "lower" },
+    ]);
+    expect(product.infoSections).toEqual([
+      { title: "Ingrediënten", content: "Ingrediënten: melk." },
+      { title: "Voedingswaarde", content: "Per 100 ml\nEnergie\n206  kJ /\nVet\n1,5g\nwaarvan verzadigd\n1,0g" },
+      { title: "Extra informatie", content: "**Bewaren**\nKoel bewaren.\n**Land van herkomst**\nNederland" },
+    ]);
+  });
+
+  it("reads the similar products from the related tiles, with the brand in front of the name", () => {
+    const tile = {
+      type: "sellable",
+      id: "s2",
+      title: { title: "Pils", prefix: "$undefined" },
+      subtitle: { text: "Merk" },
+      images: { primaryImage: { imageId: "img-2" } },
+      price: { priceValue: 4.5, priceRanges: [{ fromQuantity: 1, price: 450 }] },
+      suffixes: [
+        { type: "TEXT", text: "6 x 300 ml" },
+        { type: "TEXT", text: "In prijs verlaagd" },
+      ],
+      labels: {},
+      unavailability: null,
+      interaction: { context: { deposit: 60, sellableId: "s2" } },
+    };
+    const content = rscProductPage({ headerTitle: "Pils", related: [tile] });
+
+    expect(extractRscProductDetails("s1", content, "NL").similarProducts).toEqual([
+      {
+        id: "s2",
+        name: "Merk Pils",
+        imageId: "img-2",
+        displayPrice: 450,
+        unitQuantity: "6 x 300 ml",
+        comparisonPrice: { unit: "l", price: 250, lowestPrice: null },
+        maxCount: 99,
+        deposit: 60,
+        priceRanges: [{ price: 450, from_quantity: 1 }],
+      },
+    ]);
+  });
+
+  it("keeps the text of every nutrition table and of an accordion type it doesn't know", () => {
+    const table = (unit: string, energy: string) => ({ type: "nutrition", unit, rows: [{ label: "Energie", value: energy, isSubValue: false }] });
+    const content = rscProductPage({
+      headerTitle: "Halfvolle melk",
+      accordions: [
+        { id: "nutrition", title: "Voedingswaarde", content: table("per 100 ml", "206 kJ /") },
+        { id: "nutrition-portion", title: "Per portie", content: table("per 250 ml", "515 kJ /") },
+        { id: "storage", title: "Bewaren", content: { type: "table", rows: [{ cells: ["Koelkast", "7 dagen"] }, { cells: ["Vriezer", " "] }] } },
+        { id: "empty", title: "Leeg", content: { type: "text", text: [] } },
+      ],
+    });
+
+    const product = extractRscProductDetails("s1", content, "NL");
+
+    expect(product.infoSections).toEqual([
+      { title: "Voedingswaarde", content: "Per 100 ml\nEnergie\n206 kJ /" },
+      { title: "Per portie", content: "Per 250 ml\nEnergie\n515 kJ /" },
+      { title: "Bewaren", content: "Koelkast\n7 dagen\nVriezer" },
+    ]);
+    // The model has one nutrition table: the first.
+    expect(product.nutritionRows.map((row) => row.label)).toEqual(["Per 100 ml", "Energie"]);
+  });
+
+  it("throws a ProductNotFoundError when the page shows Picnic's product-not-found content", () => {
+    const content = parseRscPageContent(
+      "product-details-page-root?id=s0",
+      parseRscPayload(
+        [
+          '1:I["./presentational-components/page/page-route-provider.tsx",["c"],"PageRouteProvider"]',
+          '2:I["./pages/product-details/components/product-details-fallback-content.tsx",["c"],"ProductDetailsFallbackContent"]',
+          '0:["$","$L1",null,{"pageId":"product-details-page-root","children":["$","$L2",null,{}]}]',
+        ].join("\n"),
+      ),
+    );
+
+    expect(() => extractRscProductDetails("s0", content, "NL")).toThrow(ProductNotFoundError);
+  });
+
+  it("throws an error naming the page, not a ProductNotFoundError, when the page has neither the product nor the not-found content", () => {
+    const content = parseRscPageContent(
+      "product-details-page-root?id=s1",
+      parseRscPayload(['1:I["./presentational-components/page/page-route-provider.tsx",["c"],"PageRouteProvider"]', '0:["$","$L1",null,{"pageId":"product-details-page-root"}]'].join("\n")),
+    );
+
+    const read = () => extractRscProductDetails("s1", content, "NL");
+
+    expect(read).toThrow('The product page "product-details-page-root?id=s1"');
+    expect(read).not.toThrow(ProductNotFoundError);
   });
 });

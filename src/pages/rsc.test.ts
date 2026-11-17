@@ -24,6 +24,20 @@ describe("parseRscPayload", () => {
 
     expect(page.rows).toEqual({ "1f": { ok: true } });
     expect(page.modules).toEqual({});
+    expect(page.texts).toEqual({ "3": "hello" });
+  });
+
+  it("reads text rows by their length in UTF-8 bytes, with the next row right after the text", () => {
+    // "Zon ☀️\n**Vers**" is 19 bytes (0x13): ☀ and the variation selector take 3 bytes each.
+    // "🍓 $5\nsap" is 11 bytes (0xb): 🍓 takes 4.
+    const payload = ['0:["$","$L1",null,{"description":"$9","note":"$a"}]', "9:T13,Zon ☀️\n**Vers**a:Tb,🍓 $5\nsap2:{\"ok\":true}", ""].join("\n");
+
+    const page = parseRscPayload(payload);
+
+    expect(page.texts).toEqual({ "9": "Zon ☀️\n**Vers**", a: "🍓 $5\nsap" });
+    expect(page.rows["2"]).toEqual({ ok: true });
+    // A text row is plain text: "$5" in it is not a reference.
+    expect(decodeRscValue(page, page.rows["0"])).toEqual(["$", "$L1", null, { description: "Zon ☀️\n**Vers**", note: "🍓 $5\nsap" }]);
   });
 });
 

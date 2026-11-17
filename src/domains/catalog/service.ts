@@ -17,10 +17,9 @@ import {
 } from "./types";
 import { extractPromotionGroup, extractPromotions, extractRscPromotions } from "./promotions";
 import { extractFavorites, extractFavoritesInAisle } from "./favorites";
-import { FusionPage } from "../../pages/fusion";
 import { extractFusionSearchResults, extractSearchResults } from "./search";
 import type { RscPage } from "../../pages/rsc-payload";
-import { extractProductDetails, productDetailsPageId } from "./product";
+import { extractProductDetails, extractRscProductDetails, productDetailsPageId } from "./product";
 import type { PageClient } from "../../pages/page-client";
 import { decodeRscValue, findRscElementProps } from "../../pages/rsc";
 import { extractCategoryProducts, extractCategoryTree, extractSubcategories } from "./categories";
@@ -180,21 +179,17 @@ export class CatalogService {
     return this.http.sendRequest<null, RawSearchSuggestion[]>("GET", `/suggest?search_term=${encodeURIComponent(query)}`);
   }
 
-  /** Fetches the product details page (Fusion). */
-  private getProductDetailsPage(productId: string): Promise<FusionPage> {
-    return this.pages.getFusionPage(productDetailsPageId(productId));
-  }
-
   /**
    * Returns a product as the app's product page shows it (`product-details-page-root`): name,
    * prices, price tiers, promotions, images, the information sections, nutrition and allergens.
+   * Picnic serves the page as RSC; the Fusion reader stays while older agents still get a Fusion page.
    *
    * @param {string} productId The product ID to fetch details for.
    * @throws {ProductNotFoundError} When the product doesn't exist or isn't available at the user's location.
    */
   async getProduct(productId: string): Promise<Product> {
-    const page = await this.getProductDetailsPage(productId);
-    return extractProductDetails(productId, page);
+    const page = await this.pages.getPage(productDetailsPageId(productId));
+    return page.format === "rsc" ? extractRscProductDetails(productId, page.content, this.http.countryCode) : extractProductDetails(productId, page.page);
   }
 
   /**

@@ -3,6 +3,8 @@ import type { RscNode, RscPageContent } from "./types";
 import { extractProductTile } from "../domains/catalog/search";
 
 const ROW_PATTERN = /^([0-9a-f]+):(I?)(.*)$/;
+/** The header of a text row, `9:T52b,`: row id and the text's length in UTF-8 bytes (hex). Sticky, for `parseRscPayload`. */
+const TEXT_ROW_PATTERN = /([0-9a-f]+):T([0-9a-f]+),/y;
 /**
  * "$7" or "$L7" (lazy): the value of row 7. An element type like "$L8" points to module 8 instead;
  * modules aren't rows, so those are kept.
@@ -47,6 +49,8 @@ export function decodeRscValue(page: RscPage, value: unknown): unknown {
       if (item.startsWith("$$")) return item.slice(1);
 
       const rowId = ROW_REFERENCE_PATTERN.exec(item)?.[1];
+      // A text row is the string itself, not encoded: a "$" at its start is text.
+      if (rowId !== undefined && rowId in page.texts) return page.texts[rowId];
       if (rowId !== undefined && rowId in page.rows) return resolveReference(`$${rowId}`, () => page.rows[rowId]);
 
       const pathReference = PATH_REFERENCE_PATTERN.exec(item);
@@ -135,16 +139,32 @@ export function findRscModuleChunks(page: RscPage, modulePath: string): string[]
 /**
  * Parses a React Server Components (RSC) "flight" payload into its rows.
  *
- * The payload is newline-separated rows of the form `<hex id>:<payload>`.
- * JSON rows end up in `rows`, client component references (`I[...]`) in
- * `modules`. Other row kinds (hints, text chunks) carry no page data and are
- * skipped, as are lines that aren't valid JSON on their own.
+ * The payload is a series of rows of the form `<hex id>:<payload>`, most of them ending with a
+ * newline. JSON rows end up in `rows`, client component references (`I[...]`) in `modules`.
+ * Text rows (`<hex id>:T<hex byte length>,<text>`) end up in `texts`: they hold a string of the
+ * given length in UTF-8 bytes, which may contain newlines, and the next row follows without a
+ * newline. Other row kinds (hints) carry no page data and are skipped, as are lines that aren't
+ * valid JSON on their own.
  * @param {string} payload The raw `text/x-component` response body.
  */
 export function parseRscPayload(payload: string): RscPage {
-  const page: RscPage = { rows: {}, modules: {} };
+  const page: RscPage = { rows: {}, modules: {}, texts: {} };
 
-  for (const line of payload.split("\n")) {
+  for (let position = 0; position < payload.length; ) {
+    TEXT_ROW_PATTERN.lastIndex = position;
+    const text = TEXT_ROW_PATTERN.exec(payload);
+    if (text) {
+      const start = TEXT_ROW_PATTERN.lastIndex;
+      const end = skipUtf8Bytes(payload, start, parseInt(text[2], 16));
+      page.texts[text[1]] = payload.slice(start, end);
+      position = end;
+      continue;
+    }
+
+    const lineEnd = payload.indexOf("\n", position);
+    const line = payload.slice(position, lineEnd === -1 ? payload.length : lineEnd);
+    position = lineEnd === -1 ? payload.length : lineEnd + 1;
+
     const match = ROW_PATTERN.exec(line);
     if (!match) continue;
 
@@ -162,6 +182,22 @@ export function parseRscPayload(payload: string): RscPage {
   }
 
   return page;
+}
+
+/**
+ * The index in `text` after `bytes` UTF-8 bytes from `start`, or the end of `text`. React writes a
+ * text row's length as the size of the UTF-8 it sends for the text, and it sends valid UTF-8, so the
+ * length matches the decoded text. A response that was cut off ends inside the text, which then
+ * runs to the end; no rows follow it to lose.
+ */
+function skipUtf8Bytes(text: string, start: number, bytes: number): number {
+  let index = start;
+  for (let remaining = bytes; remaining > 0 && index < text.length; ) {
+    const codePoint = text.codePointAt(index)!;
+    remaining -= codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+    index += codePoint > 0xffff ? 2 : 1;
+  }
+  return index;
 }
 
 /** "$L8": an element type pointing to module 8. */
@@ -228,6 +264,21 @@ export function parseRscPageContent(pageId: string, page: RscPage): RscPageConte
   const nodes: RscNode[] = [];
   convert(decodeRscValue(page, page.rows["0"]), nodes);
   return { pageId, tokens, nodes };
+}
+
+/**
+ * Returns the first node in a component tree, depth first, whose component is `component`, e.g.
+ * `menu-list`, or `null`.
+ * @param {RscNode[]} nodes The nodes to search, e.g. `RscPageContent.nodes`.
+ * @param {string} component The component's module name.
+ */
+export function findRscNode(nodes: RscNode[], component: string): RscNode | null {
+  for (const node of nodes) {
+    if (node.component === component) return node;
+    const found = findRscNode(node.children, component);
+    if (found) return found;
+  }
+  return null;
 }
 
 function readStrings(value: unknown): Record<string, string> {

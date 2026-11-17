@@ -1,7 +1,9 @@
 import HttpClient from "../../http-client";
 import { CatalogService } from "./service";
 import type { PageClient } from "../../pages/page-client";
-import { parseRscPayload } from "../../pages/rsc";
+import { parseRscPageContent, parseRscPayload } from "../../pages/rsc";
+import { ProductNotFoundError } from "../../errors/product-not-found-error";
+import { productDetailsPageId } from "./product";
 
 /** A PageClient stand-in that serves a search page and an empty action result. */
 function fakeRsc() {
@@ -75,6 +77,38 @@ describe("CatalogService.getSearchResults on a Fusion search page", () => {
 
     expect(pages.getFusionPage).toHaveBeenCalledWith("search-page-results?search_term=milch&selected_sorting=PRICE");
     expect(results.products?.selectedSorting).toBe("PRICE");
+  });
+});
+
+describe("CatalogService.getProduct", () => {
+  const pageId = productDetailsPageId("s1");
+
+  it("reads an RSC product page with the RSC reader, with the texts of the client's country", async () => {
+    const content = parseRscPageContent(
+      pageId,
+      parseRscPayload(
+        [
+          '1:I["./pages/product-details/product-details-content.tsx",["c"],"ProductDetailsContent"]',
+          '0:["$","$L1",null,{"viewModel":{"headerTitle":"Halfvolle melk","isOrganic":true}}]',
+        ].join("\n"),
+      ),
+    );
+    const pages = { getPage: jest.fn().mockResolvedValue({ format: "rsc", pageId, content }) };
+    const catalog = new CatalogService(new HttpClient({ countryCode: "DE" }), pages as unknown as PageClient);
+
+    const product = await catalog.getProduct("s1");
+
+    expect(pages.getPage).toHaveBeenCalledWith(pageId);
+    expect(product).toMatchObject({ id: "s1", name: "Halfvolle melk", labels: [{ text: "Bio" }] });
+  });
+
+  it("reads a Fusion product page with the Fusion reader", async () => {
+    // The Fusion reader throws a ProductNotFoundError for a page without its main container.
+    const fallback = { layout: { id: "product-details-page-fallback" } };
+    const pages = { getPage: jest.fn().mockResolvedValue({ format: "fusion", pageId, page: fallback }) };
+    const catalog = new CatalogService(new HttpClient(), pages as unknown as PageClient);
+
+    await expect(catalog.getProduct("s1")).rejects.toThrow(ProductNotFoundError);
   });
 });
 

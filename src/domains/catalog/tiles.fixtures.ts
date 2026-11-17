@@ -15,6 +15,8 @@ export type TileOptions = {
   price?: number;
   promotion?: { label: string; originalPrice?: number };
   priceRanges?: { price: number; from_quantity: number }[];
+  /** The deposit in cents, on the selling unit. */
+  deposit?: number;
   /** The reason of the tile's unavailability context, e.g. "SEASONAL_REGULAR". */
   unavailability?: string;
 };
@@ -70,6 +72,7 @@ export function fusionTile(options: TileOptions) {
         max_count: 50,
         decorators: [],
         price_ranges: options.priceRanges ?? [{ price, from_quantity: 1 }],
+        ...(options.deposit !== undefined && { deposit: options.deposit }),
       },
     },
     pml: {

@@ -1,4 +1,5 @@
-import type { RscNode, RscPageContent } from "../../pages/types";
+import type { RscPageContent } from "../../pages/types";
+import { findRscNode } from "../../pages/rsc";
 import { extractFilters } from "./search";
 import type { CategoryLink, CategoryLinkTarget, CategoryProducts, CategorySection, ProductTile, SearchSection, Subcategories } from "./types";
 
@@ -15,16 +16,6 @@ const TARGET_TYPES: Record<string, Exclude<CategoryLinkTarget["type"], "page">> 
   "category-product-overview": "products",
   "promotion-category-page": "promotions",
 };
-
-/** The first node of a component (by module name) in an RSC component tree. */
-function findNode(nodes: RscNode[], component: string): RscNode | null {
-  for (const node of nodes) {
-    if (node.component === component) return node;
-    const found = findNode(node.children, component);
-    if (found) return found;
-  }
-  return null;
-}
 
 /** What a deep link like `app.picnic://store/page;id=subcategory-page,category_id=21724` opens. */
 function readTarget(deeplink: string): CategoryLinkTarget {
@@ -55,7 +46,7 @@ function readLink(item: unknown): CategoryLink | null {
  */
 export function extractCategoryTree(content: RscPageContent): CategorySection[] {
   const sections: CategorySection[] = [{ title: null, links: [] }];
-  for (const item of asArray(findNode(content.nodes, "vertical-list")?.props.items)) {
+  for (const item of asArray(findRscNode(content.nodes, "vertical-list")?.props.items)) {
     const entry = asRecord(item);
     if (entry?.type === "section-title") {
       sections.push({ title: asString(entry.title), links: [] });
@@ -69,7 +60,7 @@ export function extractCategoryTree(content: RscPageContent): CategorySection[] 
 
 /** Reads a category's subcategory list (`subcategory-page`). */
 export function extractSubcategories(categoryId: string, content: RscPageContent): Subcategories {
-  const list = findNode(content.nodes, "category-list");
+  const list = findRscNode(content.nodes, "category-list");
   return {
     categoryId,
     title: asString(list?.props.title) ?? "",
@@ -86,10 +77,10 @@ const isProductTile = (item: unknown): item is ProductTile =>
  * of products and the filters, from the same components as the search results.
  */
 export function extractCategoryProducts(categoryId: string, content: RscPageContent): CategoryProducts {
-  const items = findNode(content.nodes, "items")?.props;
-  const filterBar = findNode(content.nodes, "filter-bar")?.props;
+  const items = findRscNode(content.nodes, "items")?.props;
+  const filterBar = findRscNode(content.nodes, "filter-bar")?.props;
   const productIdsByFacetId: Record<string, string[]> = {};
-  for (const [facetId, ids] of Object.entries(asRecord(findNode(content.nodes, "context")?.props.entityIdsByFacetId) ?? {})) {
+  for (const [facetId, ids] of Object.entries(asRecord(findRscNode(content.nodes, "context")?.props.entityIdsByFacetId) ?? {})) {
     productIdsByFacetId[facetId] = asArray(ids).filter((id): id is string => typeof id === "string");
   }
 
@@ -105,7 +96,7 @@ export function extractCategoryProducts(categoryId: string, content: RscPageCont
 
   return {
     categoryId,
-    title: asString(findNode(content.nodes, "page-header")?.props.title) ?? "",
+    title: asString(findRscNode(content.nodes, "page-header")?.props.title) ?? "",
     results: {
       sections,
       visualFilters: extractFilters(filterBar?.visualFilters),
