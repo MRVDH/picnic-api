@@ -4,6 +4,7 @@ import type { CountryCode } from "../../types/common";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import { getComparisonPrice } from "./comparison-price";
 import { readNutritionRows } from "./nutrition";
+import { tileQuantity } from "./search";
 import {
   accordionItems,
   childrenOf,
@@ -341,6 +342,8 @@ const RSC_COPY: Record<CountryCode, { organic: string; new: string; per: string 
  */
 const RSC_LABEL_ORDER: Record<string, number> = { PROMO: 6, PROMOBOX_PROMO: 7 };
 const LABEL_POSITIONS = ["topLeft", "middleLeft", "bottomLeft", "topRight"];
+/** The suffix types the app shows as notes after the quantity; a `TEXT` is a note when it isn't the first. */
+const NOTE_SUFFIXES = ["TEXT", "NOTICE_LABEL", "TEXT_ICON"];
 
 /** The colors the app gives the parts it draws, as theme tokens with the values they have in the app's theme. */
 const RSC_COLORS = {
@@ -361,10 +364,10 @@ const RSC_COLORS = {
  * way the app's component shows it:
  *
  * - The header: the name without the brand (`headerTitle`), the brand (`subtitle`), and the
- *   `suffixes`: the quantity (`TEXT`), the unit price (`UNIT_PRICE`), size badges (`SIZE`) and notes
- *   such as "Diepvries" (`NOTICE_LABEL`, `TEXT_ICON`).
+ *   `suffixes`: the quantity (the first `TEXT`), the unit price (`UNIT_PRICE`), size badges (`SIZE`)
+ *   and notes such as "In prijs verlaagd" (a later `TEXT`) and "Diepvries" (`NOTICE_LABEL`, `TEXT_ICON`).
  * - The labels: organic, the promotion labels, "Family" for a Family price, and new.
- * - The accordions: text sections and the nutrition table.
+ * - The accordions: text sections and nutrition tables.
  * - The promotion: the one the app sends along when the product is added to the cart.
  * - The similar products: the `related` product tiles.
  *
@@ -372,18 +375,25 @@ const RSC_COLORS = {
  * @param {string} productId The product ID that was requested.
  * @param {RscPageContent} content The content of the product page.
  * @param {CountryCode} countryCode The country, for the label texts the app adds.
- * @throws {ProductNotFoundError} When the page has no product.
+ * @throws {ProductNotFoundError} When Picnic shows its "product not found" content instead.
+ * @throws {Error} When the page has neither component.
  */
 export function extractRscProductDetails(productId: string, content: RscPageContent, countryCode: CountryCode): Product {
   const viewModel = findRscNode(content.nodes, "product-details-content")?.props.viewModel;
-  if (typeof viewModel !== "object" || viewModel === null) throw new ProductNotFoundError(productId);
+  if (typeof viewModel !== "object" || viewModel === null || Array.isArray(viewModel)) {
+    if (findRscNode(content.nodes, "product-details-fallback-content")) throw new ProductNotFoundError(productId);
+    throw new Error(`The product page "${content.pageId}" has no product-details-content or product-details-fallback-content component.`);
+  }
   const vm = asRecord(viewModel);
   const copy = RSC_COPY[countryCode] ?? RSC_COPY.NL;
   const color = (name: keyof typeof RSC_COLORS): string => content.tokens[RSC_COLORS[name][0]] ?? RSC_COLORS[name][1];
 
   const suffixes = asArray(vm.suffixes).map(asRecord);
   const suffixTexts = (...types: string[]) => suffixes.filter((s) => types.includes(String(s.type))).flatMap((s) => asString(s.text) ?? []);
-  const unitQuantity = suffixTexts("TEXT").join(", ");
+  // The first text is the quantity; texts after it are notes, which the app shows after it like the other notes.
+  const quantitySuffix = suffixes.find((s) => s.type === "TEXT" && asString(s.text) !== null);
+  const unitQuantity = asString(quantitySuffix?.text) ?? "";
+  const notes = suffixes.filter((s) => s !== quantitySuffix && NOTE_SUFFIXES.includes(String(s.type))).flatMap((s) => asString(s.text) ?? []);
   const productColor = asString(asRecord(vm.color).primary);
 
   const price = asRecord(vm.price);
@@ -399,8 +409,9 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
   const priceColor = price.priceColor === "promo" ? color("promoPrice") : price.priceColor === "family" ? color("familyPrice") : null;
 
   const accordions = asArray(vm.accordions).map(asRecord);
+  const readNutrition = (section: RscRecord) => readRscNutritionRows(section, copy.per, color("nutritionStripe"));
+  // The model has one nutrition table: the first. Every nutrition accordion keeps its own text in the info sections.
   const nutritionContent = accordions.map((a) => asRecord(a.content)).find((c) => c.type === "nutrition");
-  const nutritionRows = nutritionContent ? readRscNutritionRows(nutritionContent, copy.per, color("nutritionStripe")) : [];
 
   return {
     id: productId,
@@ -409,7 +420,7 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
     unitQuantity,
     unitPrice: suffixTexts("UNIT_PRICE")[0] ?? null,
     quantityBadges: suffixTexts("SIZE").map((text) => ({ text, textColor: color("sizeText"), backgroundColor: productColor ?? color("text") })),
-    tags: suffixTexts("NOTICE_LABEL", "TEXT_ICON").map((text) => ({ text, color: null })),
+    tags: notes.map((text) => ({ text, color: null })),
     displayPrice,
     originalPrice: toCents(price.referencePriceValue),
     displayPriceColor: priceColor,
@@ -428,12 +439,10 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
     infoSections: accordions.flatMap((accordion): ProductInfoSection[] => {
       const title = asString(accordion.title);
       const section = asRecord(accordion.content);
-      if (!title) return [];
-      if (section.type === "nutrition") return [{ title, content: nutritionText(nutritionRows) }];
-      const texts = typeof section.text === "string" ? [section.text] : asArray(section.text).flatMap((text) => asString(text) ?? []);
-      return [{ title, content: texts.join("\n") }];
+      const text = section.type === "nutrition" ? nutritionText(readNutrition(section)) : accordionText(section);
+      return title && text ? [{ title, content: text }] : [];
     }),
-    nutritionRows,
+    nutritionRows: nutritionContent ? readNutrition(nutritionContent) : [],
     promotion: readRscPromotion(vm),
     similarProducts: asArray(vm.related).filter(isProductTile).map(toSimilarProduct),
   };
@@ -499,6 +508,24 @@ function readRscNutritionRows(content: RscRecord, per: string, stripe: string): 
   return readNutritionRows([...heading, ...rows]);
 }
 
+/**
+ * The text of a text accordion: one text or a list of paragraphs. Content of another type keeps its
+ * texts too, in order, so a section of a type this reader doesn't know still shows what it says.
+ */
+function accordionText(content: RscRecord): string {
+  if (typeof content.text === "string") return content.text;
+  if (Array.isArray(content.text)) return content.text.flatMap((text) => asString(text) ?? []).join("\n");
+  return collectTexts(content).join("\n");
+}
+
+/** Every non-blank string in a value, depth first, leaving out `type` fields. */
+function collectTexts(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap(collectTexts);
+  if (typeof value !== "object" || value === null) return [];
+  return Object.entries(value).flatMap(([key, item]) => (key === "type" ? [] : collectTexts(item)));
+}
+
 /** The nutrition table as the text of an info section: the heading, then each label and value on its own line. */
 function nutritionText(rows: NutritionRow[]): string {
   return rows.flatMap((row) => (row.value === null ? [row.label] : [row.label, row.value])).join("\n");
@@ -529,14 +556,17 @@ function isProductTile(value: unknown): value is ProductTile {
   return typeof tile.id === "string" && typeof tile.name === "string" && typeof tile.displayPrice === "number";
 }
 
-/** A similar product from a product tile. Tiles have the brand apart; the name gets it in front, as the Fusion page has it. */
+/**
+ * A similar product from a product tile. Tiles have the brand apart; the name gets it in front, as
+ * the Fusion page has it. The unit quantity is the tile's quantity without its notes.
+ */
 function toSimilarProduct(tile: ProductTile): SimilarProduct {
   return {
     id: tile.id,
     name: [tile.namePrefix, tile.brand, tile.name].filter(Boolean).join(" "),
     imageId: tile.imageId ?? "",
     displayPrice: tile.displayPrice,
-    unitQuantity: tile.unitQuantity,
+    unitQuantity: tileQuantity(tile),
     comparisonPrice: tile.comparisonPrice,
     maxCount: DEFAULT_MAX_COUNT,
     ...(tile.deposit !== undefined && { deposit: tile.deposit }),

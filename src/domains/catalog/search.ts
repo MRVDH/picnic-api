@@ -80,6 +80,18 @@ export function extractProductTile(tile: RscRecord): ProductTile | null {
   return tile.type === "sellable" ? readSellableTile(tile) : null;
 }
 
+/** What `readSellableTile` joins a tile's text suffixes with into `unitQuantity`. */
+const TILE_SUFFIX_SEPARATOR = ", ";
+
+/**
+ * The quantity of a product tile without the notes that can follow it in `unitQuantity`: the first
+ * text suffix. "500 gram, In prijs verlaagd" is "500 gram".
+ * @param {ProductTile} tile A tile read by `readSellableTile`.
+ */
+export function tileQuantity(tile: ProductTile): string {
+  return tile.unitQuantity.split(TILE_SUFFIX_SEPARATOR)[0];
+}
+
 /**
  * Extracts a product from a sellable tile without checking its `type`, for pages whose tiles have
  * none (the unavailability replacements page). Returns `null` without an id or name.
@@ -106,7 +118,7 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     .map(asRecord)
     .filter((suffix) => suffix.type === "TEXT")
     .flatMap((suffix) => asString(suffix.text) ?? [])
-    .join(", ");
+    .join(TILE_SUFFIX_SEPARATOR);
   // The deposit is in the context the tile sends with its interactions, in cents.
   const deposit = asNumber(asRecord(asRecord(tile.interaction).context).deposit);
 

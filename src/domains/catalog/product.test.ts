@@ -252,6 +252,7 @@ describe("extractRscProductDetails", () => {
       suffixes: [
         { type: "SIZE", text: "XL" },
         { type: "TEXT", text: "1.5 liter" },
+        { type: "TEXT", text: "In prijs verlaagd" },
         { type: "UNIT_PRICE", text: "€1.26/l" },
         { type: "NOTICE_LABEL", text: "Diepvries" },
       ],
@@ -301,7 +302,11 @@ describe("extractRscProductDetails", () => {
       unitQuantity: "1.5 liter",
       unitPrice: "€1.26/l",
       quantityBadges: [{ text: "XL", textColor: "#FFFFFF", backgroundColor: "#1F5FA8" }],
-      tags: [{ text: "Diepvries", color: null }],
+      // A text after the quantity is a note, shown with the other notes.
+      tags: [
+        { text: "In prijs verlaagd", color: null },
+        { text: "Diepvries", color: null },
+      ],
       displayPrice: 189,
       originalPrice: 229,
       displayPriceColor: "#B40117",
@@ -411,7 +416,10 @@ describe("extractRscProductDetails", () => {
       subtitle: { text: "Merk" },
       images: { primaryImage: { imageId: "img-2" } },
       price: { priceValue: 4.5, priceRanges: [{ fromQuantity: 1, price: 450 }] },
-      suffixes: [{ type: "TEXT", text: "6 x 300 ml" }],
+      suffixes: [
+        { type: "TEXT", text: "6 x 300 ml" },
+        { type: "TEXT", text: "In prijs verlaagd" },
+      ],
       labels: {},
       unavailability: null,
       interaction: { context: { deposit: 60, sellableId: "s2" } },
@@ -433,12 +441,53 @@ describe("extractRscProductDetails", () => {
     ]);
   });
 
-  it("throws a ProductNotFoundError when the page has no product", () => {
+  it("keeps the text of every nutrition table and of an accordion type it doesn't know", () => {
+    const table = (unit: string, energy: string) => ({ type: "nutrition", unit, rows: [{ label: "Energie", value: energy, isSubValue: false }] });
+    const content = rscProductPage({
+      headerTitle: "Halfvolle melk",
+      accordions: [
+        { id: "nutrition", title: "Voedingswaarde", content: table("per 100 ml", "206 kJ /") },
+        { id: "nutrition-portion", title: "Per portie", content: table("per 250 ml", "515 kJ /") },
+        { id: "storage", title: "Bewaren", content: { type: "table", rows: [{ cells: ["Koelkast", "7 dagen"] }, { cells: ["Vriezer", " "] }] } },
+        { id: "empty", title: "Leeg", content: { type: "text", text: [] } },
+      ],
+    });
+
+    const product = extractRscProductDetails("s1", content, "NL");
+
+    expect(product.infoSections).toEqual([
+      { title: "Voedingswaarde", content: "Per 100 ml\nEnergie\n206 kJ /" },
+      { title: "Per portie", content: "Per 250 ml\nEnergie\n515 kJ /" },
+      { title: "Bewaren", content: "Koelkast\n7 dagen\nVriezer" },
+    ]);
+    // The model has one nutrition table: the first.
+    expect(product.nutritionRows.map((row) => row.label)).toEqual(["Per 100 ml", "Energie"]);
+  });
+
+  it("throws a ProductNotFoundError when the page shows Picnic's product-not-found content", () => {
     const content = parseRscPageContent(
       "product-details-page-root?id=s0",
-      parseRscPayload(['1:I["./presentational-components/page/page-route-provider.tsx",["c"],"PageRouteProvider"]', '0:["$","$L1",null,{"pageId":"product-details-page-root"}]'].join("\n")),
+      parseRscPayload(
+        [
+          '1:I["./presentational-components/page/page-route-provider.tsx",["c"],"PageRouteProvider"]',
+          '2:I["./pages/product-details/components/product-details-fallback-content.tsx",["c"],"ProductDetailsFallbackContent"]',
+          '0:["$","$L1",null,{"pageId":"product-details-page-root","children":["$","$L2",null,{}]}]',
+        ].join("\n"),
+      ),
     );
 
     expect(() => extractRscProductDetails("s0", content, "NL")).toThrow(ProductNotFoundError);
+  });
+
+  it("throws an error naming the page, not a ProductNotFoundError, when the page has neither the product nor the not-found content", () => {
+    const content = parseRscPageContent(
+      "product-details-page-root?id=s1",
+      parseRscPayload(['1:I["./presentational-components/page/page-route-provider.tsx",["c"],"PageRouteProvider"]', '0:["$","$L1",null,{"pageId":"product-details-page-root"}]'].join("\n")),
+    );
+
+    const read = () => extractRscProductDetails("s1", content, "NL");
+
+    expect(read).toThrow('The product page "product-details-page-root?id=s1"');
+    expect(read).not.toThrow(ProductNotFoundError);
   });
 });
