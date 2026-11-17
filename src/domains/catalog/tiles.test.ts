@@ -64,6 +64,11 @@ describe("readFusionProductTile", () => {
     expect(readFusionProductTile(fusionTile({ id: "s1000003", name: "Paprika", price: 250, priceRanges: tiers }))?.priceRanges).toEqual(tiers);
   });
 
+  it("reads the selling unit's deposit, and leaves it out when there is none", () => {
+    expect(readFusionProductTile(fusionTile({ id: "s1000004", name: "Pils", unitQuantity: "6 x 300 ml", deposit: 60 }))?.deposit).toBe(60);
+    expect(readFusionProductTile(fusionTile({ id: "s1000005", name: "Paprika" }))).not.toHaveProperty("deposit");
+  });
+
   it("returns null for a tile without a selling unit", () => {
     expect(readFusionProductTile({ type: "PML", content: { type: "SELLING_UNIT_TILE" } })).toBeNull();
   });

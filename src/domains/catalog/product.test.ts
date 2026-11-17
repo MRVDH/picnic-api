@@ -350,6 +350,28 @@ describe("extractRscProductDetails", () => {
     });
   });
 
+  it("sorts the price tiers by quantity and takes the lowest tier's price when the page has no price", () => {
+    const content = rscProductPage({
+      headerTitle: "Paprika",
+      price: {
+        priceRanges: [
+          { fromQuantity: 3, price: 179 },
+          { fromQuantity: 1, price: 189 },
+          { fromQuantity: 2, price: 185 },
+        ],
+      },
+    });
+
+    expect(extractRscProductDetails("s1", content, "NL")).toMatchObject({
+      displayPrice: 189,
+      priceRanges: [
+        { price: 189, from_quantity: 1 },
+        { price: 185, from_quantity: 2 },
+        { price: 179, from_quantity: 3 },
+      ],
+    });
+  });
+
   it("reads the description, highlights, allergens, info sections and nutrition table", () => {
     const description = "Romige melk van **Nederlandse** koeien.\n\nLekker bij je ontbijt ☀️";
     const content = rscProductPage(

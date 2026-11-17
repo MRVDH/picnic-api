@@ -49,6 +49,7 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
   });
   const promotionLabel = asString(promotion.promotion_label);
   const displayPrice = asNumber(unit.display_price) ?? 0;
+  const deposit = asNumber(unit.deposit);
 
   return {
     id,
@@ -70,6 +71,7 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
       asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") ||
       analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
     numberOfOrders: null,
+    ...(deposit !== null && { deposit }),
   };
 }
 

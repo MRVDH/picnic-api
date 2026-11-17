@@ -184,7 +184,12 @@ export function parseRscPayload(payload: string): RscPage {
   return page;
 }
 
-/** The index in `text` after `bytes` UTF-8 bytes from `start`, or the end of `text`. */
+/**
+ * The index in `text` after `bytes` UTF-8 bytes from `start`, or the end of `text`. React writes a
+ * text row's length as the size of the UTF-8 it sends for the text, and it sends valid UTF-8, so the
+ * length matches the decoded text. A response that was cut off ends inside the text, which then
+ * runs to the end; no rows follow it to lose.
+ */
 function skipUtf8Bytes(text: string, start: number, bytes: number): number {
   let index = start;
   for (let remaining = bytes; remaining > 0 && index < text.length; ) {
@@ -259,6 +264,21 @@ export function parseRscPageContent(pageId: string, page: RscPage): RscPageConte
   const nodes: RscNode[] = [];
   convert(decodeRscValue(page, page.rows["0"]), nodes);
   return { pageId, tokens, nodes };
+}
+
+/**
+ * Returns the first node in a component tree, depth first, whose component is `component`, e.g.
+ * `menu-list`, or `null`.
+ * @param {RscNode[]} nodes The nodes to search, e.g. `RscPageContent.nodes`.
+ * @param {string} component The component's module name.
+ */
+export function findRscNode(nodes: RscNode[], component: string): RscNode | null {
+  for (const node of nodes) {
+    if (node.component === component) return node;
+    const found = findRscNode(node.children, component);
+    if (found) return found;
+  }
+  return null;
 }
 
 function readStrings(value: unknown): Record<string, string> {

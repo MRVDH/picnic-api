@@ -1,10 +1,11 @@
 import type { FusionPage, PriceRange } from "../../pages/fusion";
-import type { RscNode, RscPageContent } from "../../pages/types";
+import type { RscPageContent } from "../../pages/types";
+import { findRscNode } from "../../pages/rsc";
 import type { CountryCode } from "../../types/common";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import { getComparisonPrice } from "./comparison-price";
 import { readNutritionRows } from "./nutrition";
-import { tileQuantity } from "./search";
+import { readRscPriceRanges, tileQuantity, toCents } from "./search";
 import {
   accordionItems,
   childrenOf,
@@ -326,8 +327,6 @@ const asRecord = (value: unknown): RscRecord => (typeof value === "object" && va
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
-/** Prices on the RSC page are in euros (2.23); the library uses cents. */
-const toCents = (value: unknown): number | null => (typeof value === "number" ? Math.round(value * 100) : null);
 
 /** The app's texts for the organic and new labels and the nutrition table header, per country. */
 const RSC_COPY: Record<CountryCode, { organic: string; new: string; per: string }> = {
@@ -397,14 +396,10 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
   const productColor = asString(asRecord(vm.color).primary);
 
   const price = asRecord(vm.price);
-  const ranges = asArray(price.priceRanges).flatMap((value): PriceRange[] => {
-    const range = asRecord(value);
-    const rangePrice = asNumber(range.price);
-    const fromQuantity = asNumber(range.fromQuantity);
-    return rangePrice !== null && fromQuantity !== null ? [{ price: rangePrice, from_quantity: fromQuantity }] : [];
-  });
+  const ranges = readRscPriceRanges(price.priceRanges);
   // Every product has its own price as a range from 1; it has tiers when there are more.
   const priceRanges = ranges.length > 1 ? ranges : null;
+  // The page's own price; the lowest-quantity tier when it has none.
   const displayPrice = toCents(price.priceValue) ?? asNumber(price.basePrice) ?? ranges[0]?.price ?? 0;
   const priceColor = price.priceColor === "promo" ? color("promoPrice") : price.priceColor === "family" ? color("familyPrice") : null;
 
@@ -572,15 +567,6 @@ function toSimilarProduct(tile: ProductTile): SimilarProduct {
     ...(tile.deposit !== undefined && { deposit: tile.deposit }),
     ...(tile.priceRanges && { priceRanges: tile.priceRanges }),
   };
-}
-
-function findRscNode(nodes: RscNode[], component: string): RscNode | null {
-  for (const node of nodes) {
-    if (node.component === component) return node;
-    const found = findRscNode(node.children, component);
-    if (found) return found;
-  }
-  return null;
 }
 
 /** The id of a product's details page, with the parameters the app sends. */

@@ -129,7 +129,7 @@ export type ProductTile = {
    * the customer bought before are in the section with type "RFY".
    */
   numberOfOrders: number | null;
-  /** The deposit in cents, e.g. 60 for a crate of bottles; absent when the product has none or the tile doesn't say. */
+  /** The deposit in cents, e.g. 60 for a pack of six bottles; absent when the product has none. */
   deposit?: number;
 };
 

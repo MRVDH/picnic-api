@@ -1,3 +1,4 @@
+import type { PriceRange } from "../../pages/fusion";
 import { cleanMarkdown, findNode, findNodeById, PmlNode, walkNodes } from "../../pages/pml";
 import { extractRecipeTiles, firstMinutes } from "../recipe/lists";
 import { collectFusionProductTiles } from "./tiles";
@@ -14,8 +15,24 @@ const asRecord = (value: unknown): RscRecord => (typeof value === "object" && va
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
-/** Tile prices are in euros (1.89); the rest of the library uses cents. */
-const toCents = (value: unknown): number | null => (typeof value === "number" ? Math.round(value * 100) : null);
+/** Prices on RSC pages are in euros (1.89); the rest of the library uses cents. */
+export const toCents = (value: unknown): number | null => (typeof value === "number" ? Math.round(value * 100) : null);
+
+/**
+ * Reads the price tiers of an RSC price (`price.priceRanges`, `{ price, fromQuantity }` in cents)
+ * into `PriceRange`s, lowest quantity first. Empty when there are none.
+ * @param {unknown} priceRanges The `priceRanges` of a tile's or a product page's price.
+ */
+export function readRscPriceRanges(priceRanges: unknown): PriceRange[] {
+  return asArray(priceRanges)
+    .flatMap((value): PriceRange[] => {
+      const range = asRecord(value);
+      const price = asNumber(range.price);
+      const fromQuantity = asNumber(range.fromQuantity);
+      return price !== null && fromQuantity !== null ? [{ price, from_quantity: fromQuantity }] : [];
+    })
+    .sort((a, b) => a.from_quantity - b.from_quantity);
+}
 
 /**
  * Extracts the search results from the decoded props of the `fetchSearchResults` server action's
@@ -105,15 +122,10 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
 
   const images = asRecord(tile.images);
   const price = asRecord(tile.price);
-  const priceRanges = asArray(price.priceRanges).flatMap((value) => {
-    const range = asRecord(value);
-    const rangePrice = asNumber(range.price);
-    const fromQuantity = asNumber(range.fromQuantity);
-    return rangePrice !== null && fromQuantity !== null ? [{ price: rangePrice, from_quantity: fromQuantity }] : [];
-  });
+  const priceRanges = readRscPriceRanges(price.priceRanges);
   const labels = asRecord(tile.labels);
   // The tile's own price; the lowest-quantity price tier when it has none.
-  const displayPrice = toCents(price.priceValue) ?? [...priceRanges].sort((x, y) => x.from_quantity - y.from_quantity)[0]?.price ?? 0;
+  const displayPrice = toCents(price.priceValue) ?? priceRanges[0]?.price ?? 0;
   const unitQuantity = asArray(tile.suffixes)
     .map(asRecord)
     .filter((suffix) => suffix.type === "TEXT")
