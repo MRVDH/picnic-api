@@ -19,6 +19,11 @@ export type RscPage = {
    */
   modules: Record<string, unknown>;
   /**
+   * The text rows (`T` rows), keyed by row id. React sends long strings, such as a product
+   * description, as a row of their own; a prop like `"$9"` then points to row `"9"` here.
+   */
+  texts: Record<string, string>;
+  /**
    * The `X-Page-Version` response header: the version of Picnic's page platform that rendered
    * the page. The app sends it back with server actions run from the page. Absent for payloads
    * that weren't fetched as a page, such as server action results.
