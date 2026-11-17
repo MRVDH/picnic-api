@@ -1,4 +1,6 @@
 import type { FusionPage, PriceRange } from "../../pages/fusion";
+import type { RscNode, RscPageContent } from "../../pages/types";
+import type { CountryCode } from "../../types/common";
 import { ProductNotFoundError } from "../../errors/product-not-found-error";
 import { getComparisonPrice } from "./comparison-price";
 import { readNutritionRows } from "./nutrition";
@@ -18,6 +20,7 @@ import {
   findPmlComponent,
   isDefaultTextColor,
   PmlNode,
+  PmlNutritionRow,
   stripColorTags,
   walkNodes,
 } from "../../pages/pml";
@@ -30,8 +33,12 @@ import type {
   ProductInfoSection,
   ProductPromotion,
   ProductTag,
+  ProductTile,
   SimilarProduct,
 } from "./types";
+
+/** The max count of a product whose page doesn't send one. */
+const DEFAULT_MAX_COUNT = 99;
 
 const MAIN_CONTAINER_ID = "product-details-page-root-main-container";
 const GALLERY_ID = "product-page-image-gallery-main-image-container";
@@ -74,7 +81,7 @@ export function extractProductDetails(productId: string, page: FusionPage): Prod
     ...header,
     ...prices,
     comparisonPrice: getComparisonPrice(prices.displayPrice, header.unitQuantity, prices.priceRanges),
-    maxCount: typeof mainUnit?.max_count === "number" ? mainUnit.max_count : 99,
+    maxCount: typeof mainUnit?.max_count === "number" ? mainUnit.max_count : DEFAULT_MAX_COUNT,
     imageIds: extractImageIds(page, mainUnit),
     labels,
     description: extractDescription(page),
@@ -308,6 +315,242 @@ function extractSimilarProducts(page: unknown): SimilarProduct[] {
       ...(u.deposit !== undefined ? { deposit: Number(u.deposit) } : {}),
       ...(Array.isArray(u.price_ranges) ? { priceRanges: u.price_ranges as PriceRange[] } : {}),
     }));
+}
+
+// ─── RSC page ─────────────────────────────────────────────────────────────────
+
+type RscRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): RscRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : {});
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
+const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
+/** Prices on the RSC page are in euros (2.23); the library uses cents. */
+const toCents = (value: unknown): number | null => (typeof value === "number" ? Math.round(value * 100) : null);
+
+/** The app's texts for the organic and new labels and the nutrition table header, per country. */
+const RSC_COPY: Record<CountryCode, { organic: string; new: string; per: string }> = {
+  NL: { organic: "Biologisch", new: "Nieuw", per: "Per" },
+  DE: { organic: "Bio", new: "Neu", per: "Pro" },
+  FR: { organic: "Biologique", new: "Nouveau", per: "Pour" },
+};
+
+/**
+ * The label types the app shows on the product page, in its order. BABY, CURRENTLY_ORDERED and
+ * LOYALTY labels are left out until one has been seen; others (REBUY_COUNT) the page doesn't show.
+ */
+const RSC_LABEL_ORDER: Record<string, number> = { PROMO: 6, PROMOBOX_PROMO: 7 };
+const LABEL_POSITIONS = ["topLeft", "middleLeft", "bottomLeft", "topRight"];
+
+/** The colors the app gives the parts it draws, as theme tokens with the values they have in the app's theme. */
+const RSC_COLORS = {
+  white: ["Text/Negative/primary", "#FFFFFF"],
+  text: ["Text/Default/primary", "#333333"],
+  promoText: ["Colour/Neutral/neutral-800", "#333333"],
+  promoBackground: ["Background/Brand/bg-promo-primary", "#FBD92B"],
+  green: ["Colour/Green/green-700", "#295813"],
+  sizeText: ["Colour/Neutral/neutral-white", "#FFFFFF"],
+  nutritionStripe: ["Colour/Neutral/neutral-50", "#FCFAF9"],
+  promoPrice: ["Text/Brand/price", "#B40117"],
+  familyPrice: ["Colour/Green/green-500", "#3F7326"],
+} as const;
+
+/**
+ * Extracts structured product details from a `product-details-page-root` RSC page. The page is one
+ * `product-details-content` component whose `viewModel` prop holds the product; this reads it the
+ * way the app's component shows it:
+ *
+ * - The header: the name without the brand (`headerTitle`), the brand (`subtitle`), and the
+ *   `suffixes`: the quantity (`TEXT`), the unit price (`UNIT_PRICE`), size badges (`SIZE`) and notes
+ *   such as "Diepvries" (`NOTICE_LABEL`, `TEXT_ICON`).
+ * - The labels: organic, the promotion labels, "Family" for a Family price, and new.
+ * - The accordions: text sections and the nutrition table.
+ * - The promotion: the one the app sends along when the product is added to the cart.
+ * - The similar products: the `related` product tiles.
+ *
+ * The page has no max count; the cart enforces it. `maxCount` is 99.
+ * @param {string} productId The product ID that was requested.
+ * @param {RscPageContent} content The content of the product page.
+ * @param {CountryCode} countryCode The country, for the label texts the app adds.
+ * @throws {ProductNotFoundError} When the page has no product.
+ */
+export function extractRscProductDetails(productId: string, content: RscPageContent, countryCode: CountryCode): Product {
+  const viewModel = findRscNode(content.nodes, "product-details-content")?.props.viewModel;
+  if (typeof viewModel !== "object" || viewModel === null) throw new ProductNotFoundError(productId);
+  const vm = asRecord(viewModel);
+  const copy = RSC_COPY[countryCode] ?? RSC_COPY.NL;
+  const color = (name: keyof typeof RSC_COLORS): string => content.tokens[RSC_COLORS[name][0]] ?? RSC_COLORS[name][1];
+
+  const suffixes = asArray(vm.suffixes).map(asRecord);
+  const suffixTexts = (...types: string[]) => suffixes.filter((s) => types.includes(String(s.type))).flatMap((s) => asString(s.text) ?? []);
+  const unitQuantity = suffixTexts("TEXT").join(", ");
+  const productColor = asString(asRecord(vm.color).primary);
+
+  const price = asRecord(vm.price);
+  const ranges = asArray(price.priceRanges).flatMap((value): PriceRange[] => {
+    const range = asRecord(value);
+    const rangePrice = asNumber(range.price);
+    const fromQuantity = asNumber(range.fromQuantity);
+    return rangePrice !== null && fromQuantity !== null ? [{ price: rangePrice, from_quantity: fromQuantity }] : [];
+  });
+  // Every product has its own price as a range from 1; it has tiers when there are more.
+  const priceRanges = ranges.length > 1 ? ranges : null;
+  const displayPrice = toCents(price.priceValue) ?? asNumber(price.basePrice) ?? ranges[0]?.price ?? 0;
+  const priceColor = price.priceColor === "promo" ? color("promoPrice") : price.priceColor === "family" ? color("familyPrice") : null;
+
+  const accordions = asArray(vm.accordions).map(asRecord);
+  const nutritionContent = accordions.map((a) => asRecord(a.content)).find((c) => c.type === "nutrition");
+  const nutritionRows = nutritionContent ? readRscNutritionRows(nutritionContent, copy.per, color("nutritionStripe")) : [];
+
+  return {
+    id: productId,
+    name: asString(vm.headerTitle) ?? asString(vm.title) ?? "",
+    brand: asString(vm.subtitle),
+    unitQuantity,
+    unitPrice: suffixTexts("UNIT_PRICE")[0] ?? null,
+    quantityBadges: suffixTexts("SIZE").map((text) => ({ text, textColor: color("sizeText"), backgroundColor: productColor ?? color("text") })),
+    tags: suffixTexts("NOTICE_LABEL", "TEXT_ICON").map((text) => ({ text, color: null })),
+    displayPrice,
+    originalPrice: toCents(price.referencePriceValue),
+    displayPriceColor: priceColor,
+    priceRanges,
+    comparisonPrice: getComparisonPrice(displayPrice, unitQuantity, priceRanges),
+    maxCount: DEFAULT_MAX_COUNT,
+    imageIds: [...new Set(asArray(vm.images).flatMap((image) => asString(asRecord(image).id) ?? []))],
+    labels: readRscLabels(vm, copy, color),
+    description: asString(asRecord(vm.description).main),
+    highlightItems: asArray(vm.highlights).flatMap((value): ProductHighlight[] => {
+      const highlight = asRecord(value);
+      const text = asString(highlight.titleMarkdown) ?? asString(highlight.title);
+      return text ? [{ text, iconKey: asString(highlight.icon), linkTarget: asString(highlight.deeplink) }] : [];
+    }),
+    allergenGroups: readRscAllergens(asRecord(vm.allergies), color),
+    infoSections: accordions.flatMap((accordion): ProductInfoSection[] => {
+      const title = asString(accordion.title);
+      const section = asRecord(accordion.content);
+      if (!title) return [];
+      if (section.type === "nutrition") return [{ title, content: nutritionText(nutritionRows) }];
+      const texts = typeof section.text === "string" ? [section.text] : asArray(section.text).flatMap((text) => asString(text) ?? []);
+      return [{ title, content: texts.join("\n") }];
+    }),
+    nutritionRows,
+    promotion: readRscPromotion(vm),
+    similarProducts: asArray(vm.related).filter(isProductTile).map(toSimilarProduct),
+  };
+}
+
+/**
+ * The labels in the app's order: organic, the promotion labels (sorted by type), "Family" when the
+ * price is a Family price, and new. Their colors are the ones the app draws them in.
+ */
+function readRscLabels(vm: RscRecord, copy: { organic: string; new: string }, color: (name: keyof typeof RSC_COLORS) => string): ProductBadge[] {
+  const badges: ProductBadge[] = [];
+  if (vm.isOrganic === true) badges.push({ text: copy.organic, textColor: "#4B8505", backgroundColor: "#FFFFFF" });
+
+  const labels = asRecord(vm.labels);
+  const shown = LABEL_POSITIONS.flatMap((position) => asArray(labels[position]).map(asRecord))
+    .filter((label) => RSC_LABEL_ORDER[String(label.type)] !== undefined)
+    .sort((a, b) => RSC_LABEL_ORDER[String(a.type)] - RSC_LABEL_ORDER[String(b.type)]);
+  for (const label of shown) {
+    const text = asString(label.labelText);
+    if (!text) continue;
+    badges.push(
+      label.type === "PROMOBOX_PROMO"
+        ? { text, textColor: color("white"), backgroundColor: color("green") }
+        : { text, textColor: color("promoText"), backgroundColor: color("promoBackground") },
+    );
+  }
+
+  if (asRecord(vm.price).label === "FAMILY") badges.push({ text: "Family", textColor: color("white"), backgroundColor: color("green") });
+  if (vm.isNew === true) badges.push({ text: copy.new, textColor: "#4B8505", backgroundColor: "#F3F6E9" });
+  return badges;
+}
+
+/** "Contains" allergens are chips in the allergen's color; "may contain" ones are plain text. */
+function readRscAllergens(allergies: RscRecord, color: (name: keyof typeof RSC_COLORS) => string): ProductAllergens {
+  return {
+    contains: asArray(allergies.contains).flatMap((value): ProductBadge[] => {
+      const allergen = asRecord(value);
+      const text = asString(allergen.name);
+      return text ? [{ text, textColor: color("white"), backgroundColor: asString(allergen.color) ?? color("text") }] : [];
+    }),
+    mayContain: asArray(allergies.mayContain).flatMap((value): ProductBadge[] => {
+      const text = asString(value);
+      return text ? [{ text, textColor: color("text"), backgroundColor: "transparent" }] : [];
+    }),
+  };
+}
+
+/**
+ * Reads the nutrition table of a `nutrition` accordion: a heading row with the unit ("Per 100 g"),
+ * then the rows, every other one striped as the app draws them. Sub-values ("waarvan suikers") are
+ * the rows that aren't categories.
+ */
+function readRscNutritionRows(content: RscRecord, per: string, stripe: string): NutritionRow[] {
+  const unit = asString(content.unit);
+  const heading: PmlNutritionRow[] = unit
+    ? [{ label: `${per} ${unit.replace(new RegExp(`^${per}\\s+`, "i"), "")}`, value: null, isCategory: true, backgroundColor: null }]
+    : [];
+  const rows = asArray(content.rows).flatMap((value, index): PmlNutritionRow[] => {
+    const row = asRecord(value);
+    const label = asString(row.label);
+    return label ? [{ label, value: asString(row.value), isCategory: row.isSubValue !== true, backgroundColor: index % 2 === 0 ? stripe : null }] : [];
+  });
+  return readNutritionRows([...heading, ...rows]);
+}
+
+/** The nutrition table as the text of an info section: the heading, then each label and value on its own line. */
+function nutritionText(rows: NutritionRow[]): string {
+  return rows.flatMap((row) => (row.value === null ? [row.label] : [row.label, row.value])).join("\n");
+}
+
+/**
+ * The product's promotion, from the add-to-cart action: the app sends the promotion along as a
+ * `PROMOTION` enrichment (`{ promotion_id, promotion_label }`).
+ */
+function readRscPromotion(vm: RscRecord): ProductPromotion | null {
+  for (const slot of Object.values(asRecord(asRecord(vm.sellableInteraction).slots))) {
+    for (const action of asArray(asRecord(slot).actions)) {
+      for (const value of asArray(asRecord(asRecord(action).payload).enrichments)) {
+        const enrichment = asRecord(value);
+        const payload = asRecord(enrichment.payload);
+        const id = asString(payload.promotion_id);
+        const label = asString(payload.promotion_label);
+        if (enrichment.type === "PROMOTION" && id && label) return { id, label };
+      }
+    }
+  }
+  return null;
+}
+
+/** Whether a value is a parsed product tile; the RSC content parser turns sellable tiles into these. */
+function isProductTile(value: unknown): value is ProductTile {
+  const tile = asRecord(value);
+  return typeof tile.id === "string" && typeof tile.name === "string" && typeof tile.displayPrice === "number";
+}
+
+/** A similar product from a product tile. Tiles have the brand apart; the name gets it in front, as the Fusion page has it. */
+function toSimilarProduct(tile: ProductTile): SimilarProduct {
+  return {
+    id: tile.id,
+    name: [tile.namePrefix, tile.brand, tile.name].filter(Boolean).join(" "),
+    imageId: tile.imageId ?? "",
+    displayPrice: tile.displayPrice,
+    unitQuantity: tile.unitQuantity,
+    comparisonPrice: tile.comparisonPrice,
+    maxCount: DEFAULT_MAX_COUNT,
+    ...(tile.deposit !== undefined && { deposit: tile.deposit }),
+    ...(tile.priceRanges && { priceRanges: tile.priceRanges }),
+  };
+}
+
+function findRscNode(nodes: RscNode[], component: string): RscNode | null {
+  for (const node of nodes) {
+    if (node.component === component) return node;
+    const found = findRscNode(node.children, component);
+    if (found) return found;
+  }
+  return null;
 }
 
 /** The id of a product's details page, with the parameters the app sends. */

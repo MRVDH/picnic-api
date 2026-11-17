@@ -129,6 +129,8 @@ export type ProductTile = {
    * the customer bought before are in the section with type "RFY".
    */
   numberOfOrders: number | null;
+  /** The deposit in cents, e.g. 60 for a crate of bottles; absent when the product has none or the tile doesn't say. */
+  deposit?: number;
 };
 
 /** A label on a product tile. */
@@ -252,7 +254,7 @@ export type ProductBadge = {
 export type ProductHighlight = {
   /** The text; may contain markdown and color tags. */
   text: string;
-  /** The app's icon key, e.g. "starsOutlined", or `null`. */
+  /** The app's icon name, e.g. "STARS" (RSC page) or "starsOutlined" (Fusion page), or `null`. */
   iconKey: string | null;
   /** The deeplink the highlight opens, or `null`. */
   linkTarget: string | null;
@@ -262,7 +264,10 @@ export type ProductHighlight = {
 export type ProductAllergens = {
   /** Allergens under "Bevat" ("Enthält", "Contient"). */
   contains: ProductBadge[];
-  /** Allergens under "Bevat mogelijk" ("Kann enthalten", "Peut contenir"). */
+  /**
+   * Allergens under "Bevat mogelijk" ("Kann enthalten", "Peut contenir"). The RSC page shows them
+   * as plain text, so they come with the regular text color and a transparent background.
+   */
   mayContain: ProductBadge[];
 };
 
@@ -295,7 +300,7 @@ export type ProductTag = {
   color: string | null;
 };
 
-/** Structured product details extracted from the Fusion product details page. */
+/** Structured product details from the product details page, which Picnic serves as RSC or as a Fusion page. */
 export type Product = {
   /** The selling unit ID (e.g. "s1001524"). */
   id: string;
@@ -325,7 +330,10 @@ export type Product = {
   displayPriceColor: string | null;
   /** The product's own price tiers (price per unit from a quantity), or `null` without tiers. */
   priceRanges: PriceRange[] | null;
-  /** Maximum number of items that can be added to the cart. */
+  /**
+   * Maximum number of items that can be added to the cart. The RSC page doesn't send it (the cart
+   * enforces the limit), so it is 99 then, as for a Fusion page without one.
+   */
   maxCount: number;
   /** Image IDs for the product gallery. */
   imageIds: string[];
@@ -351,7 +359,7 @@ export type Product = {
 export type SimilarProduct = {
   /** The selling unit ID. */
   id: string;
-  /** The product name. */
+  /** The product name with the brand in front, e.g. "Heinz tomato frito". */
   name: string;
   /** The product image ID. */
   imageId: string;
@@ -361,7 +369,7 @@ export type SimilarProduct = {
   unitQuantity: string;
   /** The price per kilogram, litre or piece, computed from the price and `unitQuantity`, or `null` when the size has none. */
   comparisonPrice: ComparisonPrice | null;
-  /** Maximum number of items that can be added to the cart. */
+  /** Maximum number of items that can be added to the cart; 99 from an RSC page, which doesn't send it. */
   maxCount: number;
   /** Deposit amount in cents, if applicable. */
   deposit?: number;

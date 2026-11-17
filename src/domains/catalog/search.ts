@@ -107,6 +107,8 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     .filter((suffix) => suffix.type === "TEXT")
     .flatMap((suffix) => asString(suffix.text) ?? [])
     .join(", ");
+  // The deposit is in the context the tile sends with its interactions, in cents.
+  const deposit = asNumber(asRecord(asRecord(tile.interaction).context).deposit);
 
   return {
     id,
@@ -129,6 +131,7 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     ),
     isUnavailable: tile.unavailability !== null && tile.unavailability !== undefined,
     numberOfOrders: asNumber(tile.numberOfOrders),
+    ...(deposit !== null && { deposit }),
   };
 }
 
