@@ -28,12 +28,8 @@ describe("extractDeliverySummaries", () => {
   });
 
   it("falls back to delivery_time, then eta2, for the window", () => {
-    const [fromDeliveryTime] = extractDeliverySummaries([
-      { id: "a", delivery_time: { start: "2026-10-12T08:00:00Z", end: "2026-10-12T10:00:00Z" } },
-    ]);
-    const [fromEta2] = extractDeliverySummaries([
-      { id: "b", eta2: { start: "2026-10-13T08:00:00Z", end: "2026-10-13T10:00:00Z" } },
-    ]);
+    const [fromDeliveryTime] = extractDeliverySummaries([{ id: "a", delivery_time: { start: "2026-10-12T08:00:00Z", end: "2026-10-12T10:00:00Z" } }]);
+    const [fromEta2] = extractDeliverySummaries([{ id: "b", eta2: { start: "2026-10-13T08:00:00Z", end: "2026-10-13T10:00:00Z" } }]);
 
     expect(fromDeliveryTime).toMatchObject({ windowStart: "2026-10-12T08:00:00Z", windowEnd: "2026-10-12T10:00:00Z" });
     expect(fromEta2).toMatchObject({ windowStart: "2026-10-13T08:00:00Z", windowEnd: "2026-10-13T10:00:00Z" });

@@ -237,13 +237,7 @@ export type FusionAnalyticsAction = {
 };
 
 export type FusionPressAction =
-  | FusionOpenAction
-  | FusionEventAction
-  | FusionEndpointAction
-  | FusionCallbackAction
-  | FusionReloadAction
-  | FusionAnalyticsAction
-  | { actionType: string; [key: string]: unknown };
+  FusionOpenAction | FusionEventAction | FusionEndpointAction | FusionCallbackAction | FusionReloadAction | FusionAnalyticsAction | { actionType: string; [key: string]: unknown };
 
 // ── PML inner components (inside `pml.component`, camelCase naming) ───────────
 

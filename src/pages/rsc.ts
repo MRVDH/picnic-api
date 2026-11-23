@@ -150,7 +150,7 @@ export function findRscModuleChunks(page: RscPage, modulePath: string): string[]
 export function parseRscPayload(payload: string): RscPage {
   const page: RscPage = { rows: {}, modules: {}, texts: {} };
 
-  for (let position = 0; position < payload.length; ) {
+  for (let position = 0; position < payload.length;) {
     TEXT_ROW_PATTERN.lastIndex = position;
     const text = TEXT_ROW_PATTERN.exec(payload);
     if (text) {
@@ -192,7 +192,7 @@ export function parseRscPayload(payload: string): RscPage {
  */
 function skipUtf8Bytes(text: string, start: number, bytes: number): number {
   let index = start;
-  for (let remaining = bytes; remaining > 0 && index < text.length; ) {
+  for (let remaining = bytes; remaining > 0 && index < text.length;) {
     const codePoint = text.codePointAt(index)!;
     remaining -= codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
     index += codePoint > 0xffff ? 2 : 1;

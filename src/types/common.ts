@@ -5,6 +5,8 @@ export type ApiConfig = {
   url?: string;
   deviceId?: string;
   agent?: string;
+  /** How long a request may take, in milliseconds, before it fails with a `TimeoutError`. Default: 30000. */
+  timeout?: number;
 };
 
 export type CountryCode = "NL" | "DE" | "FR";

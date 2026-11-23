@@ -16,7 +16,7 @@ describe("CheckoutService", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       body: {},
-      json: () => Promise.resolve({ order_id: "order-1", total_price: 1000 }),
+      text: () => Promise.resolve(JSON.stringify({ order_id: "order-1", total_price: 1000 })),
     });
 
     await checkout.startCheckout({ mts: 1234567890 });
@@ -31,7 +31,7 @@ describe("CheckoutService", () => {
   });
 
   it("should send the resolve key and the accepted out-of-stock articles in the request body", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, body: {}, json: () => Promise.resolve({ order_id: "order-1" }) });
+    mockFetch.mockResolvedValueOnce({ ok: true, body: {}, text: () => Promise.resolve(JSON.stringify({ order_id: "order-1" })) });
 
     await checkout.startCheckout({ mts: 1, resolveKey: "age_verified", outOfStockArticleIds: ["s1"] });
 
@@ -42,12 +42,14 @@ describe("CheckoutService", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       body: {},
-      json: () =>
-        Promise.resolve({
-          payment_id: "pay-1",
-          transaction_id: "tx-1",
-          action: { type: "redirect", redirect_url: "https://bank.example/pay" },
-        }),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            payment_id: "pay-1",
+            transaction_id: "tx-1",
+            action: { type: "redirect", redirect_url: "https://bank.example/pay" },
+          }),
+        ),
     });
 
     await checkout.initiatePayment("order-1", "https://example.com/return");

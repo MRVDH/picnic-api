@@ -91,5 +91,4 @@ export class DeliveryService {
   getParcels(): Promise<RawParcel[]> {
     return this.http.sendRequest<null, RawParcel[]>("GET", `/parcels`, null, { includePicnicHeaders: true });
   }
-
 }

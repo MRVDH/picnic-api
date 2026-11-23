@@ -8,10 +8,9 @@ import { productDetailsPageId } from "./product";
 /** A PageClient stand-in that serves a search page and an empty action result. */
 function fakeRsc() {
   const searchPage = parseRscPayload(
-    [
-      '1:I["./pages/search/search-page-params/search-page-params-provider.tsx",["c"],"P"]',
-      '0:["$","$L1",null,{"params":{"searchId":"id-1","searchSessionId":"session-1","searchTerm":"pasta"}}]',
-    ].join("\n"),
+    ['1:I["./pages/search/search-page-params/search-page-params-provider.tsx",["c"],"P"]', '0:["$","$L1",null,{"params":{"searchId":"id-1","searchSessionId":"session-1","searchTerm":"pasta"}}]'].join(
+      "\n",
+    ),
   );
   return {
     load: jest.fn().mockResolvedValue({ format: "rsc", pageId: "search-page-results", payload: { ...searchPage, version: "v1" } }),
@@ -87,10 +86,7 @@ describe("CatalogService.getProduct", () => {
     const content = parseRscPageContent(
       pageId,
       parseRscPayload(
-        [
-          '1:I["./pages/product-details/product-details-content.tsx",["c"],"ProductDetailsContent"]',
-          '0:["$","$L1",null,{"viewModel":{"headerTitle":"Halfvolle melk","isOrganic":true}}]',
-        ].join("\n"),
+        ['1:I["./pages/product-details/product-details-content.tsx",["c"],"ProductDetailsContent"]', '0:["$","$L1",null,{"viewModel":{"headerTitle":"Halfvolle melk","isOrganic":true}}]'].join("\n"),
       ),
     );
     const pages = { getPage: jest.fn().mockResolvedValue({ format: "rsc", pageId, content }) };

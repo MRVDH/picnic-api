@@ -5,8 +5,7 @@ import type { CategoryLink, CategoryLinkTarget, CategoryProducts, CategorySectio
 
 type RscRecord = Record<string, unknown>;
 
-const asRecord = (value: unknown): RscRecord | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : null;
+const asRecord = (value: unknown): RscRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : null);
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 
@@ -69,8 +68,7 @@ export function extractSubcategories(categoryId: string, content: RscPageContent
 }
 
 /** The product tiles of a section; the page content has them as {@link ProductTile}s already. */
-const isProductTile = (item: unknown): item is ProductTile =>
-  typeof asRecord(item)?.id === "string" && typeof asRecord(item)?.name === "string" && typeof asRecord(item)?.displayPrice === "number";
+const isProductTile = (item: unknown): item is ProductTile => typeof asRecord(item)?.id === "string" && typeof asRecord(item)?.name === "string" && typeof asRecord(item)?.displayPrice === "number";
 
 /**
  * Reads a product overview (`category-product-overview`, `promotion-category-page`): the sections

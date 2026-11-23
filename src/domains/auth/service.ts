@@ -12,12 +12,7 @@ export class AuthService {
    */
   async login(username: string, password: string): Promise<LoginResult> {
     const secret = crypto.createHash("md5").update(password, "utf8").digest("hex");
-    const { data, headers } = await this.http.sendRequestWithHeaders<LoginInput, RawLoginResponse>(
-      "POST",
-      `/user/login`,
-      { key: username, secret, client_id: 30100 },
-      { authenticated: false },
-    );
+    const { data, headers } = await this.http.sendRequestWithHeaders<LoginInput, RawLoginResponse>("POST", `/user/login`, { key: username, secret, client_id: 30100 }, { authenticated: false });
     const authKey = headers.get("x-picnic-auth");
 
     if (!authKey) {

@@ -16,10 +16,8 @@ import type {
 
 type RawRecord = Record<string, unknown>;
 
-const asRecord = (value: unknown): RawRecord | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null;
-const asRecords = (value: unknown): RawRecord[] =>
-  Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : [];
+const asRecord = (value: unknown): RawRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null);
+const asRecords = (value: unknown): RawRecord[] => (Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : []);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown, fallback = 0): number => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
 
@@ -148,10 +146,7 @@ export function extractDeliveryRoute(raw: RawDeliveryScenario): DeliveryRoute {
     driverPhotoUrl: asString(driver?.photo_url),
     vehicleName: asString(vehicle?.name),
     vehicleImageDataUrl: image ? (image.startsWith("data:") ? image : `data:image/png;base64,${image}`) : null,
-    destination:
-      lat !== 0 || lng !== 0
-        ? { lat, lng, street: asString(destination?.street), city: asString(destination?.city), postcode: asString(destination?.postcode) }
-        : null,
+    destination: lat !== 0 || lng !== 0 ? { lat, lng, street: asString(destination?.street), city: asString(destination?.city), postcode: asString(destination?.postcode) } : null,
   };
 }
 

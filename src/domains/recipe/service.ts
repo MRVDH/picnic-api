@@ -45,14 +45,7 @@ import type { PageClient } from "../../pages/page-client";
 import { productDetailsPageId } from "../catalog/product";
 import { extractRecipes, extractRecipeDetails, extractIngredientProductName, extractSuggestedImages } from "./recipe";
 import { findSuspensePageId } from "../../pages/pml";
-import {
-  extractFusionRecipeCategory,
-  extractFusionRecipeCategoryGroup,
-  extractRecipeCategory,
-  extractRecipeCategoryGroup,
-  extractRecipeOverview,
-  extractRecipeTiles,
-} from "./lists";
+import { extractFusionRecipeCategory, extractFusionRecipeCategoryGroup, extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles } from "./lists";
 
 export class RecipeService {
   constructor(
@@ -164,15 +157,17 @@ export class RecipeService {
 
     if (options.resolveIngredientNames) {
       const names = new Map<string, Promise<string | null>>();
-      await Promise.all(details.ingredients.map(async (ingredient) => {
-        if (ingredient.name !== null || !ingredient.sellingUnitId) return;
-        let name = names.get(ingredient.sellingUnitId);
-        if (!name) {
-          name = this.pages.getFusionPage(productDetailsPageId(ingredient.sellingUnitId)).then(extractIngredientProductName);
-          names.set(ingredient.sellingUnitId, name);
-        }
-        ingredient.name = await name;
-      }));
+      await Promise.all(
+        details.ingredients.map(async (ingredient) => {
+          if (ingredient.name !== null || !ingredient.sellingUnitId) return;
+          let name = names.get(ingredient.sellingUnitId);
+          if (!name) {
+            name = this.pages.getFusionPage(productDetailsPageId(ingredient.sellingUnitId)).then(extractIngredientProductName);
+            names.set(ingredient.sellingUnitId, name);
+          }
+          ingredient.name = await name;
+        }),
+      );
     }
     return details;
   }
@@ -451,12 +446,7 @@ export class RecipeService {
    * @param {string} recipeId The recipe id.
    */
   deleteUserDefinedRecipe(recipeId: string): Promise<void> {
-    return this.http.sendRequest<DeleteUserDefinedRecipeInput, void>(
-      "POST",
-      `/pages/task/delete-user-defined-sellable`,
-      { payload: { sellable_id: recipeId } },
-      { includePicnicHeaders: true },
-    );
+    return this.http.sendRequest<DeleteUserDefinedRecipeInput, void>("POST", `/pages/task/delete-user-defined-sellable`, { payload: { sellable_id: recipeId } }, { includePicnicHeaders: true });
   }
 
   /**
@@ -526,12 +516,10 @@ export class RecipeService {
     const type = (image.type ?? "image/jpeg").replace(/jpg/gi, "jpeg");
     const body: Blob | Uint8Array<ArrayBuffer> = image.data instanceof Blob ? image.data : new Uint8Array(image.data as ArrayBuffer | Uint8Array);
 
-    return this.http.sendRequest<Blob | Uint8Array, RawUserDefinedRecipeImageUploadResult>(
-      "POST",
-      `/user-defined-sellable/${encodeURIComponent(recipeId)}`,
-      body,
-      { includePicnicHeaders: true, contentType: type },
-    );
+    return this.http.sendRequest<Blob | Uint8Array, RawUserDefinedRecipeImageUploadResult>("POST", `/user-defined-sellable/${encodeURIComponent(recipeId)}`, body, {
+      includePicnicHeaders: true,
+      contentType: type,
+    });
   }
 
   /**

@@ -30,7 +30,10 @@ const cart = (extra: Partial<Record<keyof RawCart, unknown>> = {}) =>
     membership_savings: 20,
     deposit_breakdown: [{ type: "BAG", value: 25, count: 2 }],
     decorator_overrides: {},
-    fees: [{ type: "SALDO", name: "Verrekening", amount: -100 }, { type: "OTHER", name: "Zero", amount: 0 }],
+    fees: [
+      { type: "SALDO", name: "Verrekening", amount: -100 },
+      { type: "OTHER", name: "Zero", amount: 0 },
+    ],
     basket_sections: [{ title: "Koken", groups: [{ id: "recipe-1", title: "Traybake", pre_title: "2 porties", subtitle: "6 ingrediënten", image_id: "recipes/1" }] }],
     ...extra,
   }) as unknown as RawCart;
@@ -46,7 +49,14 @@ describe("extractCart", () => {
             price: 398,
             display_price: 398,
             decorators: [{ type: "BASKET_GROUP", id: "recipe-1" }],
-            items: [article("s1", { price_ranges: [{ price: 199, from_quantity: 1 }, { price: 189, from_quantity: 2 }] })],
+            items: [
+              article("s1", {
+                price_ranges: [
+                  { price: 199, from_quantity: 1 },
+                  { price: 189, from_quantity: 2 },
+                ],
+              }),
+            ],
           },
         ],
         decorator_overrides: {
@@ -60,7 +70,7 @@ describe("extractCart", () => {
             { type: "BUNDLES_BUTTON", deeplink: "app.picnic://bundles", icon_color: "#FFFFFF", background_color: "#295813" },
           ],
         },
-      })
+      }),
     );
 
     expect(contents.items).toEqual([
@@ -75,7 +85,10 @@ describe("extractCart", () => {
         displayPrice: 358,
         originalPrice: 398,
         priceColor: "RED2",
-        priceRanges: [{ price: 199, from_quantity: 1 }, { price: 189, from_quantity: 2 }],
+        priceRanges: [
+          { price: 199, from_quantity: 1 },
+          { price: 189, from_quantity: 2 },
+        ],
         labels: [{ text: "Family", textColor: "#FFFFFF", backgroundColor: "#295813" }],
         basePrice: null,
         comparisonPrice: { unit: "kg", price: 358, lowestPrice: null },
@@ -98,9 +111,7 @@ describe("extractCart", () => {
       explanation: { short_explanation: "Niet leverbaar" },
       replacements: [{ id: "s3", name: "Other", image_ids: ["image-s3"], display_price: 149, unit_quantity: "1 liter", max_count: 24 }],
     };
-    const contents = extractCart(
-      cart({ items: [{ type: "ORDER_LINE", id: "line-2", price: 199, display_price: 199, items: [article("s2", { decorators: [unavailable] })] }] })
-    );
+    const contents = extractCart(cart({ items: [{ type: "ORDER_LINE", id: "line-2", price: 199, display_price: 199, items: [article("s2", { decorators: [unavailable] })] }] }));
 
     expect(contents.items[0]).toMatchObject({
       isUnavailable: true,

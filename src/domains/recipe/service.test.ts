@@ -9,7 +9,7 @@ let recipe: RecipeService;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, body: {}, json: () => Promise.resolve({}) });
+  mockFetch.mockResolvedValue({ ok: true, body: {}, text: () => Promise.resolve(JSON.stringify({})) });
   const http = new HttpClient({ authKey: "initial-auth-key" });
   recipe = new RecipeService(http, new PageClient(http));
 });
@@ -18,12 +18,7 @@ describe("RecipeService", () => {
   it("getRecipeDetailsPage uses the selling-group-details-page route (not the 404'ing recipe-details-page-root)", async () => {
     await recipe["getRecipeDetailsPage"]("0123456789abcdef01234567");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "/pages/selling-group-details-page?selling_group_id=0123456789abcdef01234567",
-      ),
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/pages/selling-group-details-page?selling_group_id=0123456789abcdef01234567"), expect.objectContaining({ method: "GET" }));
     const [url] = mockFetch.mock.calls[0];
     expect(url).not.toContain("recipe-details-page-root");
   });
@@ -31,14 +26,11 @@ describe("RecipeService", () => {
   it("getCookbookPage requests the cookbook content page", async () => {
     await recipe["getCookbookPage"]();
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/pages/cookbook-page-content"),
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/pages/cookbook-page-content"), expect.objectContaining({ method: "GET" }));
   });
 
   it("getRecipeCategory follows a Fusion category page to its content page", async () => {
-    const json = (data: unknown) => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: async () => data, text: async () => JSON.stringify(data) });
+    const json = (data: unknown) => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), text: async () => JSON.stringify(data) });
     const shell = {
       script: {},
       layout: {
@@ -50,36 +42,49 @@ describe("RecipeService", () => {
 
     const category = await recipe.getRecipeCategory("c 1");
 
-    expect(mockFetch.mock.calls.map(([url]) => String(url).replace(/^.*\/pages\//, ""))).toEqual([
-      "meals-category-page?category_id=c%201",
-      "meals-category-page-content?category_id=c%201",
-    ]);
+    expect(mockFetch.mock.calls.map(([url]) => String(url).replace(/^.*\/pages\//, ""))).toEqual(["meals-category-page?category_id=c%201", "meals-category-page-content?category_id=c%201"]);
     expect(category).toEqual({ id: "c 1", title: "Blitzrezepte", recipes: [] });
   });
 
   it("getRecipesPage requests the meal-planner root", async () => {
     await recipe["getRecipesPage"]();
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/pages/meals-page-root"),
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/pages/meals-page-root"), expect.objectContaining({ method: "GET" }));
   });
 
   describe("structured recipe reads", () => {
     const recipeId = "recipe-id";
-    const response = (data: unknown) => ({ ok: true, body: {}, json: async () => data });
+    const response = (data: unknown) => ({ ok: true, body: {}, text: async () => JSON.stringify(data) });
     const detailsPage = (portions: number, defaultPortions: number, productId: string, name: string | null = null, creatorType = "PIM") => ({
-      script: {}, layout: { body: { children: [
-        { data: { creator_type: creatorType, default_portions: defaultPortions, is_saved: true, sellable_name: "Recipe" } },
-        { data: { recipe_id: recipeId, recipe_name: "Recipe", portions, selling_units: [
-          { ingredient_id: "ingredient", selling_unit_id: productId, quantity: portions === 4 ? 1 : 2, checked: true },
-        ] } },
-        { id: "selling-group-details-image", type: "PML", pml: { component: { type: "IMAGE", source: { id: `recipes/image-${portions}` } } } },
-        ...(name ? [{ type: "PML", id: "core-wide-selling-unit-tile-ingredient", analytics: { contexts: [
-          { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { selling_units: [{ ingredient_id: "ingredient", selling_unit_id: productId }] } },
-        ] }, pml: { component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: name } } }] : []),
-      ] } },
+      script: {},
+      layout: {
+        body: {
+          children: [
+            { data: { creator_type: creatorType, default_portions: defaultPortions, is_saved: true, sellable_name: "Recipe" } },
+            {
+              data: {
+                recipe_id: recipeId,
+                recipe_name: "Recipe",
+                portions,
+                selling_units: [{ ingredient_id: "ingredient", selling_unit_id: productId, quantity: portions === 4 ? 1 : 2, checked: true }],
+              },
+            },
+            { id: "selling-group-details-image", type: "PML", pml: { component: { type: "IMAGE", source: { id: `recipes/image-${portions}` } } } },
+            ...(name
+              ? [
+                  {
+                    type: "PML",
+                    id: "core-wide-selling-unit-tile-ingredient",
+                    analytics: {
+                      contexts: [{ schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { selling_units: [{ ingredient_id: "ingredient", selling_unit_id: productId }] } }],
+                    },
+                    pml: { component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: name } },
+                  },
+                ]
+              : []),
+          ],
+        },
+      },
     });
 
     it.each(["PIM", "USER"])("returns %s recipes at the portions Picnic renders when none are requested", async (creator) => {
@@ -127,7 +132,12 @@ describe("RecipeService", () => {
     });
 
     it("propagates backend rendering errors without silently using different portions", async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: "Internal Server Error", text: async () => JSON.stringify({ error: { message: "Error rendering page_id='selling-group-details-page'" } }) });
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        text: async () => JSON.stringify({ error: { message: "Error rendering page_id='selling-group-details-page'" } }),
+      });
       await expect(recipe.getRecipe(recipeId, { portions: 2 })).rejects.toThrow("Error rendering page_id='selling-group-details-page'");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -138,7 +148,12 @@ describe("RecipeService", () => {
       units.push({ ...units[0], ingredient_id: "second", selling_unit_id: "second" }, { ...units[0], ingredient_id: "duplicate" });
       const resolvers: Array<(value: unknown) => void> = [];
       mockFetch.mockResolvedValueOnce(response(data));
-      mockFetch.mockImplementation(() => new Promise(resolve => { resolvers.push(resolve); }));
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvers.push(resolve);
+          }),
+      );
       const pending = recipe.getRecipe(recipeId, { resolveIngredientNames: true });
       // Wait for the async details parse, while both product requests remain unresolved.
       for (let i = 0; i < 20 && resolvers.length < 2; i++) await Promise.resolve();
@@ -146,7 +161,7 @@ describe("RecipeService", () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
       resolvers.forEach((resolve, index) => resolve(response({ type: "RICH_TEXT", textType: "HEADER1", markdown: `Product ${index}` })));
       const details = await pending;
-      expect(details.ingredients.map(i => i.name)).toEqual(["Product 0", "Product 1", "Product 0"]);
+      expect(details.ingredients.map((i) => i.name)).toEqual(["Product 0", "Product 1", "Product 0"]);
     });
 
     it("propagates errors from explicitly enabled product lookups", async () => {
@@ -162,20 +177,24 @@ describe("RecipeService", () => {
     });
 
     it("getUserDefinedRecipes selects the user's cookbook segment", async () => {
-      const tile = (segmentType: string, id: string) => ({ analytics: { contexts: [
-        { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: segmentType } },
-        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: id } },
-      ] } });
+      const tile = (segmentType: string, id: string) => ({
+        analytics: {
+          contexts: [
+            { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: segmentType } },
+            { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: id } },
+          ],
+        },
+      });
       mockFetch.mockResolvedValueOnce(response({ children: [tile("USER_DEFINED_RECIPES", "wanted"), tile("NEW_RECIPES", "other")] }));
-      expect(await recipe.getUserDefinedRecipes()).toEqual([
-        { id: "wanted", name: "wanted", imageType: null, imageId: null, subtitle: null, tags: [], cookingTimeMinutes: null },
-      ]);
+      expect(await recipe.getUserDefinedRecipes()).toEqual([{ id: "wanted", name: "wanted", imageType: null, imageId: null, subtitle: null, tags: [], cookingTimeMinutes: null }]);
     });
 
     it("getSavedRecipes reads every tile of the saved recipes page", async () => {
-      const tile = (id: string) => ({ type: "PML", analytics: { contexts: [
-        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: `Recipe ${id}` } },
-      ] }, pml: { component: { type: "RICH_TEXT", markdown: `Recipe ${id}` } } });
+      const tile = (id: string) => ({
+        type: "PML",
+        analytics: { contexts: [{ schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, recipe_name: `Recipe ${id}` } }] },
+        pml: { component: { type: "RICH_TEXT", markdown: `Recipe ${id}` } },
+      });
       mockFetch.mockResolvedValueOnce(response({ children: [tile("a"), tile("b"), tile("a")] }));
       expect((await recipe.getSavedRecipes()).map((r) => r.id)).toEqual(["a", "b"]);
       expect(mockFetch.mock.calls[0][0]).toContain("/pages/saved-deep-dive-page-content");
@@ -191,12 +210,9 @@ describe("RecipeService", () => {
     };
 
     it("createUserDefinedRecipe posts name, portions and ingredient maps to create-user-defined-recipe", async () => {
-      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ sellingGroupId: recipeId }) });
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify({ sellingGroupId: recipeId })) });
 
-      const result = await recipe.createUserDefinedRecipe("Testrecept", [
-        { sellingUnitId: "s1143210", quantity: 2, source: "usuals-suggestion" },
-        { sellingUnitId: "s1189145" },
-      ], 4);
+      const result = await recipe.createUserDefinedRecipe("Testrecept", [{ sellingUnitId: "s1143210", quantity: 2, source: "usuals-suggestion" }, { sellingUnitId: "s1189145" }], 4);
 
       const { url, init, body } = lastCall();
       expect(url).toContain("/pages/task/create-user-defined-recipe");
@@ -300,7 +316,13 @@ describe("RecipeService", () => {
       const reference = { id: "a".repeat(64), namespace: "recipes", primary_image: true, rank_value: 1, sellable_id: "69738f92ca0c63178b4a67a9", type: "GALLERY" };
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ id: "sellable-image-selection-page-root", body: { children: [{ type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { referenceImagesById: { [reference.id]: reference } } }] } }),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              id: "sellable-image-selection-page-root",
+              body: { children: [{ type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { referenceImagesById: { [reference.id]: reference } } }] },
+            }),
+          ),
       });
 
       const images = await recipe.getUserDefinedRecipeSuggestedImages(recipeId);
@@ -317,7 +339,7 @@ describe("RecipeService", () => {
     });
 
     it("uploadUserDefinedRecipeImage posts the raw bytes with the image content type", async () => {
-      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ image_id: "img-1", namespace: "sellable-customer-uploaded" }) });
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify({ image_id: "img-1", namespace: "sellable-customer-uploaded" })) });
 
       const result = await recipe.uploadUserDefinedRecipeImage(recipeId, { data: new Uint8Array([1, 2, 3]), type: "image/jpg" });
 

@@ -21,7 +21,10 @@ describe("extractSearchResults", () => {
                 subtitle: { text: "Picnic" },
                 images: { primaryImage: { imageId: "img1" } },
                 price: { priceValue: 1.75, referencePriceValue: 1.95, priceRanges: [{ fromQuantity: 1, price: 175 }] },
-                suffixes: [{ type: "SIZE", text: "XL" }, { type: "TEXT", text: "1.5 liter" }],
+                suffixes: [
+                  { type: "SIZE", text: "XL" },
+                  { type: "TEXT", text: "1.5 liter" },
+                ],
                 labels: { bottomLeft: [{ type: "PROMO", labelText: "10% korting" }] },
                 unavailability: null,
               },
@@ -83,9 +86,7 @@ describe("extractSearchResults", () => {
     expect(results.products?.powerFilters).toEqual([{ facetId: "characteristic.Bio", name: "Bio", imageId: "bio-image" }]);
     expect(results.products?.productIdsByFacetId).toEqual({ "characteristic.Bio": ["s1"] });
     expect(results.products?.sortingOptions).toEqual([{ name: "RELEVANCE", title: "Relevant voor jou" }]);
-    expect(results.recipes).toEqual([
-      { id: "r1", name: "Warme chocolademelk", subtitle: "met kruidnootjes", imageId: "recipes/abc", tags: ["15 min"], cookingTimeMinutes: 15 },
-    ]);
+    expect(results.recipes).toEqual([{ id: "r1", name: "Warme chocolademelk", subtitle: "met kruidnootjes", imageId: "recipes/abc", tags: ["15 min"], cookingTimeMinutes: 15 }]);
   });
 
   it("returns null products when the response has no supermarket results", () => {
@@ -101,8 +102,25 @@ describe("extractSearchResults", () => {
             {
               id: "Bier",
               items: [
-                { ...tile({ priceValue: 1.5, priceRanges: [{ fromQuantity: 2, price: 140 }, { fromQuantity: 1, price: 160 }] }), id: "s1" },
-                { ...tile({ priceRanges: [{ fromQuantity: 3, price: 120 }, { fromQuantity: 1, price: 160 }] }), id: "s2" },
+                {
+                  ...tile({
+                    priceValue: 1.5,
+                    priceRanges: [
+                      { fromQuantity: 2, price: 140 },
+                      { fromQuantity: 1, price: 160 },
+                    ],
+                  }),
+                  id: "s1",
+                },
+                {
+                  ...tile({
+                    priceRanges: [
+                      { fromQuantity: 3, price: 120 },
+                      { fromQuantity: 1, price: 160 },
+                    ],
+                  }),
+                  id: "s2",
+                },
               ],
             },
           ],
@@ -140,7 +158,10 @@ describe("extractFusionSearchResults", () => {
       id: "searchState",
       state: {
         analyticsTemplate: { data: { query: "mlich", query_corrected: "milch", initial_sorting_strategies: ["RELEVANCE", "PRICE"] } },
-        sections: [{ index: 1, name: "Nochmal bestellen" }, { index: 1, name: "H-Milch" }],
+        sections: [
+          { index: 1, name: "Nochmal bestellen" },
+          { index: 1, name: "H-Milch" },
+        ],
         selectedEntityType: "SELLING_UNIT",
         selectedSorting: "RELEVANCE",
         sellingUnitIdsByFacetIds: { "category_level_3.1": ["s2", "s3"], "characteristic.Bio": ["s3"] },

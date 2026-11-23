@@ -91,10 +91,7 @@ try {
     process.exit(0);
   }
 
-  const payment = await client.checkout.initiatePayment(
-    checkout.order_id,
-    "https://localhost:3000/checkout/return",
-  );
+  const payment = await client.checkout.initiatePayment(checkout.order_id, "https://localhost:3000/checkout/return");
 
   logStep("Payment initiated", {
     payment_id: payment.payment_id,

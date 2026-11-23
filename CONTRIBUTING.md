@@ -1,6 +1,6 @@
 # Contributing
 
-- Fork the repository and create a pull request with your changes. Please make sure to follow the code style.
+- Fork the repository and create a pull request with your changes. Format the code with `npm run format`.
 - To assist with development, you can use code agents. The instructions for those are defined in the AGENTS.md file.
 - You will either need to decompile the app for analysis, or use a tool like Frida to hook into the app and intercept requests.
 - Instructions for app decompilation are in the AGENTS.md file.

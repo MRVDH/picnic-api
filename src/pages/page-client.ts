@@ -40,9 +40,7 @@ export class PageClient {
   /** Fetches a page and parses an RSC page into its component tree. */
   async getPage(pageId: string): Promise<Page> {
     const loaded = await this.load(pageId);
-    return loaded.format === "fusion"
-      ? { format: "fusion", pageId, page: loaded.page as FusionPage }
-      : { format: "rsc", pageId, content: parseRscPageContent(pageId, loaded.payload) };
+    return loaded.format === "fusion" ? { format: "fusion", pageId, page: loaded.page as FusionPage } : { format: "rsc", pageId, content: parseRscPageContent(pageId, loaded.payload) };
   }
 
   /**
@@ -102,13 +100,11 @@ export class PageClient {
    * @param {string} chunkId The chunk id, e.g. `shared-pages_search_search-page-content_results_index_tsx.b717044a`.
    */
   async getClientChunk(chunkId: string): Promise<string> {
-    this.clientChunkBaseUrl ??= this.http
-      .sendRequest<null, { in_app_feature_config?: { client_component_cdn_base_url?: string } }>("GET", `/bootstrap`)
-      .then((bootstrap) => {
-        const baseUrl = bootstrap.in_app_feature_config?.client_component_cdn_base_url?.trim();
-        if (!baseUrl) throw new Error("The bootstrap data has no client_component_cdn_base_url");
-        return baseUrl.replace(/\/+$/, "");
-      });
+    this.clientChunkBaseUrl ??= this.http.sendRequest<null, { in_app_feature_config?: { client_component_cdn_base_url?: string } }>("GET", `/bootstrap`).then((bootstrap) => {
+      const baseUrl = bootstrap.in_app_feature_config?.client_component_cdn_base_url?.trim();
+      if (!baseUrl) throw new Error("The bootstrap data has no client_component_cdn_base_url");
+      return baseUrl.replace(/\/+$/, "");
+    });
     let baseUrl: string;
     try {
       baseUrl = await this.clientChunkBaseUrl;

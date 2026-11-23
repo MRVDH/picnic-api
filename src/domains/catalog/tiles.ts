@@ -68,8 +68,7 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     labels: promotionLabel ? [{ position: labelPosition(tile.pml, promotionLabel), type: "PROMO", text: promotionLabel }] : [],
     // Search tiles have no decorator; they carry an unavailability context instead.
     isUnavailable:
-      asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") ||
-      analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
+      asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") || analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
     numberOfOrders: null,
     ...(deposit !== null && { deposit }),
   };
@@ -115,8 +114,7 @@ function readInfoColumn(pml: unknown, unitQuantity: string): InfoColumn {
   const spans = childrenOf(rows[nameIndex]).filter((span) => typeof span.markdown === "string" && asRecord(span.textAttributes).family !== SYMBOL_FONT);
   const spanPrefix = spans.length > 1 ? highlightedText(spans[0].markdown as string) : null;
   const nameSpans = spanPrefix ? spans.slice(1) : spans;
-  const shownName =
-    nameSpans.length > 0 ? nameSpans.map((span) => stripColorTags(span.markdown as string)).join(" ") : stripColorTags(collectMarkdowns(rows[nameIndex])[0] ?? "");
+  const shownName = nameSpans.length > 0 ? nameSpans.map((span) => stripColorTags(span.markdown as string)).join(" ") : stripColorTags(collectMarkdowns(rows[nameIndex])[0] ?? "");
   const prefix = spanPrefix ? null : /^\*\*(.+?)\*\*\s*/.exec(shownName);
   const name = cleanMarkdown(prefix ? shownName.slice(prefix[0].length) : shownName) || null;
 
@@ -141,10 +139,7 @@ function highlightedText(markdown: string): string | null {
 
 /** Where the promotion label sits on the image, e.g. "bottomLeft". */
 function labelPosition(pml: unknown, label: string): string {
-  const placed = findNode(
-    findNodeById(pml, LABEL_CONTAINER_ID),
-    (n) => typeof n.absolutePosition === "object" && collectMarkdowns(n).some((text) => cleanMarkdown(text) === label),
-  );
+  const placed = findNode(findNodeById(pml, LABEL_CONTAINER_ID), (n) => typeof n.absolutePosition === "object" && collectMarkdowns(n).some((text) => cleanMarkdown(text) === label));
   // The app puts promotion labels bottom left.
   if (!placed) return "bottomLeft";
   const position = asRecord(placed.absolutePosition);

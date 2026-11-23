@@ -30,7 +30,7 @@ describe("parseRscPayload", () => {
   it("reads text rows by their length in UTF-8 bytes, with the next row right after the text", () => {
     // "Zon ☀️\n**Vers**" is 19 bytes (0x13): ☀ and the variation selector take 3 bytes each.
     // "🍓 $5\nsap" is 11 bytes (0xb): 🍓 takes 4.
-    const payload = ['0:["$","$L1",null,{"description":"$9","note":"$a"}]', "9:T13,Zon ☀️\n**Vers**a:Tb,🍓 $5\nsap2:{\"ok\":true}", ""].join("\n");
+    const payload = ['0:["$","$L1",null,{"description":"$9","note":"$a"}]', '9:T13,Zon ☀️\n**Vers**a:Tb,🍓 $5\nsap2:{"ok":true}', ""].join("\n");
 
     const page = parseRscPayload(payload);
 
@@ -43,20 +43,13 @@ describe("parseRscPayload", () => {
 
 describe("decodeRscValue", () => {
   const page = parseRscPayload(
-    [
-      '0:["$","$L1",null,{"items":[{"id":"a","price":"$undefined"},"$0:props:items:0"],"text":"$$5 off","shared":"$2"}]',
-      '1:I["./results.tsx",["chunk-a"],"Results"]',
-      '2:{"name":"shared row"}',
-    ].join("\n"),
+    ['0:["$","$L1",null,{"items":[{"id":"a","price":"$undefined"},"$0:props:items:0"],"text":"$$5 off","shared":"$2"}]', '1:I["./results.tsx",["chunk-a"],"Results"]', '2:{"name":"shared row"}'].join(
+      "\n",
+    ),
   );
 
   it("resolves row and path references, $undefined and escaped dollars", () => {
-    expect(decodeRscValue(page, page.rows["0"])).toEqual([
-      "$",
-      "$L1",
-      null,
-      { items: [{ id: "a" }, { id: "a" }], text: "$5 off", shared: { name: "shared row" } },
-    ]);
+    expect(decodeRscValue(page, page.rows["0"])).toEqual(["$", "$L1", null, { items: [{ id: "a" }, { id: "a" }], text: "$5 off", shared: { name: "shared row" } }]);
   });
 
   it("finds element props and chunks by module path", () => {

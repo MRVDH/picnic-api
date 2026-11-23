@@ -15,8 +15,7 @@ function response(body: unknown, headers: Record<string, string> = {}) {
     ok: true,
     body: {},
     headers: new Headers({ "content-type": contentType, ...headers }),
-    json: () => Promise.resolve(body),
-    text: () => Promise.resolve(body as string),
+    text: () => Promise.resolve(typeof body === "string" ? body : JSON.stringify(body)),
     arrayBuffer: () => Promise.resolve((body as Uint8Array).buffer),
   };
 }

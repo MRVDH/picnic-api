@@ -44,10 +44,7 @@ export function fusionTile(options: TileOptions) {
     ...(options.qualityCue ? [row(text(`#(#5b534e)${options.qualityCue}#(#5b534e)`))] : []),
     {
       type: "RICH_TEXT",
-      children: [
-        ...(options.nameSpans ?? [`#(#333333)${options.shownName ?? options.name}#(#333333) `]).map((span) => text(span)),
-        { ...text(">"), textAttributes: { family: "PicnicSymbols" } },
-      ],
+      children: [...(options.nameSpans ?? [`#(#333333)${options.shownName ?? options.name}#(#333333) `]).map((span) => text(span)), { ...text(">"), textAttributes: { family: "PicnicSymbols" } }],
     },
     { type: "CONTAINER", child: row(text((price / 100).toFixed(2))) },
     ...(options.brand ? [row(text(`#(#787570)${options.brand}#(#787570)`))] : []),

@@ -57,11 +57,7 @@ function extractTile(node: unknown): CartRecommendationTile | null {
     productId: node.id.slice(TILE_ID_PREFIX.length),
     imageId,
     backgroundColor: typeof backgroundColor === "string" ? backgroundColor : null,
-    hasPromo:
-      findFirst(
-        node,
-        (candidate) => candidate.type === "ICON" && candidate.iconKey === "percentage"
-      ) !== null,
+    hasPromo: findFirst(node, (candidate) => candidate.type === "ICON" && candidate.iconKey === "percentage") !== null,
   };
 }
 
@@ -124,7 +120,12 @@ function collectTexts(node: unknown, out: CartFooterText[] = []): CartFooterText
 
 /** Removes color tags such as `#(#B40117)` and bold or underline markers, and trims the text before and after. */
 function cleanMarkdown(markdown: string): string {
-  return markdown.replace(/#\([^)]+\)/g, "").trim().replace(/\*\*/g, "").replace(/__/g, "").trim();
+  return markdown
+    .replace(/#\([^)]+\)/g, "")
+    .trim()
+    .replace(/\*\*/g, "")
+    .replace(/__/g, "")
+    .trim();
 }
 
 function isPmlNode(value: unknown): value is PmlNode {

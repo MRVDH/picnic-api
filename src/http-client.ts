@@ -31,6 +31,7 @@ export default class HttpClient {
   url: string;
   deviceId: string;
   agent: string;
+  timeout: number;
 
   constructor(options?: ApiConfig) {
     this.countryCode = options?.countryCode || "NL";
@@ -38,14 +39,15 @@ export default class HttpClient {
     this.authKey = options?.authKey || null;
     this.url = options?.url || `https://storefront-prod.${this.countryCode.toLowerCase()}.picnicinternational.com/api/${this.apiVersion}`;
     this.deviceId = options?.deviceId || "3C417201548B2E3B";
-    this.agent = options?.agent || "30100;1.251.0-15611;";
+    this.agent = options?.agent || "30100;1.252.0-15626;";
+    this.timeout = options?.timeout ?? 30_000;
   }
 
   get baseHeaders(): Record<string, string> {
     return {
       "User-Agent": "okhttp/4.9.0",
       "Content-Type": "application/json; charset=UTF-8",
-      "Accept-Language": this.countryCode === "DE" ? "de" : (this.countryCode === "FR" ? "fr" : "nl"),
+      "Accept-Language": this.countryCode === "DE" ? "de" : this.countryCode === "FR" ? "fr" : "nl",
       ...(this.authKey && { "x-picnic-auth": this.authKey }),
     };
   }
@@ -71,12 +73,7 @@ export default class HttpClient {
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
    * @param {RequestOptions} [options] Picnic headers, extra headers, authentication, the body's content type and the response type.
    */
-  async sendRequest<TRequestData, TResponseData>(
-    method: "GET" | "POST" | "PUT" | "DELETE",
-    path: string,
-    data: TRequestData | null = null,
-    options: RequestOptions = {},
-  ): Promise<TResponseData> {
+  async sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data: TRequestData | null = null, options: RequestOptions = {}): Promise<TResponseData> {
     return (await this.sendRequestWithHeaders<TRequestData, TResponseData>(method, path, data, options)).data;
   }
 
@@ -102,12 +99,7 @@ export default class HttpClient {
   }
 
   /** Sends the request and throws for non-2xx responses; the body is left unread. */
-  private async fetchResponse<TRequestData>(
-    method: "GET" | "POST" | "PUT" | "DELETE",
-    path: string,
-    data: TRequestData | null,
-    options: RequestOptions,
-  ): Promise<Response> {
+  private async fetchResponse<TRequestData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data: TRequestData | null, options: RequestOptions): Promise<Response> {
     const isRawBody = data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
 
     // `path` may be an absolute URL (e.g. product images are served outside the API path), in
@@ -130,6 +122,7 @@ export default class HttpClient {
       method,
       headers,
       body,
+      signal: AbortSignal.timeout(this.timeout),
     });
 
     if (!response.ok) {
@@ -142,20 +135,16 @@ export default class HttpClient {
     return response;
   }
 
-  /** Reads the body as an ArrayBuffer (image and other binary requests), RSC text or JSON. */
+  /** Reads the body as an ArrayBuffer (image and other binary requests), RSC text, JSON, or `undefined` when it is empty. */
   private async readResponseBody<TResponseData>(response: Response, binary: boolean): Promise<TResponseData> {
     if (binary) {
       return response.arrayBuffer() as Promise<TResponseData>;
     }
 
-    if (response.headers?.get("content-type")?.includes("text/x-component")) {
-      return response.text() as Promise<TResponseData>;
-    }
+    const text = await response.text();
+    if (!text) return undefined as TResponseData;
 
-    if (response.body !== null) {
-      return response.json() as Promise<TResponseData>;
-    }
-
-    return undefined as TResponseData;
+    const isRsc = response.headers?.get("content-type")?.includes("text/x-component");
+    return (isRsc ? text : JSON.parse(text)) as TResponseData;
   }
 }

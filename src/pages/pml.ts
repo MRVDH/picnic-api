@@ -97,8 +97,7 @@ export function findSuspensePageId(node: unknown): string | null {
 export const findNodeById = (node: unknown, id: string): PmlNode | null => findNode(node, (n) => n.id === id);
 
 /** Returns the first node whose `id` starts with `prefix`. */
-export const findNodeByIdPrefix = (node: unknown, prefix: string): PmlNode | null =>
-  findNode(node, (n) => typeof n.id === "string" && n.id.startsWith(prefix));
+export const findNodeByIdPrefix = (node: unknown, prefix: string): PmlNode | null => findNode(node, (n) => typeof n.id === "string" && n.id.startsWith(prefix));
 
 /** Returns every value of property `key` in the tree, like JSONPath `$..key`. */
 export function collectPropertyValues(node: unknown, key: string): unknown[] {

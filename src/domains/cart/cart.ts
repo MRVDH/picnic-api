@@ -6,10 +6,8 @@ import { getComparisonPrice } from "../catalog/comparison-price";
 
 type RawRecord = Record<string, unknown>;
 
-const asRecord = (value: unknown): RawRecord | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null;
-const asRecords = (value: unknown): RawRecord[] =>
-  Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : [];
+const asRecord = (value: unknown): RawRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null);
+const asRecords = (value: unknown): RawRecord[] => (Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : []);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown, fallback = 0): number => (typeof value === "number" ? value : fallback);
 
@@ -102,7 +100,7 @@ function readRecipes(sections: unknown): CartRecipe[] {
       const id = asString(group.id);
       if (!id) return [];
       return [{ id, title: asString(group.title) ?? "", preTitle: asString(group.pre_title), subtitle: asString(group.subtitle), imageId: asString(group.image_id) }];
-    })
+    }),
   );
 }
 

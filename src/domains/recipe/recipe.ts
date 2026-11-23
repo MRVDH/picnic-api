@@ -1,6 +1,8 @@
 import { FusionPage, PriceRange } from "../../pages/fusion";
 import {
   accordionItems,
+  AnalyticsContext,
+  analyticsContexts,
   ancestorsOf,
   childrenOf,
   cleanMarkdown,
@@ -11,6 +13,7 @@ import {
   findPmlComponent,
   PmlNode,
   stripColorTags,
+  walkNodes,
 } from "../../pages/pml";
 import type { NutritionRow } from "../catalog/types";
 import { readNutritionRows } from "../catalog/nutrition";
@@ -18,7 +21,9 @@ import { parseMinutes, readRecipeTile } from "./lists";
 import {
   RecipeAllergens,
   Recipe,
+  RecipeImageType,
   RecipeIngredient,
+  RecipeIngredientSwapType,
   RecipeSegment,
   RecipeSummary,
   RecipeTime,
@@ -30,24 +35,45 @@ const RECIPE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/";
 const SEGMENT_SCHEMA = "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/";
 const PROMOTION_SCHEMA = "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/";
 
-type AnalyticsContext = { schema?: string; data?: Record<string, any> };
-
-/** Recursively visit every object in a JSON tree. */
-const walkObjects = (node: unknown, visit: (obj: Record<string, any>) => void): void => {
-  if (Array.isArray(node)) {
-    node.forEach((child) => walkObjects(child, visit));
-  } else if (node && typeof node === "object") {
-    visit(node as Record<string, any>);
-    Object.values(node as Record<string, unknown>).forEach((child) => walkObjects(child, visit));
-  }
+/** A product of an ingredient in the recipe's analytics data. */
+type RawRecipeUnit = {
+  ingredient_id: string;
+  selling_unit_id?: string;
+  quantity?: number;
+  status?: string;
+  swap_type?: RecipeIngredientSwapType;
+  checked?: boolean;
 };
 
+/** A recipe's analytics data. Tiles carry the id, name and image type; the details page also the products. */
+type RawRecipeData = {
+  recipe_id?: string;
+  recipe_name?: string;
+  recipe_image_type?: RecipeImageType;
+  image_type?: RecipeImageType;
+  portions?: number;
+  selling_units?: RawRecipeUnit[];
+};
+
+/** The details page's header data: who made the recipe and its stored portions. */
+type RawRecipeHeader = { creator_type: string; sellable_name: string; default_portions?: number; is_saved?: boolean };
+
+/** The details page's owner data. */
+type RawRecipeOwner = { is_recipe_owner: boolean; name: string };
+
+/** The data of the first analytics context with a schema, read as `TData`. */
+const contextData = <TData = Record<string, unknown>>(contexts: AnalyticsContext[], schema: string): TData | undefined => contexts.find((c) => c.schema?.startsWith(schema))?.data as TData | undefined;
+
 const plainText = (markdown: string): string =>
-  markdown.replace(/#\([^)]*\)/g, "").replace(/\*\*/g, "").replace(/\u00a0/g, " ").trim();
+  markdown
+    .replace(/#\([^)]*\)/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/\u00a0/g, " ")
+    .trim();
 
 const textByType = (node: unknown, textType: string): string | null => {
   let result: string | null = null;
-  walkObjects(node, (obj) => {
+  walkNodes(node, (obj) => {
     if (!result && obj.type === "RICH_TEXT" && obj.textType === textType && typeof obj.markdown === "string") {
       result = plainText(obj.markdown) || null;
     }
@@ -62,12 +88,11 @@ const textByType = (node: unknown, textType: string): string | null => {
  */
 export function extractRecipes(page: FusionPage, segmentType: RecipeSegment): RecipeSummary[] {
   const byId = new Map<string, RecipeSummary>();
-  walkObjects(page, (obj) => {
-    const contexts: AnalyticsContext[] | undefined = obj.analytics?.contexts ?? obj.contexts;
-    if (!Array.isArray(contexts)) return;
-    const segment = contexts.find((c) => c.schema?.startsWith(SEGMENT_SCHEMA));
-    if (segment?.data?.segment_type !== segmentType) return;
-    const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
+  walkNodes(page, (obj) => {
+    // The contexts are on the node's `analytics`, or on the node when it is the analytics object.
+    const contexts = analyticsContexts({ analytics: obj.analytics ?? obj });
+    if (contextData(contexts, SEGMENT_SCHEMA)?.segment_type !== segmentType) return;
+    const recipe = contextData<RawRecipeData>(contexts, RECIPE_SCHEMA);
     if (typeof recipe?.recipe_id !== "string") return;
     const previous = byId.get(recipe.recipe_id);
     const tile = readRecipeTile(obj);
@@ -103,14 +128,13 @@ type IngredientTile = {
   notice: string | null;
 };
 
-const markdownText = (node: PmlNode | undefined): string | null =>
-  typeof node?.markdown === "string" ? cleanMarkdown(node.markdown) || null : null;
+const markdownText = (node: PmlNode | undefined): string | null => (typeof node?.markdown === "string" ? cleanMarkdown(node.markdown) || null : null);
 
 /**
  * Reads an ingredient tile. Its info column holds a stack with the name (`SUBTITLE1`) and the
  * brand, the prices, and a row with the package size and the needed amount ("(150 g nodig)").
  */
-function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: Record<string, any> | undefined): IngredientTile {
+function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: RawRecipeUnit | undefined): IngredientTile {
   const nameNode = findNode(tile.pml, (n) => n.type === "RICH_TEXT" && n.textType === "SUBTITLE1" && typeof n.markdown === "string");
   // The nearest stack around the name holds the name and the brand; the one around it, the info column.
   const [nameStack, infoColumn] = nameNode ? ancestorsOf(tile.pml, nameNode).filter((n) => n.type === "STACK") : [];
@@ -120,7 +144,7 @@ function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: R
   const rowTexts = textRow ? childrenOf(textRow) : [];
   const image = findNode(findNodeById(tile.pml, "selling-unit-image"), (n) => n.type === "IMAGE");
   const imageSource = image?.source as PmlNode | undefined;
-  const promotion = contexts.find((c) => c.schema?.startsWith(PROMOTION_SCHEMA))?.data;
+  const promotion = contextData(contexts, PROMOTION_SCHEMA);
 
   return {
     name: markdownText(nameNode ?? undefined),
@@ -134,17 +158,15 @@ function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: R
   };
 }
 
-const findBrand = (nodes: PmlNode[]): string | null =>
-  markdownText(findNode(nodes, (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined);
+const findBrand = (nodes: PmlNode[]): string | null => markdownText(findNode(nodes, (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined);
 
 /** Ingredient tiles keyed by component id, including discontinued products. */
 function extractIngredientTiles(page: unknown): Map<string, IngredientTile> {
   const tiles = new Map<string, IngredientTile>();
-  walkObjects(page, (obj) => {
+  walkNodes(page, (obj) => {
     if (obj.type !== "PML" || typeof obj.id !== "string" || !obj.id.includes("selling-unit-tile")) return;
-    const contexts: AnalyticsContext[] = obj.analytics?.contexts ?? [];
-    const recipe = contexts.find((c) => c.schema?.startsWith(RECIPE_SCHEMA))?.data;
-    const units = recipe?.selling_units;
+    const contexts = analyticsContexts(obj);
+    const units = contextData<RawRecipeData>(contexts, RECIPE_SCHEMA)?.selling_units;
     const unit = Array.isArray(units) && units.length === 1 ? units[0] : undefined;
     // Discontinued tiles omit analytics. Their edit link still carries the
     // component id; read the URL as text without executing its JavaScript.
@@ -159,15 +181,16 @@ type IngredientState = {
   ingredientId: string;
   ingredientType?: string;
   isAvailable?: boolean;
-  sellingUnits?: Record<string, { price?: number; referencePrice?: number; priceRanges?: PriceRange[] }>;
+  sellingUnits?: Record<string, { sellingUnitId: string; requiredAmount?: number; price?: number; referencePrice?: number; priceRanges?: PriceRange[] }>;
 };
 
 /** The ingredients in the `sellableContentState` state boundary, keyed by component id. */
 function extractIngredientStates(page: unknown): Map<string, IngredientState> {
   const states = new Map<string, IngredientState>();
-  walkObjects(page, (obj) => {
+  walkNodes(page, (obj) => {
     if (obj.type !== "STATE_BOUNDARY" || obj.id !== "sellableContentState") return;
-    for (const ingredient of obj.state?.ingredientsState ?? []) {
+    const state = obj.state as { ingredientsState?: IngredientState[] } | undefined;
+    for (const ingredient of state?.ingredientsState ?? []) {
       if (typeof ingredient?.ingredientId === "string") states.set(ingredient.ingredientId, ingredient);
     }
   });
@@ -197,7 +220,7 @@ type AllergenComponent = {
 function extractAllergensByIngredient(page: unknown): Map<string, RecipeAllergens> {
   let components: AllergenComponent[] = [];
   let names: Record<string, string> = {};
-  walkObjects(page, (obj) => {
+  walkNodes(page, (obj) => {
     if (obj.type !== "EXPRESSION" || typeof obj.expression !== "string") return;
     if (components.length === 0) {
       const list = obj.expression.match(/const components = (\[.*?\]);\n/s)?.[1];
@@ -217,7 +240,7 @@ function extractAllergensByIngredient(page: unknown): Map<string, RecipeAllergen
       .map((component) => {
         const info = component.transformations?.allergy_info;
         return [component.id, { contains: (info?.allergy_info_contains ?? []).map(name), mayContain: (info?.allergy_info_may_contain ?? []).map(name) }];
-      })
+      }),
   );
 }
 
@@ -297,26 +320,27 @@ export function extractIngredientProductName(page: FusionPage): string | null {
  * @param {FusionPage} page The raw page response.
  */
 export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe {
-  let recipeContext: Record<string, any> | undefined;
-  let header: Record<string, any> | undefined;
-  let owner: Record<string, any> | undefined;
+  let recipeContext: RawRecipeData | undefined;
+  let header: RawRecipeHeader | undefined;
+  let owner: RawRecipeOwner | undefined;
   let note: string | null = null;
   let imageId: string | null = null;
 
-  walkObjects(page, (obj) => {
+  walkNodes(page, (obj) => {
     if (obj.id === "selling-group-details-image") {
-      walkObjects(obj, (image) => {
-        if (!imageId && image.type === "IMAGE" && typeof image.source?.id === "string") imageId = image.source.id;
+      walkNodes(obj, (image) => {
+        const source = image.source as PmlNode | undefined;
+        if (!imageId && image.type === "IMAGE" && typeof source?.id === "string") imageId = source.id;
       });
     }
     if (!recipeContext && obj.recipe_id === recipeId && Array.isArray(obj.selling_units) && typeof obj.recipe_name === "string") {
-      recipeContext = obj;
+      recipeContext = obj as RawRecipeData;
     }
     if (!header && typeof obj.creator_type === "string" && typeof obj.sellable_name === "string") {
-      header = obj;
+      header = obj as RawRecipeHeader;
     }
     if (!owner && typeof obj.is_recipe_owner === "boolean" && typeof obj.name === "string") {
-      owner = obj;
+      owner = obj as RawRecipeOwner;
     }
     if (note === null && obj.type === "TEXT_EDITOR" && typeof obj.initialContent === "string") {
       note = obj.initialContent;
@@ -327,7 +351,7 @@ export function extractRecipeDetails(recipeId: string, page: FusionPage): Recipe
   const tiles = extractIngredientTiles(page);
   const states = extractIngredientStates(page);
   const allergens = extractAllergensByIngredient(page);
-  const ingredients: RecipeIngredient[] = recipeContext.selling_units.map((unit: Record<string, any>) => {
+  const ingredients: RecipeIngredient[] = (recipeContext.selling_units ?? []).map((unit) => {
     const sellingUnitId: string = unit.selling_unit_id ?? "";
     const tile = tiles.get(unit.ingredient_id);
     // Package size and image belong to the product on the tile; an ingredient can list more products.
@@ -398,15 +422,9 @@ export const extractUserDefinedRecipeDetails = extractRecipeDetails;
  */
 export function extractIngredientQuantities(page: unknown): Record<string, Record<string, number>> {
   const result: Record<string, Record<string, number>> = {};
-  walkObjects(page, (obj) => {
-    if (obj.type !== "STATE_BOUNDARY" || obj.id !== "sellableContentState") return;
-    for (const ingredient of obj.state?.ingredientsState ?? []) {
-      if (!ingredient?.ingredientId || !ingredient.sellingUnits) continue;
-      result[ingredient.ingredientId] = Object.fromEntries(
-        Object.values(ingredient.sellingUnits as Record<string, any>).map((unit) => [unit.sellingUnitId, unit.requiredAmount ?? 0]),
-      );
-    }
-  });
+  for (const [ingredientId, { sellingUnits }] of extractIngredientStates(page)) {
+    if (sellingUnits) result[ingredientId] = Object.fromEntries(Object.values(sellingUnits).map((unit) => [unit.sellingUnitId, unit.requiredAmount ?? 0]));
+  }
   return result;
 }
 
@@ -419,9 +437,10 @@ export function extractIngredientQuantities(page: unknown): Record<string, Recor
  */
 export function extractSuggestedImages(page: unknown): UserDefinedRecipeSuggestedImage[] {
   const images: UserDefinedRecipeSuggestedImage[] = [];
-  walkObjects(page, (obj) => {
+  walkNodes(page, (obj) => {
     if (obj.type !== "STATE_BOUNDARY" || obj.id !== "ImageSelectionState") return;
-    for (const reference of Object.values(obj.state?.referenceImagesById ?? {}) as UserDefinedRecipeReferenceImage[]) {
+    const state = obj.state as { referenceImagesById?: Record<string, UserDefinedRecipeReferenceImage> } | undefined;
+    for (const reference of Object.values(state?.referenceImagesById ?? {})) {
       if (reference?.id) images.push({ id: reference.id, referenceImage: reference });
     }
   });

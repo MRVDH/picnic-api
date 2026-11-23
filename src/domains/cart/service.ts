@@ -1,16 +1,5 @@
 import type HttpClient from "../../http-client";
-import {
-  AddProductInput,
-  RawCart,
-  Cart,
-  CartFooter,
-  DeliverySlots,
-  RemoveGroupInput,
-  SellingUnitContext,
-  SetDeliverySlotInput,
-  RawMinimumOrderValue,
-  CartReplacements,
-} from "./types";
+import { AddProductInput, RawCart, Cart, CartFooter, DeliverySlots, RemoveGroupInput, SellingUnitContext, SetDeliverySlotInput, RawMinimumOrderValue, CartReplacements } from "./types";
 import { extractDeliverySlots } from "./delivery-slots";
 import { extractCartFooter } from "./footer";
 import { extractCart } from "./cart";

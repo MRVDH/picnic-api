@@ -1,12 +1,4 @@
-import {
-  extractFusionRecipeCategory,
-  extractFusionRecipeCategoryGroup,
-  extractRecipeCategory,
-  extractRecipeCategoryGroup,
-  extractRecipeOverview,
-  extractRecipeTiles,
-  parseMinutes,
-} from "./lists";
+import { extractFusionRecipeCategory, extractFusionRecipeCategoryGroup, extractRecipeCategory, extractRecipeCategoryGroup, extractRecipeOverview, extractRecipeTiles, parseMinutes } from "./lists";
 import type { FusionPage } from "../../pages/fusion";
 import type { RscPageContent } from "../../pages/types";
 
@@ -61,13 +53,9 @@ describe("recipe lists", () => {
 
   it("finds the name by its text type when the tile shows another name than its analytics", () => {
     const shown = JSON.parse(
-      JSON.stringify(tile("c", "Curry"))
-        .replace('"recipe_name":"Curry"', '"recipe_name":"Curry (analytics)"')
-        .replace('"markdown":"Curry "', '"markdown":"Curry ","textType":"SUBTITLE1"')
+      JSON.stringify(tile("c", "Curry")).replace('"recipe_name":"Curry"', '"recipe_name":"Curry (analytics)"').replace('"markdown":"Curry "', '"markdown":"Curry ","textType":"SUBTITLE1"'),
     );
-    expect(extractRecipeTiles({ children: [shown] })).toMatchObject([
-      { name: "Curry (analytics)", subtitle: "met paratha", tags: ["15 + 25 min", "Vegan"] },
-    ]);
+    expect(extractRecipeTiles({ children: [shown] })).toMatchObject([{ name: "Curry (analytics)", subtitle: "met paratha", tags: ["15 + 25 min", "Vegan"] }]);
   });
 
   it("reads a wide recipe tile of the recipe search, whose first text is the name", () => {
@@ -95,7 +83,12 @@ describe("recipe lists", () => {
     const aisle = (rank: number, name: string, pill: string) => ({ schema: schema("aisle"), data: { aisle_ranking: rank, assortment_aisle: name, pill_display_name: pill } });
     const category = (heading: string, name: string, deeplink: string) => ({
       type: "PML",
-      analytics: { contexts: [{ schema: schema("pml_component"), data: { deeplink } }, { schema: schema("page_section"), data: { name: heading } }] },
+      analytics: {
+        contexts: [
+          { schema: schema("pml_component"), data: { deeplink } },
+          { schema: schema("page_section"), data: { name: heading } },
+        ],
+      },
       pml: { component: { type: "TOUCHABLE", accessibilityLabel: name, child: { type: "IMAGE", source: { id: `image-${name}` } } } },
     });
     const page = {
@@ -178,7 +171,10 @@ describe("recipe lists", () => {
       },
       pml: { component: { type: "TOUCHABLE", accessibilityLabel: name, child: { type: "STACK", children: [{ type: "IMAGE", source: { id: `image-${id}` } }, text(name)] } } },
     });
-    const group = { script: {}, layout: { header: null, body: { type: "BLOCK", children: [listItem("c2", "Lunchbox"), listItem("c3", "Snacks"), listItem("c2", "Lunchbox")] } } } as unknown as FusionPage;
+    const group = {
+      script: {},
+      layout: { header: null, body: { type: "BLOCK", children: [listItem("c2", "Lunchbox"), listItem("c3", "Snacks"), listItem("c2", "Lunchbox")] } },
+    } as unknown as FusionPage;
     expect(extractFusionRecipeCategoryGroup("Kids", group)).toEqual({
       name: "Kids",
       title: "Kids",

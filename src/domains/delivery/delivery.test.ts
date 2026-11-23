@@ -6,7 +6,18 @@ const line = (id: string, articleId: string, extra: Record<string, unknown> = {}
   id,
   price: 398,
   display_price: 398,
-  items: [{ type: "ORDER_ARTICLE", id: articleId, name: `Product ${articleId}`, unit_quantity: "500 gram", price: 199, max_count: 50, image_ids: [`image-${articleId}`], decorators: [{ type: "QUANTITY", quantity: 2 }] }],
+  items: [
+    {
+      type: "ORDER_ARTICLE",
+      id: articleId,
+      name: `Product ${articleId}`,
+      unit_quantity: "500 gram",
+      price: 199,
+      max_count: 50,
+      image_ids: [`image-${articleId}`],
+      decorators: [{ type: "QUANTITY", quantity: 2 }],
+    },
+  ],
   ...extra,
 });
 
@@ -62,10 +73,21 @@ describe("extractDelivery", () => {
 
 describe("delivery tracking", () => {
   it("finds the current position on the route by time and reads the driver and destination", () => {
-    const position = extractDeliveryPosition({ version: 3, scenario_ts: 1050, eta: 5000, eta_window: { start: "18:00", end: "18:20" }, query_interval: 10000, scenario_in_progress: true } as unknown as RawDeliveryPosition);
+    const position = extractDeliveryPosition({
+      version: 3,
+      scenario_ts: 1050,
+      eta: 5000,
+      eta_window: { start: "18:00", end: "18:20" },
+      query_interval: 10000,
+      scenario_in_progress: true,
+    } as unknown as RawDeliveryPosition);
     const route = extractDeliveryRoute({
       version: 3,
-      scenario: [{ lat: 52.1, lng: 4.1, ts: 1000 }, { lat: 52.2, lng: 4.2, ts: 1100 }, { lat: 0, lng: 0, ts: 1200 }],
+      scenario: [
+        { lat: 52.1, lng: 4.1, ts: 1000 },
+        { lat: 52.2, lng: 4.2, ts: 1100 },
+        { lat: 0, lng: 0, ts: 1200 },
+      ],
       vehicle: { name: "EV", image: "iVBOR" },
       driver: { name: "Jan", photo_url: "https://example.com/photo.jpg" },
     } as unknown as RawDeliveryScenario);
@@ -81,7 +103,10 @@ describe("delivery tracking", () => {
       currentPosition: { lat: 52.1, lng: 4.1, ts: 1000 },
       route: {
         version: 3,
-        points: [{ lat: 52.1, lng: 4.1, ts: 1000 }, { lat: 52.2, lng: 4.2, ts: 1100 }],
+        points: [
+          { lat: 52.1, lng: 4.1, ts: 1000 },
+          { lat: 52.2, lng: 4.2, ts: 1100 },
+        ],
         driverName: "Jan",
         driverPhotoUrl: "https://example.com/photo.jpg",
         vehicleName: "EV",

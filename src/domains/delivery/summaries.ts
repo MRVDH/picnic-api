@@ -3,8 +3,7 @@ import { DeliverySummary } from "./types";
 
 type RawObject = Record<string, unknown>;
 
-const isRawObject = (val: unknown): val is RawObject =>
-  typeof val === "object" && val !== null && !Array.isArray(val);
+const isRawObject = (val: unknown): val is RawObject => typeof val === "object" && val !== null && !Array.isArray(val);
 
 const asText = (val: unknown): string => (typeof val === "string" ? val : "");
 
@@ -18,10 +17,8 @@ function extractDeliveryWindow(raw: RawObject): { windowStart: string | null; wi
   const deliveryTime = asObject(raw["delivery_time"]);
   const eta2 = asObject(raw["eta2"]);
 
-  const windowStart =
-    asText(slot?.["window_start"]) || asText(deliveryTime?.["start"]) || asText(eta2?.["start"]) || null;
-  const windowEnd =
-    asText(slot?.["window_end"]) || asText(deliveryTime?.["end"]) || asText(eta2?.["end"]) || null;
+  const windowStart = asText(slot?.["window_start"]) || asText(deliveryTime?.["start"]) || asText(eta2?.["start"]) || null;
+  const windowEnd = asText(slot?.["window_end"]) || asText(deliveryTime?.["end"]) || asText(eta2?.["end"]) || null;
 
   return { windowStart, windowEnd };
 }
@@ -61,9 +58,7 @@ function extractDeliverySummary(raw: unknown): DeliverySummary | null {
  * sort to the top without a separate status sort.
  */
 export function extractDeliverySummaries(raw: unknown): DeliverySummary[] {
-  const summaries = (Array.isArray(raw) ? raw : [])
-    .map(extractDeliverySummary)
-    .filter((summary): summary is DeliverySummary => summary !== null);
+  const summaries = (Array.isArray(raw) ? raw : []).map(extractDeliverySummary).filter((summary): summary is DeliverySummary => summary !== null);
 
   const sortKey = (summary: DeliverySummary) => summary.windowStart ?? summary.creationTime;
   return summaries.sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
