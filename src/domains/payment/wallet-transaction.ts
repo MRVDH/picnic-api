@@ -1,13 +1,9 @@
+import { RawRecord, asRecord, asRecords, asString } from "../../raw";
 import { readCartLine } from "../cart/cart";
 import type { OrderLine } from "../cart/types";
 import { readReturnedContainers } from "../delivery/delivery";
 import type { WalletTransaction, WalletSubstitution, RawWalletTransaction } from "./types";
 
-type RawRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RawRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null);
-const asRecords = (value: unknown): RawRecord[] => (Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown, fallback = 0): number => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
 
 const firstImage = (raw: RawRecord | null): string | null => asString(Array.isArray(raw?.image_ids) ? raw!.image_ids[0] : null);

@@ -3,12 +3,12 @@
  * `PRICE`, ...) whose texts are markdown with Picnic's color tags (`#(#333333)text#(#333333)`).
  */
 
+import { isRecord } from "../raw";
+
 export type PmlNode = Record<string, unknown>;
 
 /** Text colors the app uses for regular text; a different color marks a highlight. */
 const DEFAULT_TEXT_COLORS = new Set(["#333333", "#5b534e", "#787570"]);
-
-const isNode = (value: unknown): value is PmlNode => typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Strips Picnic's color tags: `#(#aabbcc)text#(#aabbcc)` → `text`. */
 export function stripColorTags(markdown: string): string {
@@ -38,7 +38,7 @@ export const isDefaultTextColor = (color: string): boolean => DEFAULT_TEXT_COLOR
 export function walkNodes(node: unknown, visit: (node: PmlNode) => void): void {
   if (Array.isArray(node)) {
     node.forEach((child) => walkNodes(child, visit));
-  } else if (isNode(node)) {
+  } else if (isRecord(node)) {
     visit(node);
     Object.values(node).forEach((child) => walkNodes(child, visit));
   }
@@ -53,7 +53,7 @@ export function findNode(node: unknown, predicate: (node: PmlNode) => boolean): 
     }
     return null;
   }
-  if (!isNode(node)) return null;
+  if (!isRecord(node)) return null;
   if (predicate(node)) return node;
   for (const child of Object.values(node)) {
     const found = findNode(child, predicate);
@@ -68,7 +68,7 @@ export function ancestorsOf(root: unknown, target: PmlNode): PmlNode[] {
   const visit = (node: unknown): boolean => {
     if (node === target) return true;
     if (Array.isArray(node)) return node.some(visit);
-    if (!isNode(node)) return false;
+    if (!isRecord(node)) return false;
     path.push(node);
     if (Object.values(node).some(visit)) return true;
     path.pop();
@@ -83,10 +83,10 @@ export function ancestorsOf(root: unknown, target: PmlNode): PmlNode[] {
  * only a shell around such a boundary has its content on that page.
  */
 export function findSuspensePageId(node: unknown): string | null {
-  const suspense = findNode(node, (n) => n.type === "SUSPENSE" && isNode(n.pageConfig) && typeof n.pageConfig.id === "string");
+  const suspense = findNode(node, (n) => n.type === "SUSPENSE" && isRecord(n.pageConfig) && typeof n.pageConfig.id === "string");
   if (!suspense) return null;
   const { id, parameters } = suspense.pageConfig as { id: string; parameters?: unknown };
-  const query = Object.entries(isNode(parameters) ? parameters : {})
+  const query = Object.entries(isRecord(parameters) ? parameters : {})
     .filter(([, value]) => value !== null && value !== undefined)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
     .join("&");
@@ -116,8 +116,8 @@ export function collectMarkdowns(node: unknown): string[] {
 /** The children of a node: `children`, or `child` as a one-element list. */
 export function childrenOf(node: PmlNode): PmlNode[] {
   const children = node.children ?? node.child;
-  if (Array.isArray(children)) return children.filter(isNode);
-  return isNode(children) ? [children] : [];
+  if (Array.isArray(children)) return children.filter(isRecord);
+  return isRecord(children) ? [children] : [];
 }
 
 /** A `PRICE` component: a price in cents, crossed out for an original price. */
@@ -142,7 +142,7 @@ export function collectBadges(node: unknown): PmlBadge[] {
   const badges: PmlBadge[] = [];
   const visit = (n: unknown): void => {
     if (Array.isArray(n)) return n.forEach(visit);
-    if (!isNode(n)) return;
+    if (!isRecord(n)) return;
     if (n.type === "CONTAINER" && typeof n.backgroundColor === "string" && typeof n.borderRadius === "number") {
       const markdown = collectMarkdowns(n)[0];
       if (markdown) {
@@ -150,7 +150,7 @@ export function collectBadges(node: unknown): PmlBadge[] {
         const textColor =
           extractHighlightColor(markdown) ??
           collectPropertyValues(n, "textAttributes")
-            .map((attributes) => (isNode(attributes) ? attributes.color : undefined))
+            .map((attributes) => (isRecord(attributes) ? attributes.color : undefined))
             .find((color): color is string => typeof color === "string");
         badges.push({ text: cleanMarkdown(markdown), textColor: textColor ?? "#333333", backgroundColor: n.backgroundColor });
         return;
@@ -173,7 +173,7 @@ export function collectNutritionRows(node: unknown): PmlNutritionRow[] {
   const rows: PmlNutritionRow[] = [];
   const visit = (n: unknown): void => {
     if (Array.isArray(n)) return n.forEach(visit);
-    if (!isNode(n)) return;
+    if (!isRecord(n)) return;
     if (n.type === "STACK" && n.axis === "HORIZONTAL" && (n.distribution === "SPACE_BETWEEN" || n.distribution === "END")) {
       const texts = childrenOf(n).filter((c) => c.type === "RICH_TEXT" && typeof c.markdown === "string");
       if (texts.length > 0) {
@@ -195,12 +195,12 @@ export function collectNutritionRows(node: unknown): PmlNutritionRow[] {
 /** The items of an accordion list (`{ header, body }`), or an empty list. */
 export function accordionItems(accordion: unknown): PmlNode[] {
   const items = collectPropertyValues(accordion, "items")[0];
-  return Array.isArray(items) ? items.filter(isNode) : [];
+  return Array.isArray(items) ? items.filter(isRecord) : [];
 }
 
 /** Returns the first `pml.component` in or below a node. */
 export function findPmlComponent(node: unknown): PmlNode | null {
-  const found = findNode(node, (n) => isNode(n.pml) && isNode((n.pml as PmlNode).component));
+  const found = findNode(node, (n) => isRecord(n.pml) && isRecord((n.pml as PmlNode).component));
   return found ? ((found.pml as PmlNode).component as PmlNode) : null;
 }
 
@@ -210,6 +210,6 @@ export type AnalyticsContext = { schema?: string; data?: Record<string, unknown>
 /** The analytics contexts of a node (`analytics.contexts`), or an empty list. */
 export function analyticsContexts(node: PmlNode): AnalyticsContext[] {
   const analytics = node.analytics;
-  const contexts = isNode(analytics) ? analytics.contexts : undefined;
-  return Array.isArray(contexts) ? contexts.filter(isNode) : [];
+  const contexts = isRecord(analytics) ? analytics.contexts : undefined;
+  return Array.isArray(contexts) ? contexts.filter(isRecord) : [];
 }

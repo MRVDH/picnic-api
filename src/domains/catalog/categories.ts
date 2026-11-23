@@ -1,13 +1,8 @@
+import { asArray, asRecord, asString } from "../../raw";
 import type { RscPageContent } from "../../pages/types";
 import { findRscNode } from "../../pages/rsc";
 import { extractFilters } from "./search";
 import type { CategoryLink, CategoryLinkTarget, CategoryProducts, CategorySection, ProductTile, SearchSection, Subcategories } from "./types";
-
-type RscRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RscRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : null);
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 
 /** Deep link pages the category lists open, and what they show. */
 const TARGET_TYPES: Record<string, Exclude<CategoryLinkTarget["type"], "page">> = {

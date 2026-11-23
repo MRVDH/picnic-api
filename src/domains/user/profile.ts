@@ -1,11 +1,7 @@
+import { RawRecord, asRecord, asString } from "../../raw";
 import type { RscPageContent } from "../../pages/types";
 import { findRscNode } from "../../pages/rsc";
 import type { Profile, ProfileAddress, ProfileMenuEntry } from "./types";
-
-type RscRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RscRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : null);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 
 /**
  * Extracts the profile from the `profile-root` page content: the `user-info` component holds the
@@ -31,7 +27,7 @@ export function extractProfile(content: RscPageContent): Profile {
   };
 }
 
-function extractAddress(address: RscRecord): ProfileAddress {
+function extractAddress(address: RawRecord): ProfileAddress {
   return {
     street: asString(address.street) ?? "",
     houseNumber: typeof address.houseNumber === "number" ? address.houseNumber : null,

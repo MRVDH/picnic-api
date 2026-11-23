@@ -1,3 +1,4 @@
+import { asRecord, asString } from "../../raw";
 import type { FusionPage } from "../../pages/fusion";
 import type { RscNode, RscPageContent } from "../../pages/types";
 import { analyticsContexts, cleanMarkdown, findNode, PmlNode, walkNodes } from "../../pages/pml";
@@ -179,9 +180,6 @@ export function extractFusionRecipeCategoryGroup(name: string, page: FusionPage)
   });
   return { name, title: headerTitle(page) ?? name, categories };
 }
-
-const asRecord = (value: unknown): Record<string, unknown> | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 
 /** The first node of a component (by module name) in an RSC component tree. */
 function findRscNode(nodes: RscNode[], component: string): RscNode | null {

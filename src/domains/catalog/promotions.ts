@@ -1,3 +1,4 @@
+import { RawRecord, asString, recordOf } from "../../raw";
 import type { RscNode, RscPageContent } from "../../pages/types";
 import { PmlNode, analyticsContexts, childrenOf, cleanMarkdown, collectMarkdowns, findNode, findNodeByIdPrefix, walkNodes } from "../../pages/pml";
 import { collectFusionProductTiles } from "./tiles";
@@ -15,10 +16,6 @@ const STREAMING_DATA_COLLECTOR = "streaming-data-collector";
 /** Effects that hold a section: a layout with a title and lists, or the personal promotions box. */
 const SECTION_EFFECTS = new Set(["PAGE_LAYOUT", "PROMOBOX"]);
 
-type RawRecord = Record<string, unknown>;
-const asRecord = (value: unknown): RawRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : {});
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
-
 /**
  * Reads the promotions page (`promo-page-root`) served as RSC. The page streams its sections as
  * effects in the `data` props of `streaming-data-collector` components (`{ component, componentIndex,
@@ -32,11 +29,11 @@ export function extractRscPromotions(content: RscPageContent): Promotions {
   const visit = (nodes: RscNode[]): void => {
     for (const node of nodes) {
       if (node.component === STREAMING_DATA_COLLECTOR && Array.isArray(node.props.data)) {
-        for (const entry of node.props.data.map(asRecord)) {
+        for (const entry of node.props.data.map(recordOf)) {
           if (entry.type !== "RESOLVED") continue;
           effects.push({
             index: typeof entry.componentIndex === "number" ? entry.componentIndex : effects.length,
-            component: asRecord(entry.component),
+            component: recordOf(entry.component),
           });
         }
       }
@@ -55,7 +52,7 @@ export function extractRscPromotions(content: RscPageContent): Promotions {
 }
 
 function readRscSection(component: RawRecord): PromotionSection {
-  const items = Array.isArray(component.items) ? component.items.map(asRecord) : [];
+  const items = Array.isArray(component.items) ? component.items.map(recordOf) : [];
   const title = asString(component.title) ?? asString(items.find((item) => item.type === "section-title")?.title) ?? "";
   const products = new Map<string, ProductTile>();
   const groups = new Map<string, PromotionGroup>();
@@ -93,7 +90,7 @@ function readRscGroup(item: RawRecord): PromotionGroup | null {
   if (!id || !name) return null;
 
   const accessibilityLabel = asString(item.accessibilityLabel);
-  const label = asString(asRecord(item.badge).text) ?? (accessibilityLabel?.startsWith(`${name} `) ? accessibilityLabel.slice(name.length + 1).trim() || null : null);
+  const label = asString(recordOf(item.badge).text) ?? (accessibilityLabel?.startsWith(`${name} `) ? accessibilityLabel.slice(name.length + 1).trim() || null : null);
   return { id, name, example: asString(item.subtitle)?.trim() || null, label };
 }
 

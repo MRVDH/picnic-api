@@ -1,14 +1,10 @@
+import { RawRecord, asRecord, asRecords, asString } from "../../raw";
 import type { Decorator } from "../../types/common";
 import type { PriceRange } from "../../pages/fusion";
 import { extractDeliverySlots } from "./delivery-slots";
 import type { RawCart, Cart, CartDeposit, CartFee, CartLineItem, CartLineLabel, CartRecipe, CartReplacement, OrderLine } from "./types";
 import { getComparisonPrice } from "../catalog/comparison-price";
 
-type RawRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RawRecord | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : null);
-const asRecords = (value: unknown): RawRecord[] => (Array.isArray(value) ? value.flatMap((v): RawRecord[] => (asRecord(v) ? [asRecord(v)!] : [])) : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown, fallback = 0): number => (typeof value === "number" ? value : fallback);
 
 /** Overrides replace the decorator of the same type; other overrides are added. */
