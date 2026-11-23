@@ -1,3 +1,4 @@
+import { RawRecord, asArray, asString, recordOf } from "../../raw";
 import type { FusionPage, PriceRange } from "../../pages/fusion";
 import type { RscPageContent } from "../../pages/types";
 import { findRscNode } from "../../pages/rsc";
@@ -304,11 +305,6 @@ function extractSimilarProducts(page: unknown): SimilarProduct[] {
 
 // ─── RSC page ─────────────────────────────────────────────────────────────────
 
-type RscRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RscRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : {});
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
 
 /** The app's texts for the organic and new labels and the nutrition table header, per country. */
@@ -366,19 +362,19 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
     if (findRscNode(content.nodes, "product-details-fallback-content")) throw new ProductNotFoundError(productId);
     throw new Error(`The product page "${content.pageId}" has no product-details-content or product-details-fallback-content component.`);
   }
-  const vm = asRecord(viewModel);
+  const vm = recordOf(viewModel);
   const copy = RSC_COPY[countryCode] ?? RSC_COPY.NL;
   const color = (name: keyof typeof RSC_COLORS): string => content.tokens[RSC_COLORS[name][0]] ?? RSC_COLORS[name][1];
 
-  const suffixes = asArray(vm.suffixes).map(asRecord);
+  const suffixes = asArray(vm.suffixes).map(recordOf);
   const suffixTexts = (...types: string[]) => suffixes.filter((s) => types.includes(String(s.type))).flatMap((s) => asString(s.text) ?? []);
   // The first text is the quantity; texts after it are notes, which the app shows after it like the other notes.
   const quantitySuffix = suffixes.find((s) => s.type === "TEXT" && asString(s.text) !== null);
   const unitQuantity = asString(quantitySuffix?.text) ?? "";
   const notes = suffixes.filter((s) => s !== quantitySuffix && NOTE_SUFFIXES.includes(String(s.type))).flatMap((s) => asString(s.text) ?? []);
-  const productColor = asString(asRecord(vm.color).primary);
+  const productColor = asString(recordOf(vm.color).primary);
 
-  const price = asRecord(vm.price);
+  const price = recordOf(vm.price);
   const ranges = readRscPriceRanges(price.priceRanges);
   // Every product has its own price as a range from 1; it has tiers when there are more.
   const priceRanges = ranges.length > 1 ? ranges : null;
@@ -386,10 +382,10 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
   const displayPrice = toCents(price.priceValue) ?? asNumber(price.basePrice) ?? ranges[0]?.price ?? 0;
   const priceColor = price.priceColor === "promo" ? color("promoPrice") : price.priceColor === "family" ? color("familyPrice") : null;
 
-  const accordions = asArray(vm.accordions).map(asRecord);
-  const readNutrition = (section: RscRecord) => readRscNutritionRows(section, copy.per, color("nutritionStripe"));
+  const accordions = asArray(vm.accordions).map(recordOf);
+  const readNutrition = (section: RawRecord) => readRscNutritionRows(section, copy.per, color("nutritionStripe"));
   // The model has one nutrition table: the first. Every nutrition accordion keeps its own text in the info sections.
-  const nutritionContent = accordions.map((a) => asRecord(a.content)).find((c) => c.type === "nutrition");
+  const nutritionContent = accordions.map((a) => recordOf(a.content)).find((c) => c.type === "nutrition");
 
   return {
     id: productId,
@@ -405,18 +401,18 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
     priceRanges,
     comparisonPrice: getComparisonPrice(displayPrice, unitQuantity, priceRanges),
     maxCount: DEFAULT_MAX_COUNT,
-    imageIds: [...new Set(asArray(vm.images).flatMap((image) => asString(asRecord(image).id) ?? []))],
+    imageIds: [...new Set(asArray(vm.images).flatMap((image) => asString(recordOf(image).id) ?? []))],
     labels: readRscLabels(vm, copy, color),
-    description: asString(asRecord(vm.description).main),
+    description: asString(recordOf(vm.description).main),
     highlightItems: asArray(vm.highlights).flatMap((value): ProductHighlight[] => {
-      const highlight = asRecord(value);
+      const highlight = recordOf(value);
       const text = asString(highlight.titleMarkdown) ?? asString(highlight.title);
       return text ? [{ text, iconKey: asString(highlight.icon), linkTarget: asString(highlight.deeplink) }] : [];
     }),
-    allergenGroups: readRscAllergens(asRecord(vm.allergies), color),
+    allergenGroups: readRscAllergens(recordOf(vm.allergies), color),
     infoSections: accordions.flatMap((accordion): ProductInfoSection[] => {
       const title = asString(accordion.title);
-      const section = asRecord(accordion.content);
+      const section = recordOf(accordion.content);
       const text = section.type === "nutrition" ? nutritionText(readNutrition(section)) : accordionText(section);
       return title && text ? [{ title, content: text }] : [];
     }),
@@ -430,12 +426,12 @@ export function extractRscProductDetails(productId: string, content: RscPageCont
  * The labels in the app's order: organic, the promotion labels (sorted by type), "Family" when the
  * price is a Family price, and new. Their colors are the ones the app draws them in.
  */
-function readRscLabels(vm: RscRecord, copy: { organic: string; new: string }, color: (name: keyof typeof RSC_COLORS) => string): ProductBadge[] {
+function readRscLabels(vm: RawRecord, copy: { organic: string; new: string }, color: (name: keyof typeof RSC_COLORS) => string): ProductBadge[] {
   const badges: ProductBadge[] = [];
   if (vm.isOrganic === true) badges.push({ text: copy.organic, textColor: "#4B8505", backgroundColor: "#FFFFFF" });
 
-  const labels = asRecord(vm.labels);
-  const shown = LABEL_POSITIONS.flatMap((position) => asArray(labels[position]).map(asRecord))
+  const labels = recordOf(vm.labels);
+  const shown = LABEL_POSITIONS.flatMap((position) => asArray(labels[position]).map(recordOf))
     .filter((label) => RSC_LABEL_ORDER[String(label.type)] !== undefined)
     .sort((a, b) => RSC_LABEL_ORDER[String(a.type)] - RSC_LABEL_ORDER[String(b.type)]);
   for (const label of shown) {
@@ -446,16 +442,16 @@ function readRscLabels(vm: RscRecord, copy: { organic: string; new: string }, co
     );
   }
 
-  if (asRecord(vm.price).label === "FAMILY") badges.push({ text: "Family", textColor: color("white"), backgroundColor: color("green") });
+  if (recordOf(vm.price).label === "FAMILY") badges.push({ text: "Family", textColor: color("white"), backgroundColor: color("green") });
   if (vm.isNew === true) badges.push({ text: copy.new, textColor: "#4B8505", backgroundColor: "#F3F6E9" });
   return badges;
 }
 
 /** "Contains" allergens are chips in the allergen's color; "may contain" ones are plain text. */
-function readRscAllergens(allergies: RscRecord, color: (name: keyof typeof RSC_COLORS) => string): ProductAllergens {
+function readRscAllergens(allergies: RawRecord, color: (name: keyof typeof RSC_COLORS) => string): ProductAllergens {
   return {
     contains: asArray(allergies.contains).flatMap((value): ProductBadge[] => {
-      const allergen = asRecord(value);
+      const allergen = recordOf(value);
       const text = asString(allergen.name);
       return text ? [{ text, textColor: color("white"), backgroundColor: asString(allergen.color) ?? color("text") }] : [];
     }),
@@ -471,11 +467,11 @@ function readRscAllergens(allergies: RscRecord, color: (name: keyof typeof RSC_C
  * then the rows, every other one striped as the app draws them. Sub-values ("waarvan suikers") are
  * the rows that aren't categories.
  */
-function readRscNutritionRows(content: RscRecord, per: string, stripe: string): NutritionRow[] {
+function readRscNutritionRows(content: RawRecord, per: string, stripe: string): NutritionRow[] {
   const unit = asString(content.unit);
   const heading: PmlNutritionRow[] = unit ? [{ label: `${per} ${unit.replace(new RegExp(`^${per}\\s+`, "i"), "")}`, value: null, isCategory: true, backgroundColor: null }] : [];
   const rows = asArray(content.rows).flatMap((value, index): PmlNutritionRow[] => {
-    const row = asRecord(value);
+    const row = recordOf(value);
     const label = asString(row.label);
     return label ? [{ label, value: asString(row.value), isCategory: row.isSubValue !== true, backgroundColor: index % 2 === 0 ? stripe : null }] : [];
   });
@@ -486,7 +482,7 @@ function readRscNutritionRows(content: RscRecord, per: string, stripe: string): 
  * The text of a text accordion: one text or a list of paragraphs. Content of another type keeps its
  * texts too, in order, so a section of a type this reader doesn't know still shows what it says.
  */
-function accordionText(content: RscRecord): string {
+function accordionText(content: RawRecord): string {
   if (typeof content.text === "string") return content.text;
   if (Array.isArray(content.text)) return content.text.flatMap((text) => asString(text) ?? []).join("\n");
   return collectTexts(content).join("\n");
@@ -509,12 +505,12 @@ function nutritionText(rows: NutritionRow[]): string {
  * The product's promotion, from the add-to-cart action: the app sends the promotion along as a
  * `PROMOTION` enrichment (`{ promotion_id, promotion_label }`).
  */
-function readRscPromotion(vm: RscRecord): ProductPromotion | null {
-  for (const slot of Object.values(asRecord(asRecord(vm.sellableInteraction).slots))) {
-    for (const action of asArray(asRecord(slot).actions)) {
-      for (const value of asArray(asRecord(asRecord(action).payload).enrichments)) {
-        const enrichment = asRecord(value);
-        const payload = asRecord(enrichment.payload);
+function readRscPromotion(vm: RawRecord): ProductPromotion | null {
+  for (const slot of Object.values(recordOf(recordOf(vm.sellableInteraction).slots))) {
+    for (const action of asArray(recordOf(slot).actions)) {
+      for (const value of asArray(recordOf(recordOf(action).payload).enrichments)) {
+        const enrichment = recordOf(value);
+        const payload = recordOf(enrichment.payload);
         const id = asString(payload.promotion_id);
         const label = asString(payload.promotion_label);
         if (enrichment.type === "PROMOTION" && id && label) return { id, label };
@@ -526,7 +522,7 @@ function readRscPromotion(vm: RscRecord): ProductPromotion | null {
 
 /** Whether a value is a parsed product tile; the RSC content parser turns sellable tiles into these. */
 function isProductTile(value: unknown): value is ProductTile {
-  const tile = asRecord(value);
+  const tile = recordOf(value);
   return typeof tile.id === "string" && typeof tile.name === "string" && typeof tile.displayPrice === "number";
 }
 

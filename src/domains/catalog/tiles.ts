@@ -1,13 +1,9 @@
+import { asArray, asString, recordOf } from "../../raw";
 import type { PriceRange } from "../../pages/fusion";
 import { PmlNode, analyticsContexts, childrenOf, cleanMarkdown, collectMarkdowns, findNode, findNodeById, isDefaultTextColor, stripColorTags } from "../../pages/pml";
 import type { ProductTile } from "./types";
 import { getComparisonPrice } from "./comparison-price";
 
-type RawRecord = Record<string, unknown>;
-
-const asRecord = (value: unknown): RawRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : {});
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
 
 /** The analytics context of a tile's promotion: its label and the original price. */
@@ -23,7 +19,7 @@ const LABEL_CONTAINER_ID = "selling-unit-label-container";
 const SYMBOL_FONT = "PicnicSymbols";
 
 /** Whether a node of a Fusion page is a product tile: a PML component with `SELLING_UNIT_TILE` content. */
-export const isFusionProductTile = (node: PmlNode): boolean => node.type === "PML" && asRecord(node.content).type === "SELLING_UNIT_TILE";
+export const isFusionProductTile = (node: PmlNode): boolean => node.type === "PML" && recordOf(node.content).type === "SELLING_UNIT_TILE";
 
 /**
  * Reads a product tile of a Fusion page (promotions, favorites, search) into the same {@link ProductTile}
@@ -33,16 +29,16 @@ export const isFusionProductTile = (node: PmlNode): boolean => node.type === "PM
  * Returns `null` for a tile without a selling unit.
  */
 export function readFusionProductTile(tile: PmlNode): ProductTile | null {
-  const unit = asRecord(asRecord(tile.content).sellingUnit);
+  const unit = recordOf(recordOf(tile.content).sellingUnit);
   const id = asString(unit.id);
   const catalogName = asString(unit.name);
   if (!id || !catalogName) return null;
 
-  const promotion = asRecord(analyticsContexts(tile).find((context) => context.schema?.startsWith(PROMOTION_SCHEMA))?.data);
+  const promotion = recordOf(analyticsContexts(tile).find((context) => context.schema?.startsWith(PROMOTION_SCHEMA))?.data);
   const unitQuantity = asString(unit.unit_quantity) ?? "";
   const info = readInfoColumn(tile.pml, unitQuantity);
   const priceRanges = asArray(unit.price_ranges).flatMap((value): PriceRange[] => {
-    const range = asRecord(value);
+    const range = recordOf(value);
     const price = asNumber(range.price);
     const fromQuantity = asNumber(range.from_quantity);
     return price !== null && fromQuantity !== null ? [{ price, from_quantity: fromQuantity }] : [];
@@ -68,7 +64,7 @@ export function readFusionProductTile(tile: PmlNode): ProductTile | null {
     labels: promotionLabel ? [{ position: labelPosition(tile.pml, promotionLabel), type: "PROMO", text: promotionLabel }] : [],
     // Search tiles have no decorator; they carry an unavailability context instead.
     isUnavailable:
-      asArray(unit.decorators).some((decorator) => asRecord(decorator).type === "UNAVAILABLE") || analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
+      asArray(unit.decorators).some((decorator) => recordOf(decorator).type === "UNAVAILABLE") || analyticsContexts(tile).some((context) => UNAVAILABILITY_SCHEMA.test(context.schema ?? "")),
     numberOfOrders: null,
     ...(deposit !== null && { deposit }),
   };
@@ -103,7 +99,7 @@ type InfoColumn = { name: string | null; namePrefix: string | null; brand: strin
  * brand (when the tile shows one) and the package size.
  */
 function readInfoColumn(pml: unknown, unitQuantity: string): InfoColumn {
-  const opensProduct = findNode(pml, (n) => n.type === "TOUCHABLE" && asRecord(n.onPress).actionType === "OPEN");
+  const opensProduct = findNode(pml, (n) => n.type === "TOUCHABLE" && recordOf(n.onPress).actionType === "OPEN");
   const column = opensProduct ? findNode(opensProduct.child, (n) => n.type === "STACK") : null;
   const rows = column ? childrenOf(column) : [];
   const nameIndex = rows.findIndex((row) => row.type === "RICH_TEXT");
@@ -111,7 +107,7 @@ function readInfoColumn(pml: unknown, unitQuantity: string): InfoColumn {
 
   // The name is a text, or spans, followed by the ">" symbol. A start of the name in bold, or a first
   // span all in a highlight color, is its prefix: "**Bio** citroenen", or "Bio" + "Fettarme H-Milch".
-  const spans = childrenOf(rows[nameIndex]).filter((span) => typeof span.markdown === "string" && asRecord(span.textAttributes).family !== SYMBOL_FONT);
+  const spans = childrenOf(rows[nameIndex]).filter((span) => typeof span.markdown === "string" && recordOf(span.textAttributes).family !== SYMBOL_FONT);
   const spanPrefix = spans.length > 1 ? highlightedText(spans[0].markdown as string) : null;
   const nameSpans = spanPrefix ? spans.slice(1) : spans;
   const shownName = nameSpans.length > 0 ? nameSpans.map((span) => stripColorTags(span.markdown as string)).join(" ") : stripColorTags(collectMarkdowns(rows[nameIndex])[0] ?? "");
@@ -142,6 +138,6 @@ function labelPosition(pml: unknown, label: string): string {
   const placed = findNode(findNodeById(pml, LABEL_CONTAINER_ID), (n) => typeof n.absolutePosition === "object" && collectMarkdowns(n).some((text) => cleanMarkdown(text) === label));
   // The app puts promotion labels bottom left.
   if (!placed) return "bottomLeft";
-  const position = asRecord(placed.absolutePosition);
+  const position = recordOf(placed.absolutePosition);
   return `${"top" in position ? "top" : "bottom"}${"right" in position && !("left" in position) ? "Right" : "Left"}`;
 }

@@ -1,21 +1,16 @@
+import { RawRecord, asRecord, asRecords, isRecord } from "../../raw";
 import { DeliveryStatus } from "../cart/types";
 import { DeliverySummary } from "./types";
-
-type RawObject = Record<string, unknown>;
-
-const isRawObject = (val: unknown): val is RawObject => typeof val === "object" && val !== null && !Array.isArray(val);
 
 const asText = (val: unknown): string => (typeof val === "string" ? val : "");
 
 const asAmount = (val: unknown): number => (typeof val === "number" && Number.isFinite(val) ? val : 0);
 
-const asObject = (val: unknown): RawObject | null => (isRawObject(val) ? val : null);
-
 /** Takes the delivery window from the slot, then delivery_time, then eta2, whichever is set first. */
-function extractDeliveryWindow(raw: RawObject): { windowStart: string | null; windowEnd: string | null } {
-  const slot = asObject(raw["slot"]);
-  const deliveryTime = asObject(raw["delivery_time"]);
-  const eta2 = asObject(raw["eta2"]);
+function extractDeliveryWindow(raw: RawRecord): { windowStart: string | null; windowEnd: string | null } {
+  const slot = asRecord(raw["slot"]);
+  const deliveryTime = asRecord(raw["delivery_time"]);
+  const eta2 = asRecord(raw["eta2"]);
 
   const windowStart = asText(slot?.["window_start"]) || asText(deliveryTime?.["start"]) || asText(eta2?.["start"]) || null;
   const windowEnd = asText(slot?.["window_end"]) || asText(deliveryTime?.["end"]) || asText(eta2?.["end"]) || null;
@@ -24,13 +19,13 @@ function extractDeliveryWindow(raw: RawObject): { windowStart: string | null; wi
 }
 
 function extractDeliverySummary(raw: unknown): DeliverySummary | null {
-  if (!isRawObject(raw)) return null;
+  if (!isRecord(raw)) return null;
 
   const id = asText(raw["delivery_id"]) || asText(raw["id"]);
   if (!id) return null;
 
   const { windowStart, windowEnd } = extractDeliveryWindow(raw);
-  const orders = (Array.isArray(raw["orders"]) ? raw["orders"] : []).filter(isRawObject);
+  const orders = asRecords(raw["orders"]);
 
   let totalPrice = 0;
   let itemCount = asAmount(raw["total_count"]) || asAmount(raw["sellable_item_count"]);

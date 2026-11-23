@@ -8,6 +8,7 @@ The codebase follows a domain-based architecture:
 src/
   index.ts              # PicnicClient class — extends HttpClient with all domain services
   http-client.ts        # Base HTTP client — handles request construction, auth headers, errors
+  raw.ts                # Readers for untyped JSON (asRecord, asString, asArray, ...), shared by the domains
   types/
     common.ts           # Shared types (ApiConfig, CountryCode, etc.)
     public.ts           # The public types, exposed as PicnicClient.Types

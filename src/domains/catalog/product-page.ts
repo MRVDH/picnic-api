@@ -1,3 +1,4 @@
+import { recordOf } from "../../raw";
 import { cleanMarkdown, collectMarkdowns, findNode, walkNodes, type PmlNode } from "../../pages/pml";
 import { collectFusionProductTiles } from "./tiles";
 import type { ProductPageSection, ProductTile } from "./types";
@@ -7,9 +8,6 @@ const SECTION_ID_PREFIX = "core-horizontal-selling-unit-section-localized";
 /** The header of such a row. */
 const SECTION_HEADER_ID_PREFIX = "horizontal-selling-unit-tiles-sub-header-pml";
 
-type RawRecord = Record<string, unknown>;
-const asRecord = (value: unknown): RawRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RawRecord) : {});
-
 /**
  * Reads a Fusion page that lists products, such as a theme page or a shop page (`fresh-market-wineshop`): its
  * title and its rows of product tiles, each product once. A page without rows gives one section without a title
@@ -17,8 +15,8 @@ const asRecord = (value: unknown): RawRecord => (typeof value === "object" && va
  * @param {unknown} page The Fusion page.
  */
 export function extractProductPage(page: unknown): { title: string | null; sections: ProductPageSection[] } {
-  const layout = asRecord(asRecord(page).layout);
-  const header = asRecord(layout.header ?? asRecord(page).header);
+  const layout = recordOf(recordOf(page).layout);
+  const header = recordOf(layout.header ?? recordOf(page).header);
   const title = typeof header.title === "string" && header.title !== "" ? header.title : null;
 
   const rows: PmlNode[] = [];

@@ -1,3 +1,4 @@
+import { RawRecord, asArray, asString, recordOf } from "../../raw";
 import type { PriceRange } from "../../pages/fusion";
 import { cleanMarkdown, findNode, findNodeById, PmlNode, walkNodes } from "../../pages/pml";
 import { extractRecipeTiles, firstMinutes } from "../recipe/lists";
@@ -7,13 +8,8 @@ import { getComparisonPrice } from "./comparison-price";
 
 // ─── Search results (RSC) ─────────────────────────────────────────────────────
 
-type RscRecord = Record<string, unknown>;
-
 const LABEL_POSITIONS = ["topLeft", "topRight", "middleLeft", "bottomLeft"];
 
-const asRecord = (value: unknown): RscRecord => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RscRecord) : {});
-const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 const asNumber = (value: unknown): number | null => (typeof value === "number" ? value : null);
 /** Prices on RSC pages are in euros (1.89); the rest of the library uses cents. */
 export const toCents = (value: unknown): number | null => (typeof value === "number" ? Math.round(value * 100) : null);
@@ -26,7 +22,7 @@ export const toCents = (value: unknown): number | null => (typeof value === "num
 export function readRscPriceRanges(priceRanges: unknown): PriceRange[] {
   return asArray(priceRanges)
     .flatMap((value): PriceRange[] => {
-      const range = asRecord(value);
+      const range = recordOf(value);
       const price = asNumber(range.price);
       const fromQuantity = asNumber(range.fromQuantity);
       return price !== null && fromQuantity !== null ? [{ price, from_quantity: fromQuantity }] : [];
@@ -38,41 +34,41 @@ export function readRscPriceRanges(priceRanges: unknown): PriceRange[] {
  * Extracts the search results from the decoded props of the `fetchSearchResults` server action's
  * root element (`{ searchQuery, storeSelector, storeResults }`). `storeResults.SUPERMARKET` holds
  * the products, `storeResults.MEALS` the recipes.
- * @param {RscRecord} props The decoded props of the action's root element.
+ * @param {RawRecord} props The decoded props of the action's root element.
  */
-export function extractSearchResults(props: RscRecord): SearchResults {
-  const stores = asRecord(props.storeResults);
-  const supermarket = stores.SUPERMARKET ? asRecord(stores.SUPERMARKET) : null;
-  const meals = asRecord(stores.MEALS);
+export function extractSearchResults(props: RawRecord): SearchResults {
+  const stores = recordOf(props.storeResults);
+  const supermarket = stores.SUPERMARKET ? recordOf(stores.SUPERMARKET) : null;
+  const meals = recordOf(stores.MEALS);
 
   return {
     query: asString(props.searchQuery) ?? "",
     correctedQuery: asString(supermarket?.correctedSearchTerm) ?? asString(meals.correctedSearchTerm),
     products: supermarket ? extractProductResults(supermarket) : null,
     recipes: asArray(meals.sections)
-      .flatMap((section) => asArray(asRecord(section).items))
+      .flatMap((section) => asArray(recordOf(section).items))
       .flatMap((item) => {
-        const recipe = extractSearchRecipe(asRecord(item));
+        const recipe = extractSearchRecipe(recordOf(item));
         return recipe ? [recipe] : [];
       }),
   };
 }
 
-function extractProductResults(store: RscRecord): SearchProductResults {
+function extractProductResults(store: RawRecord): SearchProductResults {
   const productIdsByFacetId: Record<string, string[]> = {};
-  for (const [facetId, ids] of Object.entries(asRecord(store.entityIdsByFacetId))) {
+  for (const [facetId, ids] of Object.entries(recordOf(store.entityIdsByFacetId))) {
     productIdsByFacetId[facetId] = asArray(ids).filter((id): id is string => typeof id === "string");
   }
 
   return {
     sections: asArray(store.sections).map((value) => {
-      const section = asRecord(value);
+      const section = recordOf(value);
       return {
         id: asString(section.id) ?? "",
         type: asString(section.type) ?? "",
         title: section.shouldShowHeader ? asString(section.headerName) : null,
         products: asArray(section.items).flatMap((item) => {
-          const product = extractProductTile(asRecord(item));
+          const product = extractProductTile(recordOf(item));
           return product ? [product] : [];
         }),
       };
@@ -82,7 +78,7 @@ function extractProductResults(store: RscRecord): SearchProductResults {
     textualFilters: extractFilters(store.textualFilters),
     productIdsByFacetId,
     sortingOptions: asArray(store.sortingOptions).flatMap((value) => {
-      const option = asRecord(value);
+      const option = recordOf(value);
       const name = asString(option.name);
       return name ? [{ name, title: asString(option.localizedTitle) ?? name }] : [];
     }),
@@ -93,9 +89,9 @@ function extractProductResults(store: RscRecord): SearchProductResults {
 /**
  * Extracts a product from a sellable tile (`type: "sellable"`) of an RSC page or server action,
  * e.g. in search results or a promotion page. Returns `null` for other tiles.
- * @param {RscRecord} tile The decoded tile.
+ * @param {RawRecord} tile The decoded tile.
  */
-export function extractProductTile(tile: RscRecord): ProductTile | null {
+export function extractProductTile(tile: RawRecord): ProductTile | null {
   return tile.type === "sellable" ? readSellableTile(tile) : null;
 }
 
@@ -114,35 +110,35 @@ export function tileQuantity(tile: ProductTile): string {
 /**
  * Extracts a product from a sellable tile without checking its `type`, for pages whose tiles have
  * none (the unavailability replacements page). Returns `null` without an id or name.
- * @param {RscRecord} tile The decoded tile.
+ * @param {RawRecord} tile The decoded tile.
  */
-export function readSellableTile(tile: RscRecord): ProductTile | null {
+export function readSellableTile(tile: RawRecord): ProductTile | null {
   const id = asString(tile.id);
-  const title = asRecord(tile.title);
+  const title = recordOf(tile.title);
   const name = asString(title.title);
   if (!id || !name) return null;
 
-  const images = asRecord(tile.images);
-  const price = asRecord(tile.price);
+  const images = recordOf(tile.images);
+  const price = recordOf(tile.price);
   const priceRanges = readRscPriceRanges(price.priceRanges);
-  const labels = asRecord(tile.labels);
+  const labels = recordOf(tile.labels);
   // The tile's own price; the lowest-quantity price tier when it has none.
   const displayPrice = toCents(price.priceValue) ?? priceRanges[0]?.price ?? 0;
   const unitQuantity = asArray(tile.suffixes)
-    .map(asRecord)
+    .map(recordOf)
     .filter((suffix) => suffix.type === "TEXT")
     .flatMap((suffix) => asString(suffix.text) ?? [])
     .join(TILE_SUFFIX_SEPARATOR);
   // The deposit is in the context the tile sends with its interactions, in cents.
-  const deposit = asNumber(asRecord(asRecord(tile.interaction).context).deposit);
+  const deposit = asNumber(recordOf(recordOf(tile.interaction).context).deposit);
 
   return {
     id,
     name,
     namePrefix: asString(title.prefix)?.trim() || null,
-    brand: asString(asRecord(tile.subtitle).text),
-    qualityCue: asString(asRecord(tile.qualityCue).text),
-    imageId: asString(asRecord(images.primaryImage).imageId) ?? asString(asRecord(images.sellingUnitImage).imageId),
+    brand: asString(recordOf(tile.subtitle).text),
+    qualityCue: asString(recordOf(tile.qualityCue).text),
+    imageId: asString(recordOf(images.primaryImage).imageId) ?? asString(recordOf(images.sellingUnitImage).imageId),
     displayPrice,
     originalPrice: toCents(price.referencePriceValue),
     unitPrice: asString(price.unitPrice),
@@ -151,7 +147,7 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
     unitQuantity,
     labels: LABEL_POSITIONS.flatMap((position) =>
       asArray(labels[position]).map((value) => {
-        const label = asRecord(value);
+        const label = recordOf(value);
         return { position, type: asString(label.type), text: asString(label.labelText) };
       }),
     ),
@@ -161,18 +157,18 @@ export function readSellableTile(tile: RscRecord): ProductTile | null {
   };
 }
 
-function extractSearchRecipe(tile: RscRecord): SearchRecipe | null {
+function extractSearchRecipe(tile: RawRecord): SearchRecipe | null {
   const id = asString(tile.id);
-  const text = asRecord(tile.text);
-  const name = asString(asRecord(text.title).text);
+  const text = recordOf(tile.text);
+  const name = asString(recordOf(text.title).text);
   if (!id || !name) return null;
 
-  const tags = asArray(text.tags).flatMap((tag) => asString(asRecord(tag).text) ?? []);
+  const tags = asArray(text.tags).flatMap((tag) => asString(recordOf(tag).text) ?? []);
   return {
     id,
     name,
-    subtitle: asString(asRecord(text.subtitle).text),
-    imageId: asString(asRecord(tile.image).imageId),
+    subtitle: asString(recordOf(text.subtitle).text),
+    imageId: asString(recordOf(tile.image).imageId),
     tags,
     cookingTimeMinutes: firstMinutes(tags),
   };
@@ -180,7 +176,7 @@ function extractSearchRecipe(tile: RscRecord): SearchRecipe | null {
 
 export function extractFilters(value: unknown): SearchFilter[] {
   return asArray(value).flatMap((item) => {
-    const filter = asRecord(item);
+    const filter = recordOf(item);
     const facetId = asString(filter.facetId);
     const name = asString(filter.name) ?? asString(filter.header);
     return facetId && name ? [{ facetId, name, imageId: asString(filter.image) }] : [];
@@ -214,8 +210,8 @@ const FILTER_TYPES = { VISUAL_FILTER: "visualFilters", POWER_FILTER: "powerFilte
  * @param {string} query The search term as entered.
  */
 export function extractFusionSearchResults(page: unknown, query: string): SearchResults {
-  const state = asRecord(findNodeById(page, SEARCH_STATE_ID)?.state);
-  const analytics = asRecord(asRecord(state.analyticsTemplate).data);
+  const state = recordOf(findNodeById(page, SEARCH_STATE_ID)?.state);
+  const analytics = recordOf(recordOf(state.analyticsTemplate).data);
   const isRecipeSearch = state.selectedEntityType === "RECIPE";
 
   return {
@@ -226,7 +222,7 @@ export function extractFusionSearchResults(page: unknown, query: string): Search
   };
 }
 
-function extractFusionProductResults(page: unknown, state: RscRecord): SearchProductResults {
+function extractFusionProductResults(page: unknown, state: RawRecord): SearchProductResults {
   // The product blocks of each section, by section name, in document order.
   const wrappers = new Map<string, PmlNode[]>();
   walkNodes(page, (node) => {
@@ -237,7 +233,7 @@ function extractFusionProductResults(page: unknown, state: RscRecord): SearchPro
   const visualSections = findNodeById(page, VISUAL_SECTIONS_ID);
 
   const sections = asArray(state.sections).flatMap((value): SearchSection[] => {
-    const name = asString(asRecord(value).name);
+    const name = asString(recordOf(value).name);
     const blocks = name ? wrappers.get(name) : undefined;
     if (!name || !blocks) return [];
     const header = findNodeById(page, SECTION_HEADER_PREFIX + name);
@@ -260,7 +256,7 @@ function extractFusionProductResults(page: unknown, state: RscRecord): SearchPro
   });
 
   const productIdsByFacetId: Record<string, string[]> = {};
-  for (const [facetId, ids] of Object.entries(asRecord(state.sellingUnitIdsByFacetIds))) {
+  for (const [facetId, ids] of Object.entries(recordOf(state.sellingUnitIdsByFacetIds))) {
     productIdsByFacetId[facetId] = asArray(ids).filter((id): id is string => typeof id === "string");
   }
 
@@ -279,13 +275,13 @@ function extractFusionProductResults(page: unknown, state: RscRecord): SearchPro
  */
 function readFilterItem(item: PmlNode): { list: (typeof FILTER_TYPES)[keyof typeof FILTER_TYPES]; filter: SearchFilter } | null {
   const touchable = findNode(item.pml, (n) => n.type === "TOUCHABLE");
-  const props = asRecord(asRecord(asRecord(touchable?.onPress).callback).props);
+  const props = recordOf(recordOf(recordOf(touchable?.onPress).callback).props);
   const facetId = asString(props.v0);
   const name = asString(props.v1);
   const list = FILTER_TYPES[props.v2 as keyof typeof FILTER_TYPES];
   if (!facetId || !name || !list) return null;
-  const image = findNode(item.pml, (n) => n.type === "IMAGE" && typeof asRecord(n.source).id === "string");
-  return { list, filter: { facetId, name, imageId: image ? (asRecord(image.source).id as string) : null } };
+  const image = findNode(item.pml, (n) => n.type === "IMAGE" && typeof recordOf(n.source).id === "string");
+  return { list, filter: { facetId, name, imageId: image ? (recordOf(image.source).id as string) : null } };
 }
 
 /**
@@ -293,7 +289,7 @@ function readFilterItem(item: PmlNode): { list: (typeof FILTER_TYPES)[keyof type
  * titles as deep link parameters (`sorting_options_ids`, `sorting_options_names`). Falls back to
  * the names in the search analytics, without titles.
  */
-function readSortingOptions(button: PmlNode | null, state: RscRecord): SearchSortingOption[] {
+function readSortingOptions(button: PmlNode | null, state: RawRecord): SearchSortingOption[] {
   const isSortingDeeplink = (value: unknown): value is string => typeof value === "string" && value.includes("sorting_options_ids=");
   const holder = findNode(button, (node) => Object.values(node).some(isSortingDeeplink));
   const deeplink = holder ? Object.values(holder).find(isSortingDeeplink) : undefined;
@@ -308,7 +304,7 @@ function readSortingOptions(button: PmlNode | null, state: RscRecord): SearchSor
     }
     if (ids.length > 0) return ids.map((name, index) => ({ name, title: titles[index] || name }));
   }
-  return asArray(asRecord(asRecord(state.analyticsTemplate).data).initial_sorting_strategies).flatMap((value) => {
+  return asArray(recordOf(recordOf(state.analyticsTemplate).data).initial_sorting_strategies).flatMap((value) => {
     const name = asString(value);
     return name ? [{ name, title: name }] : [];
   });
