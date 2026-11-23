@@ -1,6 +1,6 @@
 # Picnic-API
 
-[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/master/LICENSE) [![MAAR3267](https://img.shields.io/badge/picnic%20discount-MAAR3267-E1171E?style=flat-square)](https://picnic.app/nl/vriendenkorting/MAAR3267)
+[![npm version](https://img.shields.io/npm/v/picnic-api.svg?style=flat-square)](https://www.npmjs.org/package/picnic-api) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/MRVDH/picnic-api/blob/main/LICENSE) [![MAAR3267](https://img.shields.io/badge/picnic%20discount-MAAR3267-E1171E?style=flat-square)](https://picnic.app/nl/vriendenkorting/MAAR3267)
 
 Unofficial Node.js wrapper for the API of the [Picnic](https://picnic.app) online supermarket. Not affiliated with Picnic.
 
@@ -36,6 +36,7 @@ const picnicClient = new PicnicClient({
   url: "...",        // A custom base URL (defaults to https://storefront-prod.<countryCode>.picnicinternational.com/api/<apiVersion>).
   deviceId: "...",   // Custom device identifier for x-picnic-did header. (defaults to "3C417201548B2E3B")
   agent: "...",      // Custom agent string for x-picnic-agent header. (defaults to a recent app version)
+  timeout: 30000,    // Milliseconds before a request fails with a TimeoutError (defaults to 30000).
 });
 ```
 
@@ -50,7 +51,7 @@ await picnicClient.auth.login("email", "password");
 
 // If 2FA is required:
 await picnicClient.auth.generate2FACode("SMS");
-await picnicClient.auth.verify2FA("123456");
+await picnicClient.auth.verify2FACode("123456");
 ```
 
 ### Usage examples

@@ -7,7 +7,7 @@ let http: HttpClient;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "application/json" }), body: {}, json: () => Promise.resolve({}), arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) });
+  mockFetch.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "application/json" }), body: {}, text: () => Promise.resolve(JSON.stringify({})), arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) });
   http = new HttpClient({ countryCode: "NL", authKey: "auth-key" });
 });
 
@@ -51,5 +51,22 @@ describe("HttpClient auth key", () => {
     await http.sendRequest("GET", "https://proxy.example.com/static/x.png");
 
     expect(sentAuthKey()).toBe("auth-key");
+  });
+});
+
+describe("HttpClient response body", () => {
+  it("returns undefined for an empty body", async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 200, text: () => Promise.resolve("") });
+
+    expect(await http.sendRequest("POST", "/cart/clear")).toBeUndefined();
+  });
+});
+
+describe("HttpClient timeout", () => {
+  it("aborts a request that takes longer than the configured timeout", async () => {
+    http = new HttpClient({ timeout: 10 });
+    mockFetch.mockImplementation((_url, init: RequestInit) => new Promise((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason))));
+
+    await expect(http.sendRequest("GET", "/cart")).rejects.toMatchObject({ name: "TimeoutError" });
   });
 });

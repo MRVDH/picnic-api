@@ -9,7 +9,7 @@ let recipe: RecipeService;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, body: {}, json: () => Promise.resolve({}) });
+  mockFetch.mockResolvedValue({ ok: true, body: {}, text: () => Promise.resolve(JSON.stringify({})) });
   const http = new HttpClient({ authKey: "initial-auth-key" });
   recipe = new RecipeService(http, new PageClient(http));
 });
@@ -38,7 +38,7 @@ describe("RecipeService", () => {
   });
 
   it("getRecipeCategory follows a Fusion category page to its content page", async () => {
-    const json = (data: unknown) => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), json: async () => data, text: async () => JSON.stringify(data) });
+    const json = (data: unknown) => ({ ok: true, headers: new Headers({ "content-type": "application/json" }), text: async () => JSON.stringify(data) });
     const shell = {
       script: {},
       layout: {
@@ -68,7 +68,7 @@ describe("RecipeService", () => {
 
   describe("structured recipe reads", () => {
     const recipeId = "recipe-id";
-    const response = (data: unknown) => ({ ok: true, body: {}, json: async () => data });
+    const response = (data: unknown) => ({ ok: true, body: {}, text: async () => JSON.stringify(data) });
     const detailsPage = (portions: number, defaultPortions: number, productId: string, name: string | null = null, creatorType = "PIM") => ({
       script: {}, layout: { body: { children: [
         { data: { creator_type: creatorType, default_portions: defaultPortions, is_saved: true, sellable_name: "Recipe" } },
@@ -191,7 +191,7 @@ describe("RecipeService", () => {
     };
 
     it("createUserDefinedRecipe posts name, portions and ingredient maps to create-user-defined-recipe", async () => {
-      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ sellingGroupId: recipeId }) });
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify({ sellingGroupId: recipeId })) });
 
       const result = await recipe.createUserDefinedRecipe("Testrecept", [
         { sellingUnitId: "s1143210", quantity: 2, source: "usuals-suggestion" },
@@ -300,7 +300,7 @@ describe("RecipeService", () => {
       const reference = { id: "a".repeat(64), namespace: "recipes", primary_image: true, rank_value: 1, sellable_id: "69738f92ca0c63178b4a67a9", type: "GALLERY" };
       mockFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ id: "sellable-image-selection-page-root", body: { children: [{ type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { referenceImagesById: { [reference.id]: reference } } }] } }),
+        text: () => Promise.resolve(JSON.stringify({ id: "sellable-image-selection-page-root", body: { children: [{ type: "STATE_BOUNDARY", id: "ImageSelectionState", state: { referenceImagesById: { [reference.id]: reference } } }] } })),
       });
 
       const images = await recipe.getUserDefinedRecipeSuggestedImages(recipeId);
@@ -317,7 +317,7 @@ describe("RecipeService", () => {
     });
 
     it("uploadUserDefinedRecipeImage posts the raw bytes with the image content type", async () => {
-      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ image_id: "img-1", namespace: "sellable-customer-uploaded" }) });
+      mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify({ image_id: "img-1", namespace: "sellable-customer-uploaded" })) });
 
       const result = await recipe.uploadUserDefinedRecipeImage(recipeId, { data: new Uint8Array([1, 2, 3]), type: "image/jpg" });
 

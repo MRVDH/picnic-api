@@ -170,7 +170,7 @@ is `{ type: "SELLING_GROUP", selling_group_id, selling_group_creator_type, selli
 
 ## Default agent
 
-The client identifies itself as app version 1.251.0 (`agent` in the config). Which pages Picnic serves as RSC depends
+The client identifies itself as a recent app version (`agent` in the config). Which pages Picnic serves as RSC depends
 on this version. If you pass your own `agent`, pages may come back in another format than the methods expect; leave
 it out unless you need a specific version.
 
