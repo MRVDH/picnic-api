@@ -21,7 +21,9 @@ describe("categories", () => {
       { title: null, links: [{ name: "Alle acties", imageId: "image-Alle acties", label: "1200+ producten", deeplink: "app.picnic://store/page;id=promo-page-root", target: { type: "page" } }] },
       {
         title: "Alle categorieën",
-        links: [{ name: "Fruit", imageId: "image-Fruit", label: null, deeplink: "app.picnic://store/page;id=subcategory-page,category_id=21724", target: { type: "subcategories", categoryId: "21724" } }],
+        links: [
+          { name: "Fruit", imageId: "image-Fruit", label: null, deeplink: "app.picnic://store/page;id=subcategory-page,category_id=21724", target: { type: "subcategories", categoryId: "21724" } },
+        ],
       },
     ]);
   });

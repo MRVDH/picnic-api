@@ -1,16 +1,7 @@
 import type { FusionPage } from "../../pages/fusion";
 import type { RscNode, RscPageContent } from "../../pages/types";
 import { analyticsContexts, cleanMarkdown, findNode, PmlNode, walkNodes } from "../../pages/pml";
-import type {
-  RecipeCategory,
-  RecipeCategoryGroup,
-  RecipeCategoryLink,
-  RecipeCategorySection,
-  RecipeImageType,
-  RecipeListSection,
-  RecipeOverview,
-  RecipeSummary,
-} from "./types";
+import type { RecipeCategory, RecipeCategoryGroup, RecipeCategoryLink, RecipeCategorySection, RecipeImageType, RecipeListSection, RecipeOverview, RecipeSummary } from "./types";
 
 const RECIPE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/";
 const AISLE_SCHEMA = "iglu:tech.picnic.snowplow.analytics/aisle/jsonschema/";
@@ -56,7 +47,9 @@ function visibleTexts(node: unknown, texts: { markdown: string; textType: unknow
 export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
   const recipe = recipeContext(tile);
   if (!recipe) return null;
-  const texts = visibleTexts(tile.pml).map((t) => ({ text: cleanMarkdown(t.markdown), textType: t.textType })).filter((t) => t.text);
+  const texts = visibleTexts(tile.pml)
+    .map((t) => ({ text: cleanMarkdown(t.markdown), textType: t.textType }))
+    .filter((t) => t.text);
   const analyticsName = typeof recipe.recipe_name === "string" ? recipe.recipe_name.trim() : "";
   const shownName = analyticsName ? texts.findIndex((t) => t.text === analyticsName) : -1;
   const subtitle1 = texts.findIndex((t) => t.textType === "SUBTITLE1");
@@ -81,8 +74,7 @@ export function readRecipeTile(tile: PmlNode): RecipeSummary | null {
 }
 
 /** The minutes of the first tag that is a time, e.g. ["Vegan", "20 min"] → 20, or null. */
-export const firstMinutes = (tags: string[]): number | null =>
-  tags.map(parseMinutes).find((minutes): minutes is number => minutes !== null) ?? null;
+export const firstMinutes = (tags: string[]): number | null => tags.map(parseMinutes).find((minutes): minutes is number => minutes !== null) ?? null;
 
 /** Every recipe tile of a Fusion page in order, each recipe once. */
 export function extractRecipeTiles(page: unknown): RecipeSummary[] {
@@ -188,8 +180,7 @@ export function extractFusionRecipeCategoryGroup(name: string, page: FusionPage)
   return { name, title: headerTitle(page) ?? name, categories };
 }
 
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+const asRecord = (value: unknown): Record<string, unknown> | null => (typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null);
 const asString = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
 
 /** The first node of a component (by module name) in an RSC component tree. */

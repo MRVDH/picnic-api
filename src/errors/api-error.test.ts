@@ -51,7 +51,9 @@ describe("PicnicApiError", () => {
   });
 
   it("throws a CheckoutIssueError for cart issues", async () => {
-    mockFetch.mockResolvedValueOnce(errorResponse(400, "Bad Request", '{"code":"CART_HAS_ISSUES","details":{"type":"X","localized_title":"T","localized_message":"M","resolve_key":"k","blocking":true}}'));
+    mockFetch.mockResolvedValueOnce(
+      errorResponse(400, "Bad Request", '{"code":"CART_HAS_ISSUES","details":{"type":"X","localized_title":"T","localized_message":"M","resolve_key":"k","blocking":true}}'),
+    );
 
     await expect(http.sendRequest("POST", "/cart/checkout/start", {})).rejects.toBeInstanceOf(CheckoutIssueError);
   });

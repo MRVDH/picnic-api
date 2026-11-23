@@ -110,48 +110,65 @@ describe("recipe details", () => {
 
   it("extracts saved tile titles when analytics omit the name, deduplicating tiles", () => {
     const tile = {
-      analytics: { contexts: [
-        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: "saved" } },
-        { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: "SAVED_RECIPES" } },
-      ] },
+      analytics: {
+        contexts: [
+          { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: "saved" } },
+          { schema: "iglu:tech.picnic.snowplow.analytics/segment/jsonschema/1-0-0", data: { segment_type: "SAVED_RECIPES" } },
+        ],
+      },
       pml: { component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "#(#333333)**Pasta**#(#333333)" } },
     };
-    expect(extractRecipes(page({ children: [tile, tile] }), "SAVED_RECIPES")).toMatchObject([
-      { id: "saved", name: "Pasta", imageType: null },
-    ]);
+    expect(extractRecipes(page({ children: [tile, tile] }), "SAVED_RECIPES")).toMatchObject([{ id: "saved", name: "Pasta", imageType: null }]);
     expect(extractRecipes(page(tile), "USER_DEFINED_RECIPES")).toEqual([]);
   });
 
   it.each(["recipes/catalog-photo", "sellable-customer-uploaded/own-photo"])("extracts the main image %s without picking ingredient images", (imageId) => {
     const id = "recipe";
-    const result = extractRecipeDetails(id, page({ children: [
-      { type: "IMAGE", source: { id: "articles/ingredient-photo" } },
-      { id: "selling-group-details-image", pml: { component: { type: "IMAGE", source: { id: imageId } } } },
-      { data: { recipe_id: id, recipe_name: "Recipe", portions: 2, selling_units: [] } },
-    ] }));
+    const result = extractRecipeDetails(
+      id,
+      page({
+        children: [
+          { type: "IMAGE", source: { id: "articles/ingredient-photo" } },
+          { id: "selling-group-details-image", pml: { component: { type: "IMAGE", source: { id: imageId } } } },
+          { data: { recipe_id: id, recipe_name: "Recipe", portions: 2, selling_units: [] } },
+        ],
+      }),
+    );
     expect(result.imageId).toBe(imageId);
   });
 
   it("preserves discontinued ingredients and extracts names without executing PML", () => {
     const ingredientId = "a".repeat(32);
-    const result = extractRecipeDetails("recipe", page({ children: [
-      { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 2, selling_units: [
-        { ingredient_id: ingredientId, selling_unit_id: "", quantity: 0, checked: false },
-      ] } },
-      { type: "PML", id: "core-wide-selling-unit-tile-unsellable-0", pml: {
-        component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "Old product" },
-        expression: `throw new Error("Do not execute"); // ingredient_id=${ingredientId}&is_udr=true`,
-      } },
-    ] }));
+    const result = extractRecipeDetails(
+      "recipe",
+      page({
+        children: [
+          { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 2, selling_units: [{ ingredient_id: ingredientId, selling_unit_id: "", quantity: 0, checked: false }] } },
+          {
+            type: "PML",
+            id: "core-wide-selling-unit-tile-unsellable-0",
+            pml: {
+              component: { type: "RICH_TEXT", textType: "SUBTITLE1", markdown: "Old product" },
+              expression: `throw new Error("Do not execute"); // ingredient_id=${ingredientId}&is_udr=true`,
+            },
+          },
+        ],
+      }),
+    );
     expect(result.ingredients[0]).toMatchObject({ name: "Old product", sellingUnitId: "", quantity: 0, checked: false });
   });
 
   it("returns no image ID when the recipe image is hidden", () => {
-    const result = extractRecipeDetails("recipe", page({ children: [
-      { id: "selling-group-details-image-hidden", type: "BLOCK", children: [] },
-      { type: "IMAGE", source: { id: "articles/product-image" } },
-      { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 4, selling_units: [] } },
-    ] }));
+    const result = extractRecipeDetails(
+      "recipe",
+      page({
+        children: [
+          { id: "selling-group-details-image-hidden", type: "BLOCK", children: [] },
+          { type: "IMAGE", source: { id: "articles/product-image" } },
+          { data: { recipe_id: "recipe", recipe_name: "Recipe", portions: 4, selling_units: [] } },
+        ],
+      }),
+    );
     expect(result.imageId).toBeNull();
   });
 
@@ -174,46 +191,99 @@ describe("recipe details", () => {
             type: "STACK",
             axis: "VERTICAL",
             children: [
-              { type: "STACK", axis: "VERTICAL", children: [{ type: "CONTAINER", child: text("#(#333333)Casarecce #(#333333)", { textType: "SUBTITLE1" }) }, { type: "CONTAINER", child: text("Barilla") }] },
+              {
+                type: "STACK",
+                axis: "VERTICAL",
+                children: [
+                  { type: "CONTAINER", child: text("#(#333333)Casarecce #(#333333)", { textType: "SUBTITLE1" }) },
+                  { type: "CONTAINER", child: text("Barilla") },
+                ],
+              },
               { type: "CONTAINER", child: { type: "STACK", children: [text("3.35")] } },
               { type: "STACK", axis: "HORIZONTAL", children: [text("500 gram"), text("(175 g nodig)")] },
             ],
           },
         ],
       }),
-      analytics: { contexts: [
-        { schema: "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/1-1-0", data: { promotion_label: "Family" } },
-        { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, selling_units: [{ ingredient_id: pasta, selling_unit_id: "s1" }] } },
-      ] },
+      analytics: {
+        contexts: [
+          { schema: "iglu:tech.picnic.snowplow.analytics/promotion/jsonschema/1-1-0", data: { promotion_label: "Family" } },
+          { schema: "iglu:tech.picnic.snowplow.analytics/recipe/jsonschema/1-6-0", data: { recipe_id: id, selling_units: [{ ingredient_id: pasta, selling_unit_id: "s1" }] } },
+        ],
+      },
     };
-    const result = extractRecipeDetails(id, page({ children: [
-      { data: { recipe_id: id, recipe_name: "Pasta", portions: 6, selling_units: [
-        { ingredient_id: pasta, selling_unit_id: "s1", quantity: 2, status: "ACTIVE", checked: true },
-        { ingredient_id: salt, selling_unit_id: "s2", quantity: 1, status: "ACTIVE", checked: false },
-      ] } },
-      { type: "STATE_BOUNDARY", id: "sellablePageState", state: { defaultSelectedIngredientIds: [pasta] } },
-      { type: "STATE_BOUNDARY", id: "sellableContentState", state: { ingredientsState: [
-        { ingredientId: pasta, ingredientType: "CORE", isAvailable: true, sellingUnits: { s1: { price: 335, referencePrice: 399, priceRanges: [{ price: 335, from_quantity: 1 }, { price: 325, from_quantity: 2 }] } } },
-        { ingredientId: salt, ingredientType: "CUPBOARD", isAvailable: false, sellingUnits: { s2: { price: 99, referencePrice: 99, priceRanges: [{ price: 99, from_quantity: 1 }] } } },
-      ] } },
-      pml("selling-group-details-heading", { type: "STACK", children: [text("Zó klaar"), { type: "CONTAINER", child: text("Pasta") }, text("Snel klaar.")] }),
-      pml("selling-group-time-and-price-section", { type: "STACK", children: [
-        { type: "STACK", children: [text("1 uur 10 min"), text("Totaal")] },
-        { type: "STACK", children: [{ type: "STACK", children: [{ type: "RICH_TEXT", markdown: { type: "EXPRESSION" } }] }] },
-      ] }),
-      tile,
-      { type: "EXPRESSION", expression: `const id = "recipe";\n    const components = ${components};\n    return false;` },
-      { type: "EXPRESSION", expression: 'const translationsMap = {\n        CELERY: "Selderij",\n        GLUTEN: "Gluten",\n        SOY: "Soja"\n    };' },
-      pml("instructions-portions-section", text("4 porties")),
-      pml("warning-banner", { type: "CONTAINER", child: text("**Let op:** dit is de originele bereidingswijze voor 4 porties") }),
-      pml("instructions-section", { type: "STACK", children: [
-        { type: "STACK", children: [text("Stap 1"), text("Kook **175 g casarecce**.")] },
-        { type: "STACK", children: [text("Stap 2"), text("Serveer.")] },
-      ] }),
-      { id: "accordion-list", items: [{ header: text("**Voedingswaarden**"), body: { type: "STACK", children: [
-        { type: "STACK", axis: "HORIZONTAL", distribution: "SPACE_BETWEEN", children: [text("Energie", { textType: "HEADLINE2" }), text("2.186 kJ")] },
-      ] } }] },
-    ] }));
+    const result = extractRecipeDetails(
+      id,
+      page({
+        children: [
+          {
+            data: {
+              recipe_id: id,
+              recipe_name: "Pasta",
+              portions: 6,
+              selling_units: [
+                { ingredient_id: pasta, selling_unit_id: "s1", quantity: 2, status: "ACTIVE", checked: true },
+                { ingredient_id: salt, selling_unit_id: "s2", quantity: 1, status: "ACTIVE", checked: false },
+              ],
+            },
+          },
+          { type: "STATE_BOUNDARY", id: "sellablePageState", state: { defaultSelectedIngredientIds: [pasta] } },
+          {
+            type: "STATE_BOUNDARY",
+            id: "sellableContentState",
+            state: {
+              ingredientsState: [
+                {
+                  ingredientId: pasta,
+                  ingredientType: "CORE",
+                  isAvailable: true,
+                  sellingUnits: {
+                    s1: {
+                      price: 335,
+                      referencePrice: 399,
+                      priceRanges: [
+                        { price: 335, from_quantity: 1 },
+                        { price: 325, from_quantity: 2 },
+                      ],
+                    },
+                  },
+                },
+                { ingredientId: salt, ingredientType: "CUPBOARD", isAvailable: false, sellingUnits: { s2: { price: 99, referencePrice: 99, priceRanges: [{ price: 99, from_quantity: 1 }] } } },
+              ],
+            },
+          },
+          pml("selling-group-details-heading", { type: "STACK", children: [text("Zó klaar"), { type: "CONTAINER", child: text("Pasta") }, text("Snel klaar.")] }),
+          pml("selling-group-time-and-price-section", {
+            type: "STACK",
+            children: [
+              { type: "STACK", children: [text("1 uur 10 min"), text("Totaal")] },
+              { type: "STACK", children: [{ type: "STACK", children: [{ type: "RICH_TEXT", markdown: { type: "EXPRESSION" } }] }] },
+            ],
+          }),
+          tile,
+          { type: "EXPRESSION", expression: `const id = "recipe";\n    const components = ${components};\n    return false;` },
+          { type: "EXPRESSION", expression: 'const translationsMap = {\n        CELERY: "Selderij",\n        GLUTEN: "Gluten",\n        SOY: "Soja"\n    };' },
+          pml("instructions-portions-section", text("4 porties")),
+          pml("warning-banner", { type: "CONTAINER", child: text("**Let op:** dit is de originele bereidingswijze voor 4 porties") }),
+          pml("instructions-section", {
+            type: "STACK",
+            children: [
+              { type: "STACK", children: [text("Stap 1"), text("Kook **175 g casarecce**.")] },
+              { type: "STACK", children: [text("Stap 2"), text("Serveer.")] },
+            ],
+          }),
+          {
+            id: "accordion-list",
+            items: [
+              {
+                header: text("**Voedingswaarden**"),
+                body: { type: "STACK", children: [{ type: "STACK", axis: "HORIZONTAL", distribution: "SPACE_BETWEEN", children: [text("Energie", { textType: "HEADLINE2" }), text("2.186 kJ")] }] },
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
     expect(result).toMatchObject({
       tag: "Zó klaar",
@@ -238,7 +308,10 @@ describe("recipe details", () => {
         neededText: "(175 g nodig)",
         price: 335,
         originalPrice: 399,
-        priceRanges: [{ price: 335, from_quantity: 1 }, { price: 325, from_quantity: 2 }],
+        priceRanges: [
+          { price: 335, from_quantity: 1 },
+          { price: 325, from_quantity: 2 },
+        ],
         promotionLabel: "Family",
         allergens: { contains: ["Gluten"], mayContain: ["Soja"] },
       },

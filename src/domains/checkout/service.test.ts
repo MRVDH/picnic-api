@@ -42,11 +42,14 @@ describe("CheckoutService", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       body: {},
-      text: () => Promise.resolve(JSON.stringify({
-          payment_id: "pay-1",
-          transaction_id: "tx-1",
-          action: { type: "redirect", redirect_url: "https://bank.example/pay" },
-        })),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            payment_id: "pay-1",
+            transaction_id: "tx-1",
+            action: { type: "redirect", redirect_url: "https://bank.example/pay" },
+          }),
+        ),
     });
 
     await checkout.initiatePayment("order-1", "https://example.com/return");

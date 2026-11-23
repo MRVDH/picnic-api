@@ -7,7 +7,14 @@ let http: HttpClient;
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, status: 200, headers: new Headers({ "content-type": "application/json" }), body: {}, text: () => Promise.resolve(JSON.stringify({})), arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) });
+  mockFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "application/json" }),
+    body: {},
+    text: () => Promise.resolve(JSON.stringify({})),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+  });
   http = new HttpClient({ countryCode: "NL", authKey: "auth-key" });
 });
 

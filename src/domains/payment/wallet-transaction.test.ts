@@ -6,7 +6,18 @@ const line = (id: string, articleId: string, extra: Record<string, unknown> = {}
   id,
   price: 398,
   display_price: 398,
-  items: [{ type: "ORDER_ARTICLE", id: articleId, name: `Product ${articleId}`, unit_quantity: "500 gram", price: 199, max_count: 50, image_ids: [`image-${articleId}`], decorators: [{ type: "QUANTITY", quantity: 2 }] }],
+  items: [
+    {
+      type: "ORDER_ARTICLE",
+      id: articleId,
+      name: `Product ${articleId}`,
+      unit_quantity: "500 gram",
+      price: 199,
+      max_count: 50,
+      image_ids: [`image-${articleId}`],
+      decorators: [{ type: "QUANTITY", quantity: 2 }],
+    },
+  ],
   ...extra,
 });
 

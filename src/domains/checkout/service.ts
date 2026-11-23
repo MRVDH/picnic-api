@@ -41,22 +41,14 @@ export class CheckoutService {
       order_id: orderId,
       app_return_url: appReturnUrl,
     };
-    return this.http.sendRequest<InitiatePaymentInput, RawInitiatePaymentResult>(
-      "POST",
-      `/cart/checkout/initiate_payment`,
-      body,
-      { includePicnicHeaders: true },
-    );
+    return this.http.sendRequest<InitiatePaymentInput, RawInitiatePaymentResult>("POST", `/cart/checkout/initiate_payment`, body, { includePicnicHeaders: true });
   }
 
   /**
    * Polls checkout payment status while a transaction is in progress.
    */
   getCheckoutStatus(transactionId: string): Promise<RawCheckoutStatus> {
-    return this.http.sendRequest<void, RawCheckoutStatus>(
-      "GET",
-      `/cart/checkout/${encodeURIComponent(transactionId)}/status`,
-    );
+    return this.http.sendRequest<void, RawCheckoutStatus>("GET", `/cart/checkout/${encodeURIComponent(transactionId)}/status`);
   }
 
   /**
@@ -64,12 +56,7 @@ export class CheckoutService {
    */
   cancelCheckout(transactionId: string): Promise<void> {
     const body: CancelCheckoutInput = { transaction_id: transactionId };
-    return this.http.sendRequest<CancelCheckoutInput, void>(
-      "POST",
-      `/cart/checkout/cancel`,
-      body,
-      { includePicnicHeaders: true },
-    );
+    return this.http.sendRequest<CancelCheckoutInput, void>("POST", `/cart/checkout/cancel`, body, { includePicnicHeaders: true });
   }
   /**
    * Confirms and places an order identified by its order id.

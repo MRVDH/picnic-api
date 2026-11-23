@@ -1,13 +1,5 @@
 import type HttpClient from "../../http-client";
-import {
-  RawConsentRequest,
-  RawConsentSetting,
-  ConsentTopic,
-  ConsentTopicsStrategy,
-  SetConsentSettingsInput,
-  RawSetConsentSettingsResult,
-  SetGeneralConsentsInput,
-} from "./types";
+import { RawConsentRequest, RawConsentSetting, ConsentTopic, ConsentTopicsStrategy, SetConsentSettingsInput, RawSetConsentSettingsResult, SetGeneralConsentsInput } from "./types";
 
 export class ConsentService {
   constructor(private http: HttpClient) {}

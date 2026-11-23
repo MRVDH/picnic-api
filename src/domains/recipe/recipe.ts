@@ -62,11 +62,14 @@ type RawRecipeHeader = { creator_type: string; sellable_name: string; default_po
 type RawRecipeOwner = { is_recipe_owner: boolean; name: string };
 
 /** The data of the first analytics context with a schema, read as `TData`. */
-const contextData = <TData = Record<string, unknown>>(contexts: AnalyticsContext[], schema: string): TData | undefined =>
-  contexts.find((c) => c.schema?.startsWith(schema))?.data as TData | undefined;
+const contextData = <TData = Record<string, unknown>>(contexts: AnalyticsContext[], schema: string): TData | undefined => contexts.find((c) => c.schema?.startsWith(schema))?.data as TData | undefined;
 
 const plainText = (markdown: string): string =>
-  markdown.replace(/#\([^)]*\)/g, "").replace(/\*\*/g, "").replace(/\u00a0/g, " ").trim();
+  markdown
+    .replace(/#\([^)]*\)/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/\u00a0/g, " ")
+    .trim();
 
 const textByType = (node: unknown, textType: string): string | null => {
   let result: string | null = null;
@@ -125,8 +128,7 @@ type IngredientTile = {
   notice: string | null;
 };
 
-const markdownText = (node: PmlNode | undefined): string | null =>
-  typeof node?.markdown === "string" ? cleanMarkdown(node.markdown) || null : null;
+const markdownText = (node: PmlNode | undefined): string | null => (typeof node?.markdown === "string" ? cleanMarkdown(node.markdown) || null : null);
 
 /**
  * Reads an ingredient tile. Its info column holds a stack with the name (`SUBTITLE1`) and the
@@ -156,8 +158,7 @@ function readIngredientTile(tile: PmlNode, contexts: AnalyticsContext[], unit: R
   };
 }
 
-const findBrand = (nodes: PmlNode[]): string | null =>
-  markdownText(findNode(nodes, (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined);
+const findBrand = (nodes: PmlNode[]): string | null => markdownText(findNode(nodes, (n) => n.type === "RICH_TEXT" && typeof n.markdown === "string") ?? undefined);
 
 /** Ingredient tiles keyed by component id, including discontinued products. */
 function extractIngredientTiles(page: unknown): Map<string, IngredientTile> {
@@ -239,7 +240,7 @@ function extractAllergensByIngredient(page: unknown): Map<string, RecipeAllergen
       .map((component) => {
         const info = component.transformations?.allergy_info;
         return [component.id, { contains: (info?.allergy_info_contains ?? []).map(name), mayContain: (info?.allergy_info_may_contain ?? []).map(name) }];
-      })
+      }),
   );
 }
 

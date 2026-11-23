@@ -184,11 +184,7 @@ export type SearchSortingOption = {
  * the products of a subcategory ({@link CatalogService.getCategoryProducts}), the promotions of a
  * category ({@link CatalogService.getCategoryPromotions}), or another page (follow `deeplink`).
  */
-export type CategoryLinkTarget =
-  | { type: "subcategories"; categoryId: string }
-  | { type: "products"; categoryId: string }
-  | { type: "promotions"; categoryId: string }
-  | { type: "page" };
+export type CategoryLinkTarget = { type: "subcategories"; categoryId: string } | { type: "products"; categoryId: string } | { type: "promotions"; categoryId: string } | { type: "page" };
 
 /** An entry of a category list, e.g. "Fruit" or "Alle acties". */
 export type CategoryLink = {
@@ -473,6 +469,4 @@ export type ProductPageSection = {
  * ({@link CatalogService.getProductPage}). Picnic serves these pages in either format: a Fusion page is read
  * into rows of product tiles; an RSC page comes as its components, with the product tiles parsed.
  */
-export type ProductPage =
-  | { format: "fusion"; pageId: string; title: string | null; sections: ProductPageSection[] }
-  | { format: "rsc"; pageId: string; content: RscPageContent };
+export type ProductPage = { format: "fusion"; pageId: string; title: string | null; sections: ProductPageSection[] } | { format: "rsc"; pageId: string; content: RscPageContent };

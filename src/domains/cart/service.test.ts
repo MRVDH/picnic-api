@@ -26,10 +26,13 @@ describe("CartService - getDeliverySlots", () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       body: {},
-      text: () => Promise.resolve(JSON.stringify({
-          delivery_slots: [slot("regular", "2026-10-17T19:00:00.000+02:00"), slot("green", "2026-10-17T20:00:00.000+02:00")],
-          selected_slot: { slot_id: "green", state: "EXPLICIT" },
-        })),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            delivery_slots: [slot("regular", "2026-10-17T19:00:00.000+02:00"), slot("green", "2026-10-17T20:00:00.000+02:00")],
+            selected_slot: { slot_id: "green", state: "EXPLICIT" },
+          }),
+        ),
     });
 
     const slots = await cart.getDeliverySlots();

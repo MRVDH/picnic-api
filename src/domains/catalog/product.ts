@@ -26,18 +26,7 @@ import {
   stripColorTags,
   walkNodes,
 } from "../../pages/pml";
-import type {
-  NutritionRow,
-  ProductAllergens,
-  ProductBadge,
-  Product,
-  ProductHighlight,
-  ProductInfoSection,
-  ProductPromotion,
-  ProductTag,
-  ProductTile,
-  SimilarProduct,
-} from "./types";
+import type { NutritionRow, ProductAllergens, ProductBadge, Product, ProductHighlight, ProductInfoSection, ProductPromotion, ProductTag, ProductTile, SimilarProduct } from "./types";
 
 /** The max count of a product whose page doesn't send one. */
 const DEFAULT_MAX_COUNT = 99;
@@ -170,7 +159,8 @@ function extractPrices(mainContainer: PmlNode | null, mainUnit: PmlNode | null):
   const priceNodes = collectPriceNodes(mainContainer);
   const active = priceNodes.find((p) => !p.isCrossed);
   const crossed = priceNodes.find((p) => p.isCrossed);
-  const priceRanges = findPriceTiers(mainContainer) ?? collectTierTiles(mainContainer) ?? (Array.isArray(mainUnit?.price_ranges) && mainUnit!.price_ranges.length > 0 ? (mainUnit!.price_ranges as PriceRange[]) : null);
+  const priceRanges =
+    findPriceTiers(mainContainer) ?? collectTierTiles(mainContainer) ?? (Array.isArray(mainUnit?.price_ranges) && mainUnit!.price_ranges.length > 0 ? (mainUnit!.price_ranges as PriceRange[]) : null);
   const lowestTier = priceRanges ? [...priceRanges].sort((a, b) => a.from_quantity - b.from_quantity)[0] : undefined;
   const unitPrice = typeof mainUnit?.display_price === "number" ? mainUnit.display_price : undefined;
 
@@ -188,11 +178,7 @@ function findPriceTiers(node: unknown): PriceRange[] | null {
   walkNodes(node, (n) => {
     if (tiers) return;
     for (const value of Object.values(n)) {
-      if (
-        Array.isArray(value) &&
-        value.length > 0 &&
-        value.every((tier) => typeof tier?.price === "number" && typeof tier?.from_quantity === "number")
-      ) {
+      if (Array.isArray(value) && value.length > 0 && value.every((tier) => typeof tier?.price === "number" && typeof tier?.from_quantity === "number")) {
         tiers = value.map((tier) => ({ price: tier.price, from_quantity: tier.from_quantity }));
         return;
       }
@@ -295,10 +281,7 @@ function extractNutritionRows(page: unknown): NutritionRow[] {
  */
 function extractPromotion(labels: ProductBadge[], page: unknown): ProductPromotion | null {
   const labelTexts = new Set(labels.map((label) => label.text));
-  const tile = findNode(
-    page,
-    (n) => typeof n.promotion_id === "string" && typeof n.promotion_label === "string" && labelTexts.has(n.promotion_label)
-  );
+  const tile = findNode(page, (n) => typeof n.promotion_id === "string" && typeof n.promotion_label === "string" && labelTexts.has(n.promotion_label));
   return tile ? { id: tile.promotion_id as string, label: tile.promotion_label as string } : null;
 }
 
@@ -459,9 +442,7 @@ function readRscLabels(vm: RscRecord, copy: { organic: string; new: string }, co
     const text = asString(label.labelText);
     if (!text) continue;
     badges.push(
-      label.type === "PROMOBOX_PROMO"
-        ? { text, textColor: color("white"), backgroundColor: color("green") }
-        : { text, textColor: color("promoText"), backgroundColor: color("promoBackground") },
+      label.type === "PROMOBOX_PROMO" ? { text, textColor: color("white"), backgroundColor: color("green") } : { text, textColor: color("promoText"), backgroundColor: color("promoBackground") },
     );
   }
 
@@ -492,9 +473,7 @@ function readRscAllergens(allergies: RscRecord, color: (name: keyof typeof RSC_C
  */
 function readRscNutritionRows(content: RscRecord, per: string, stripe: string): NutritionRow[] {
   const unit = asString(content.unit);
-  const heading: PmlNutritionRow[] = unit
-    ? [{ label: `${per} ${unit.replace(new RegExp(`^${per}\\s+`, "i"), "")}`, value: null, isCategory: true, backgroundColor: null }]
-    : [];
+  const heading: PmlNutritionRow[] = unit ? [{ label: `${per} ${unit.replace(new RegExp(`^${per}\\s+`, "i"), "")}`, value: null, isCategory: true, backgroundColor: null }] : [];
   const rows = asArray(content.rows).flatMap((value, index): PmlNutritionRow[] => {
     const row = asRecord(value);
     const label = asString(row.label);

@@ -49,10 +49,12 @@ export function extractSearchResults(props: RscRecord): SearchResults {
     query: asString(props.searchQuery) ?? "",
     correctedQuery: asString(supermarket?.correctedSearchTerm) ?? asString(meals.correctedSearchTerm),
     products: supermarket ? extractProductResults(supermarket) : null,
-    recipes: asArray(meals.sections).flatMap((section) => asArray(asRecord(section).items)).flatMap((item) => {
-      const recipe = extractSearchRecipe(asRecord(item));
-      return recipe ? [recipe] : [];
-    }),
+    recipes: asArray(meals.sections)
+      .flatMap((section) => asArray(asRecord(section).items))
+      .flatMap((item) => {
+        const recipe = extractSearchRecipe(asRecord(item));
+        return recipe ? [recipe] : [];
+      }),
   };
 }
 
@@ -220,9 +222,7 @@ export function extractFusionSearchResults(page: unknown, query: string): Search
     query,
     correctedQuery: asString(analytics.query_corrected),
     products: state.selectedEntityType === "SELLING_UNIT" ? extractFusionProductResults(page, state) : null,
-    recipes: isRecipeSearch
-      ? extractRecipeTiles(page).map(({ id, name, subtitle, imageId, tags, cookingTimeMinutes }) => ({ id, name, subtitle, imageId, tags, cookingTimeMinutes }))
-      : [],
+    recipes: isRecipeSearch ? extractRecipeTiles(page).map(({ id, name, subtitle, imageId, tags, cookingTimeMinutes }) => ({ id, name, subtitle, imageId, tags, cookingTimeMinutes })) : [],
   };
 }
 

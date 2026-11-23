@@ -33,14 +33,7 @@ export class CheckoutIssueError extends Error {
   readonly blocking: boolean;
   readonly issueType: string;
 
-  constructor(details: {
-    code: string;
-    title: string;
-    issueMessage: string;
-    resolveKey: string;
-    blocking: boolean;
-    issueType: string;
-  }) {
+  constructor(details: { code: string; title: string; issueMessage: string; resolveKey: string; blocking: boolean; issueType: string }) {
     super(details.issueMessage || details.title || details.code);
     this.name = "CheckoutIssueError";
     this.code = details.code;

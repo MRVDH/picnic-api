@@ -47,7 +47,7 @@ export default class HttpClient {
     return {
       "User-Agent": "okhttp/4.9.0",
       "Content-Type": "application/json; charset=UTF-8",
-      "Accept-Language": this.countryCode === "DE" ? "de" : (this.countryCode === "FR" ? "fr" : "nl"),
+      "Accept-Language": this.countryCode === "DE" ? "de" : this.countryCode === "FR" ? "fr" : "nl",
       ...(this.authKey && { "x-picnic-auth": this.authKey }),
     };
   }
@@ -73,12 +73,7 @@ export default class HttpClient {
    * @param {TRequestData|null} [data=null] The request body, typically for POST or PUT requests.
    * @param {RequestOptions} [options] Picnic headers, extra headers, authentication, the body's content type and the response type.
    */
-  async sendRequest<TRequestData, TResponseData>(
-    method: "GET" | "POST" | "PUT" | "DELETE",
-    path: string,
-    data: TRequestData | null = null,
-    options: RequestOptions = {},
-  ): Promise<TResponseData> {
+  async sendRequest<TRequestData, TResponseData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data: TRequestData | null = null, options: RequestOptions = {}): Promise<TResponseData> {
     return (await this.sendRequestWithHeaders<TRequestData, TResponseData>(method, path, data, options)).data;
   }
 
@@ -104,12 +99,7 @@ export default class HttpClient {
   }
 
   /** Sends the request and throws for non-2xx responses; the body is left unread. */
-  private async fetchResponse<TRequestData>(
-    method: "GET" | "POST" | "PUT" | "DELETE",
-    path: string,
-    data: TRequestData | null,
-    options: RequestOptions,
-  ): Promise<Response> {
+  private async fetchResponse<TRequestData>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, data: TRequestData | null, options: RequestOptions): Promise<Response> {
     const isRawBody = data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
 
     // `path` may be an absolute URL (e.g. product images are served outside the API path), in

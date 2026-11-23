@@ -53,8 +53,11 @@ describe("extractProductDetails", () => {
       "s1",
       page({
         quantityRow: [badge("#(#ffffff)XL#(#ffffff)", "#268484"), dot, text("#(#333333)1.5 liter#(#333333)"), dot, text("€1.17/l")],
-        prices: [{ type: "PRICE", price: 175, color: "#B40117" }, { type: "PRICE", price: 195, isCrossed: true }],
-      })
+        prices: [
+          { type: "PRICE", price: 175, color: "#B40117" },
+          { type: "PRICE", price: 195, isCrossed: true },
+        ],
+      }),
     );
 
     expect(details).toMatchObject({
@@ -79,7 +82,7 @@ describe("extractProductDetails", () => {
       page({
         quantityRow: [text("410 gram"), dot, text("€10.46/kg"), dot, text("#(#333333)#(#5b534e)Diepvries#(#5b534e)#(#333333)")],
         prices: [{ type: "PRICE", price: 429 }],
-      })
+      }),
     );
 
     expect(details.unitPrice).toBe("€10.46/kg");
@@ -94,7 +97,7 @@ describe("extractProductDetails", () => {
       page({
         quantityRow: [text("1.5 liter"), dot, text(unitPriceExpression)],
         rest: [pml("alternatives-container", { type: "STACK", children: [{ props: { __ep1: { v1: similarProductTiers } } }] })],
-      })
+      }),
     );
 
     expect(details.unitPrice).toBe("€1.26/l");
@@ -117,12 +120,8 @@ describe("extractProductDetails", () => {
       "s1",
       page({
         quantityRow: [text("9 rollen")],
-        prices: [
-          tile("1 stuk", { price: 275, from_quantity: 1 }),
-          tile("Vanaf 2", { price: 269, from_quantity: 2 }),
-          tile("Vanaf 3", { price: 265, from_quantity: 3 }),
-        ],
-      })
+        prices: [tile("1 stuk", { price: 275, from_quantity: 1 }), tile("Vanaf 2", { price: 269, from_quantity: 2 }), tile("Vanaf 3", { price: 265, from_quantity: 3 })],
+      }),
     );
 
     expect(details.displayPrice).toBe(275);
@@ -141,7 +140,7 @@ describe("extractProductDetails", () => {
         quantityRow: [text("130 gram"), dot, text("€20.69/kg")],
         prices: [{ type: "PRICE", price: 269 }],
         rest: [{ id: "alternatives-container", children: [otherTile, { promotion_id: "p2", promotion_label: "25% korting" }] }],
-      })
+      }),
     );
 
     expect(details.priceRanges).toBeNull();
@@ -156,8 +155,11 @@ describe("extractProductDetails", () => {
         quantityRow: [text("130 gram")],
         prices: [{ type: "PRICE", price: 269 }],
         labels: [badge("Biologisch", "#ffffff"), badge("2+1 gratis", "#fbd92b")],
-        rest: [{ promotion_id: "p2", promotion_label: "25% korting" }, { promotion_id: "p1", promotion_label: "2+1 gratis" }],
-      })
+        rest: [
+          { promotion_id: "p2", promotion_label: "25% korting" },
+          { promotion_id: "p1", promotion_label: "2+1 gratis" },
+        ],
+      }),
     );
 
     expect(details.labels.map((label) => label.text)).toEqual(["Biologisch", "2+1 gratis"]);
@@ -200,7 +202,7 @@ describe("extractProductDetails", () => {
             ],
           },
         ],
-      })
+      }),
     );
 
     expect(details.highlightItems).toEqual([
